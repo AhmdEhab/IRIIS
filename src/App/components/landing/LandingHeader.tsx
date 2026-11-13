@@ -7,7 +7,9 @@ export const landingLinks = (ar: boolean) => [
   { href: '#about', label: ar ? 'عن IRIS' : 'About IRIS' },
   { href: '#how', label: ar ? 'إزاي بيشتغل' : 'How it works' },
   { href: '#features', label: ar ? 'المميزات' : 'Features' },
+  { href: '#experience', label: ar ? 'التعلّم باللعب' : 'Play' },
   { href: '#parents', label: ar ? 'للأهل' : 'For parents' },
+  { href: '#faq', label: ar ? 'أسئلة شائعة' : 'FAQ' },
 ];
 
 export function LanguageSwitch({ expanded = false }: { expanded?: boolean }) {
@@ -38,9 +40,17 @@ export function LandingHeader({ onLogin, onStart, isAuthenticated }: {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const [open, setOpen] = useState(false);
+  const [elevated, setElevated] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const links = landingLinks(ar);
+
+  useEffect(() => {
+    const onScroll = () => setElevated(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -68,7 +78,7 @@ export function LandingHeader({ onLogin, onStart, isAuthenticated }: {
   const login = () => { setOpen(false); onLogin(); };
 
   return (
-    <header className="lp-header" ref={headerRef}>
+    <header className={`lp-header${elevated ? ' lp-header--elevated' : ''}`} ref={headerRef}>
       <div className="lp-container lp-header-grid">
         <a className="lp-brand" href="/" aria-label={ar ? 'IRIS — الصفحة الرئيسية' : 'IRIS — home'}>
           <img src="/images/iris-logo-tight.png" width={726} height={509} alt="IRIS" />

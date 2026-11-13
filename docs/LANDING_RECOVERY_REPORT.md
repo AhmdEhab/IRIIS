@@ -86,3 +86,23 @@ QA re-run after the swap: build green, `npm test` 168 pass / 0 fail,
 `scripts/qa-landing.mjs` overflow=0 at all 15 widths in AR and EN (h1=1 each),
 `scripts/qa-landing-interactions.mjs` passes (CTA destinations, keyboard
 navigation, axe, static 3D fallback).
+
+## Redesign pass (same day) — playful premium EdTech direction
+
+Full art-direction rebuild per the client brief:
+
+- Hero: organic blob/sparkle background layer, mascot stage with dashed
+  rings and floating product-truthful mini-cards (letter أ/رabbit, counting,
+  progress), wave divider into the page; headline direction
+  "Every child has their own way to shine".
+- Motion system: CSS float/twinkle loops + Framer Motion whileInView
+  reveals with staggered delays, all gated on prefers-reduced-motion
+  (CSS media queries + useReducedMotion in components).
+- New sections: Belief cards, animated 4-step journey arc, interactive
+  PersonalizedPaths comparison (illustrative Noor/Reem ladders, clearly
+  labelled), LearningAreas bento from the real MasterCurriculum categories,
+  honest FAQ accordion, decorated final CTA.
+- Nav extended (Home/Play/FAQ), sticky header with scroll elevation.
+- Contrast: final-CTA eyebrow uses yellow-wash (AA on brand blue); axe clean.
+- Verified: build + 168/168 engine tests + 30/30 viewport/language overflow
+  checks + full interaction/keyboard/WCAG suite green after every step.
