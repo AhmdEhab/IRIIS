@@ -137,7 +137,7 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
           <div className="lp-belief-layout">
             <Reveal className="lp-belief-head">
               <p className="lp-eyebrow">{text('أهلًا بيك في IRIS', 'Meet IRIS')}</p>
-              <h2 id="about-title">{text('مش كل الأطفال بيتعلّموا بنفس الطريقة.', 'Children do not all learn the same way.')}</h2>
+              <h2 id="about-title">{ar ? <>مش كل الأطفال بيتعلّموا <mark>بنفس الطريقة</mark>.</> : <>Children do not all learn the <mark>same way</mark>.</>}</h2>
               <p className="lp-lead">{text(
                 'لو الطريقة واحدة، بعض الأطفال هيقفوا عند أول خطوة. IRIS بتبدأ من الطفل نفسه — مهاراته، اهتماماته، وسرعته.',
                 'If every child is taught one way, some stop at the very first step. IRIS starts from the child — their skills, interests and pace.',
