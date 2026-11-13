@@ -252,6 +252,48 @@ export function finaliseLadderAssessment({ calibration, probe, accommodations = 
   };
 }
 
+/**
+ * Stage 2b: rebuild a finished assessment from its stored record.
+ *
+ * The GET /api/assessments/:childId rows carry every input the scoring layer
+ * consumed (probe results, calibration entry rungs, ledger estimates), so the
+ * snapshot after a reload is *derived by the same engine* — not a cached
+ * picture. Where a field is genuinely absent from the record (per-track stop
+ * reasons) we degrade honestly: indicator VALUES are unaffected because they
+ * come from the evidence rows themselves; only the per-indicator stop flag is
+ * omitted, and the record's global data_quality_flags still describe it.
+ *
+ * @param {object} record parsed row from GET /api/assessments/:childId
+ * @returns assessment object shaped like finaliseLadderAssessment's output
+ */
+export function fromAssessmentRecord(record) {
+  const itemResults = record.item_results ?? {};
+  const results = Array.isArray(itemResults.probe) ? itemResults.probe : [];
+  const probeState = { results, tracks: {}, finished: true };
+  const indicators = scoreProbe(probeState);
+  const profile = strandProfile(indicators);
+  const priorities = learningPriorities(indicators, profile);
+  const domains = domainSummary(indicators);
+  const estimates = record.skill_estimates ?? {};
+  const ledger = { ...emptyLedger(), estimates };
+  return {
+    calibration: itemResults.calibration ?? {},
+    probe: probeState,
+    stops: {},
+    indicators,
+    profile,
+    priorities,
+    domains,
+    ledger,
+    accommodations_used: record.accommodations_used ?? [],
+    data_quality_flags: record.data_quality_flags ?? [],
+    items_presented: results.reduce((n, r) => n + (r.total ?? 0), 0),
+    status: record.status ?? 'COMPLETE',
+    record_id: record.id ?? null,
+    restored: true,
+  };
+}
+
 /** Stage 3: what the child should practise next, and the concrete items. */
 export function planLadderContent({
   assessment, accommodations = [], recentTemplates = [], interestTheme = null, seed = 1,

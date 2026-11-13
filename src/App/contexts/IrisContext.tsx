@@ -6,7 +6,7 @@
  * The only place the diagnosis is used is accommodationDefaults(), which
  * returns access supports (extra time / audio repeat / reduced animation).
  */
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   runAssessment, planGoals, nextActivity, completeSession, buildProgress,
   accommodationDefaults,
@@ -14,7 +14,7 @@ import {
   ladderCalibrationProbes, runLadderAssessment, planLadderContent,
   ladderSnapshot, recordPracticeSession, toAssessmentRecord,
   runCalibration, startProbe, nextProbe, recordProbe, finaliseLadderAssessment,
-} from '../../iris/journey.js';
+ fromAssessmentRecord} from '../../iris/journey.js';
 import { API_URL, authHeaders } from '../config';
 import { TASKS } from '../../iris/engines/assessment.js';
 import { GOAL_BY_ID } from '../../iris/engines/goals.js';
@@ -330,6 +330,34 @@ function useIrisState() {
    * and finishes through the SAME finalise step — so the interactive result
    * object is identical to the tested one rather than a parallel shape.
    */
+  /**
+   * Reload the latest complete LADDER assessment from the server and re-derive
+   * the snapshot with the engine. Fixes the amnesia where a finished assessment
+   * vanished on the next login (the record existed; nothing read it back).
+   */
+  const loadLadderFromServer = useCallback(async (id?: number | null) => {
+    const childId = id ?? childDbId;
+    if (!childId) return false;
+    try {
+      const res = await fetch(`${API_URL}/assessments/${childId}`, { headers: authHeaders() });
+      if (!res.ok) return false;
+      const rows = await res.json();
+      const latest = (Array.isArray(rows) ? rows : [])
+        .filter((r: any) => (r.assessment_kind ?? 'LADDER') === 'LADDER' && r.status === 'COMPLETE')
+        .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0];
+      if (!latest) return false;
+      const assessment = fromAssessmentRecord(latest);
+      const plan = planLadderContent({ assessment, accommodations: assessment.accommodations_used });
+      setLadder(assessment);
+      setLadderPlan(plan);
+      setLadderLedger(assessment.ledger);
+      setLadderSaveError(null);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [childDbId]);
+
   const beginLadderProbe = useCallback((calibrationResponses: any[]) => {
     const calibration = runCalibration({ ageYears: childAgeYears, responses: calibrationResponses });
     const state = startProbe(calibration);
@@ -529,7 +557,7 @@ function useIrisState() {
     startChild, finishAssessment, loadNextActivity, submitSession,
     // Phase 5
     childAgeYears, getCalibrationProbes, runLadder, recordLadderPractice,
-    beginLadderProbe, submitLadderVisit, currentVisit, probeState,
+    beginLadderProbe, submitLadderVisit, currentVisit, probeState, loadLadderFromServer,
     ladder, ladderPlan, ladderLedger, learningSnapshot, ladderSaveError,
     // The adaptive decision trace — what changed, why, and on what evidence.
     lastAdaptation, practiceSaveError, childDbId, setChildDbId,

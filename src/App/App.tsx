@@ -109,7 +109,8 @@ function AppContent() {
         if (listed.ok) {
           const rows = await listed.json();
           const match = Array.isArray(rows) && rows.find((r: any) => r.displayName === childProfile.name);
-          if (match && !cancelled) { iris.setChildDbId(match.id); return; }
+          if (match && !cancelled) { iris.setChildDbId(match.id);
+        iris.loadLadderFromServer(match.id); return; }
         }
         const created = await fetch(`${API_URL}/children`, {
           method: 'POST',
