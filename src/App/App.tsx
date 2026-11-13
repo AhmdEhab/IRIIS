@@ -359,8 +359,8 @@ function AppContent() {
        the root itself was pure white, so the identity depended on a purely
        decorative component continuing to exist. Now the ground is real. */
     <MotionConfig reducedMotion={appMotionReduced ? 'always' : 'user'}>
-    <div className="size-full overflow-hidden bg-ground relative">
-      <PlayfulBackground />
+    <div className={`${currentScreen === 'marketing' ? 'w-full min-h-screen overflow-visible' : 'size-full overflow-hidden'} bg-ground relative`}>
+      {currentScreen !== 'marketing' && <PlayfulBackground />}
       {/* GlobalControls used to be mounted here: a glassmorphism pill fixed at
           top-4 right-4 z-[100] above every screen. It floated over whatever
           each screen put in that corner, which is where audit defects D1

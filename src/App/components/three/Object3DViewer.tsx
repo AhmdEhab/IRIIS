@@ -68,7 +68,7 @@ export function supportsWebGL(): boolean {
     const gl = (canvas.getContext('webgl2') ||
       canvas.getContext('webgl') ||
       canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
-    webglProbe = !!gl && typeof gl.getParameter === 'function' && !gl.getParameter(gl.IS_CONTEXT_LOST);
+    webglProbe = !!gl && typeof gl.isContextLost === 'function' && !gl.isContextLost();
     // Release the probe context: browsers cap live contexts, and a low-end
     // Android WebView hits that cap with as little as this plus the real one.
     gl?.getExtension('WEBGL_lose_context')?.loseContext();
@@ -187,7 +187,20 @@ function FittedModel({ src, onReady }: { src: string; onReady: () => void }) {
   const pivot = useMemo(() => {
     const group = new THREE.Group();
     group.name = 'iris-model-pivot';
-    const root = gltf.scene;
+    // useGLTF caches the authored scene. Reparenting that cached scene makes
+    // a later viewer measure the previous pivot's world transforms; disposing
+    // its shared geometry also invalidates the next use. Own a private copy
+    // of the scene and GPU resources so returning to an object frames it just
+    // like the first visit and cleanup cannot damage the loader's cache.
+    const root = gltf.scene.clone(true);
+    root.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (!(mesh as { isMesh?: boolean }).isMesh) return;
+      mesh.geometry = mesh.geometry.clone();
+      mesh.material = Array.isArray(mesh.material)
+        ? mesh.material.map((material) => material.clone())
+        : mesh.material.clone();
+    });
     const box = new THREE.Box3().setFromObject(root);
     const size = box.getSize(new THREE.Vector3());
     const centre = box.getCenter(new THREE.Vector3());
