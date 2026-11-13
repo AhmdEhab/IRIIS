@@ -609,3 +609,56 @@
   .ir-auth-card, .ir-auth-buddy, .ir-auth-spark, .ir-auth-blob { animation: none; }
   .ir-auth-spin { animation: none; }
 }
+
+/* ── Kid-friendly fields: sticker labels + pastel cycle ──────────────── */
+.ir-auth-field { position: relative; }
+.ir-auth-field > label, .ir-auth-label {
+  width: fit-content;
+  align-self: flex-start;
+  margin-inline-start: 10px;
+  margin-block-end: 8px;
+  padding: 3px 14px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  transform: rotate(-1.2deg);
+  box-shadow: var(--shadow-sm);
+  white-space: normal;
+  max-width: calc(100% - 6px);
+  border-radius: 18px;
+  line-height: 1.5;
+}
+.ir-auth-label--block { margin-block-end: 10px; background: var(--brand-purple-wash); color: var(--brand-purple-ink); border-color: color-mix(in srgb, var(--brand-purple) 35%, transparent); }
+.ir-auth-label--block::before { content: '✨'; font-size: 14px; margin-inline-end: 6px; }
+/* pastel rotation matching the landing palette */
+.ir-auth-field:nth-child(5n+1) > label { background: var(--brand-yellow-wash); color: var(--brand-yellow-ink); border-color: color-mix(in srgb, var(--brand-yellow) 55%, transparent); }
+.ir-auth-field:nth-child(5n+2) > label { background: var(--brand-blue-wash); color: var(--brand-blue-ink); border-color: color-mix(in srgb, var(--brand-blue) 35%, transparent); }
+.ir-auth-field:nth-child(5n+3) > label { background: var(--brand-green-wash); color: var(--brand-green); border-color: color-mix(in srgb, var(--brand-green) 40%, transparent); }
+.ir-auth-field:nth-child(5n+4) > label { background: var(--brand-coral-wash); color: var(--brand-coral-ink); border-color: color-mix(in srgb, var(--brand-coral) 40%, transparent); }
+.ir-auth-field:nth-child(5n+5) > label { background: var(--brand-purple-wash); color: var(--brand-purple-ink); border-color: color-mix(in srgb, var(--brand-purple) 35%, transparent); }
+/* playful mini-icons inside labels (decorative) */
+.ir-auth-field > label::before { font-size: 15px; margin-inline-end: 6px; }
+.ir-auth-field:has(input[id$="email"]) > label::before { content: '✉️'; }
+.ir-auth-field:has(input[id$="password"]) > label::before { content: '🔒'; }
+.ir-auth-field:has(input[id="reg-child-name"]) > label::before { content: '🌟'; }
+.ir-auth-field:has(input[id="reg-age"]) > label::before { content: '🎂'; }
+.ir-auth-field:has(input[id="reg-dob"]) > label::before { content: '🎈'; }
+.ir-auth-field:has(input[id="reg-country"]) > label::before { content: '🌍'; }
+.ir-auth-field:has(input[id="reg-city"]) > label::before { content: '🏡'; }
+.ir-auth-field:has(input[id="reg-mother-name"]) > label::before { content: '👩'; }
+.ir-auth-field:has(input[id="reg-mother-job"]) > label::before { content: '💼'; }
+.ir-auth-field:has(input[id="reg-father-name"]) > label::before { content: '👨'; }
+.ir-auth-field:has(input[id="reg-father-job"]) > label::before { content: '💼'; }
+.ir-auth-field:has(input[id="reg-phone"]) > label::before { content: '📞'; }
+.ir-auth-field:has(input[id="login-email"]) > label::before { content: '✉️'; }
+.ir-auth-field:has(input[id="login-password"]) > label::before { content: '🔒'; }
+/* input gets a soft tint + pastel border, sticker-like */
+.ir-auth-field:nth-child(5n+1) > .ir-auth-input { background: color-mix(in srgb, var(--brand-yellow) 8%, var(--surface)); border-color: color-mix(in srgb, var(--brand-yellow) 45%, var(--border-soft)); }
+.ir-auth-field:nth-child(5n+2) > .ir-auth-input { background: color-mix(in srgb, var(--brand-blue) 7%, var(--surface)); border-color: color-mix(in srgb, var(--brand-blue) 26%, var(--border-soft)); }
+.ir-auth-field:nth-child(5n+3) > .ir-auth-input { background: color-mix(in srgb, var(--brand-green) 7%, var(--surface)); border-color: color-mix(in srgb, var(--brand-green) 30%, var(--border-soft)); }
+.ir-auth-field:nth-child(5n+4) > .ir-auth-input { background: color-mix(in srgb, var(--brand-coral) 7%, var(--surface)); border-color: color-mix(in srgb, var(--brand-coral) 30%, var(--border-soft)); }
+.ir-auth-field:nth-child(5n+5) > .ir-auth-input { background: color-mix(in srgb, var(--brand-purple) 7%, var(--surface)); border-color: color-mix(in srgb, var(--brand-purple) 26%, var(--border-soft)); }
+.ir-auth-input:focus { border-radius: 22px; }
+@media (prefers-reduced-motion: no-preference) {
+  .ir-auth-field > label { transition: transform 180ms ease; }
+  .ir-auth-field:hover > label { transform: rotate(1deg) scale(1.04); }
+}
