@@ -13,7 +13,6 @@ import {
   Button,
   Field,
   ErrorState,
-  inputClass,
 } from './iris/ui/brand';
 import { ChromeActions } from './iris/ui/ChromeActions';
 
@@ -114,7 +113,7 @@ export function LoginScreen() {
           </p>
         </div>
 
-        <div className="bg-surface border-2 border-hairline rounded-brand-xl shadow-brand p-5 sm:p-6 space-y-5">
+        <div className="bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10 p-6 space-y-6">
           <Field label={ar ? 'البريد الإلكتروني' : 'Email'} id="login-email">
             <input
               type="email"
@@ -124,7 +123,7 @@ export function LoginScreen() {
                 speak(ar ? 'البريد الإلكتروني' : 'Email', language);
                 playSound('tap');
               }}
-              className={inputClass}
+              className="w-full h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface text-ink placeholder:text-ink-muted transition-colors"
               placeholder="example@email.com"
               autoComplete="email"
             />
@@ -139,7 +138,7 @@ export function LoginScreen() {
                 speak(ar ? 'كلمة المرور' : 'Password', language);
                 playSound('tap');
               }}
-              className={inputClass}
+              className="w-full h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface text-ink placeholder:text-ink-muted transition-colors"
               placeholder="••••••••"
               autoComplete="current-password"
             />
@@ -185,7 +184,7 @@ export function LoginScreen() {
                 playSound('tap');
                 navigateTo('registration');
               }}
-              className="text-brand-blue-ink font-bold underline underline-offset-4 hover:no-underline"
+              className="text-brand-blue font-bold underline underline-offset-4 hover:no-underline"
             >
               {ar ? 'سجل الآن' : 'Register now'}
             </button>

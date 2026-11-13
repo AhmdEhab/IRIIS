@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { authMessage } from '../authMessages';
-import { ScreenFrame, TopBar, DisplayTitle, ProgressTrack } from './iris/ui/brand';
+import { ScreenFrame, TopBar, DisplayTitle } from './iris/ui/brand';
 import { ChromeActions } from './iris/ui/ChromeActions';
 
 export function RegistrationScreen() {
@@ -149,7 +149,36 @@ export function RegistrationScreen() {
             </span>
             <span dir="ltr" className="t-small text-ink tabular-nums">{step} / 3</span>
           </div>
-          <ProgressTrack total={3} done={step} tone="blue" label={`${step} / 3`} />
+          <div
+            className="flex items-stretch justify-between gap-2"
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={3}
+            aria-valuenow={step}
+            aria-label={`${step} / 3`}
+          >
+            {([t.childInfo, t.familyInfo, t.conditionSelection] as string[]).map((label, i) => {
+              const n = i + 1;
+              const state = step > n ? 'done' : step === n ? 'active' : 'upcoming';
+              return (
+                <span
+                  key={label}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+                  className={
+                    'flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-2 py-2.5 t-small font-bold text-center ' +
+                    (state === 'active'
+                      ? 'bg-brand-blue text-surface'
+                      : state === 'done'
+                        ? 'bg-brand-green text-surface'
+                        : 'bg-brand-blue/10 text-brand-blue')
+                  }
+                >
+                  {state === 'done' ? <Check className="size-4 shrink-0" /> : <span className="tabular-nums">{n}</span>}
+                  <span className="truncate">{label}</span>
+                </span>
+              );
+            })}
+          </div>
         </div>
 
         <AnimatePresence mode="wait">
@@ -161,7 +190,7 @@ export function RegistrationScreen() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
             >
-              <Card className="p-5 sm:p-6 space-y-8 rounded-brand-xl shadow-brand border-2 border-hairline bg-surface">
+              <Card className="p-5 sm:p-6 space-y-8 rounded-brand-lg shadow-brand border border-brand-blue/10 bg-surface">
                 <div className="flex items-center gap-4 mb-2">
                   <div className="p-4 rounded-brand-lg bg-brand-purple-wash text-brand-purple-ink">
                     <Baby className="size-10" />
@@ -176,7 +205,7 @@ export function RegistrationScreen() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline focus:border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                       placeholder="hero@kingdom.com"
                     />
                   </div>
@@ -187,7 +216,7 @@ export function RegistrationScreen() {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline focus:border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                       placeholder="••••••••"
                     />
                   </div>
@@ -197,7 +226,7 @@ export function RegistrationScreen() {
                     <Input
                       value={formData.name || ''}
                       onChange={(e) => updateField('name', e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline focus:border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                       placeholder={language === 'ar' ? 'اسم طفلنا البطل' : "Our Hero's Name"}
                     />
                   </div>
@@ -209,7 +238,7 @@ export function RegistrationScreen() {
                         type="number"
                         value={formData.age || ''}
                         onChange={(e) => updateField('age', e.target.value)}
-                        className="h-16 text-xl rounded-brand border-4 border-hairline font-bold"
+                        className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                       />
                     </div>
                     <div className="space-y-3">
@@ -218,7 +247,7 @@ export function RegistrationScreen() {
                         type="date"
                         value={formData.dateOfBirth}
                         onChange={(e) => updateField('dateOfBirth', e.target.value)}
-                        className="h-16 text-xl rounded-brand border-4 border-hairline font-bold"
+                        className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                       />
                     </div>
                   </div>
@@ -229,14 +258,14 @@ export function RegistrationScreen() {
                       <Button
                         variant={formData.gender === 'male' ? 'default' : 'outline'}
                         onClick={() => { updateField('gender', 'male'); playSound('tap'); }}
-                        className={`h-20 text-2xl font-black rounded-brand border-4 transition-all duration-200 ${formData.gender === 'male' ? 'bg-brand-blue border-brand-blue scale-105 shadow-brand' : 'bg-surface border-hairline text-ink-muted hover:bg-ground-tint active:scale-95'}`}
+                        className={`h-20 text-2xl font-black rounded-brand border-4 transition-all duration-200 ${formData.gender === 'male' ? 'bg-brand-blue border-brand-blue text-surface scale-105 shadow-brand' : 'bg-surface border-hairline text-ink-muted hover:bg-ground-tint active:scale-95'}`}
                       >
                         👦 {t.male}
                       </Button>
                       <Button
                         variant={formData.gender === 'female' ? 'default' : 'outline'}
                         onClick={() => { updateField('gender', 'female'); playSound('tap'); }}
-                        className={`h-20 text-2xl font-black rounded-brand border-4 transition-all duration-200 ${formData.gender === 'female' ? 'bg-brand-coral border-brand-coral scale-105 shadow-brand' : 'bg-surface border-hairline text-ink-muted hover:bg-ground-tint active:scale-95'}`}
+                        className={`h-20 text-2xl font-black rounded-brand border-4 transition-all duration-200 ${formData.gender === 'female' ? 'bg-brand-coral-solid border-brand-coral-solid text-surface scale-105 shadow-brand' : 'bg-surface border-hairline text-ink-muted hover:bg-ground-tint active:scale-95'}`}
                       >
                         👧 {t.female}
                       </Button>
@@ -255,7 +284,7 @@ export function RegistrationScreen() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
             >
-              <Card className="p-5 sm:p-6 space-y-10 rounded-brand-xl shadow-brand border-2 border-hairline bg-surface">
+              <Card className="p-5 sm:p-6 space-y-10 rounded-brand-lg shadow-brand border border-brand-blue/10 bg-surface">
                 <div className="flex items-center gap-4 mb-2">
                   <div className="p-4 rounded-brand-lg bg-brand-blue-wash text-brand-blue-ink">
                     <Users className="size-10" />
@@ -269,7 +298,7 @@ export function RegistrationScreen() {
                     <Input
                       value={formData.country}
                       onChange={(e) => updateField('country', e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                     />
                   </div>
                   <div className="space-y-3">
@@ -277,7 +306,7 @@ export function RegistrationScreen() {
                     <Input
                       value={formData.city}
                       onChange={(e) => updateField('city', e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                     />
                   </div>
 
@@ -286,7 +315,7 @@ export function RegistrationScreen() {
                     <Input
                       value={formData.motherName}
                       onChange={(e) => updateField('motherName', e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                     />
                   </div>
                   <div className="space-y-3">
@@ -294,7 +323,7 @@ export function RegistrationScreen() {
                     <Input
                       value={formData.motherJob}
                       onChange={(e) => updateField('motherJob', e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                     />
                   </div>
 
@@ -303,7 +332,7 @@ export function RegistrationScreen() {
                     <Input
                       value={formData.fatherName}
                       onChange={(e) => updateField('fatherName', e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                     />
                   </div>
                   <div className="space-y-3">
@@ -311,7 +340,7 @@ export function RegistrationScreen() {
                     <Input
                       value={formData.fatherJob}
                       onChange={(e) => updateField('fatherJob', e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline font-bold"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                     />
                   </div>
 
@@ -321,7 +350,7 @@ export function RegistrationScreen() {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => updateField('phone', e.target.value)}
-                      className="h-16 text-xl rounded-brand border-4 border-hairline font-bold text-center tracking-widest"
+                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 text-center tracking-widest"
                       placeholder="+20 123 456 7890"
                     />
                   </div>
@@ -338,7 +367,7 @@ export function RegistrationScreen() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
             >
-              <Card className="p-5 sm:p-6 space-y-10 rounded-brand-xl shadow-brand border-2 border-hairline bg-surface">
+              <Card className="p-5 sm:p-6 space-y-10 rounded-brand-lg shadow-brand border border-brand-blue/10 bg-surface">
                 <div className="flex items-center gap-4 mb-2 text-center justify-center">
                   <div className="p-4 rounded-brand-lg bg-brand-yellow-wash text-brand-yellow-ink">
                     <Brain className="size-10" />
@@ -417,7 +446,7 @@ export function RegistrationScreen() {
             onClick={handlePrevious}
             variant="outline"
             size="lg"
-            className={`h-20 text-2xl font-black rounded-brand border-4 shadow-brand transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'bg-surface hover:bg-ground-tint'}`}
+            className={`h-16 px-6 text-xl font-bold rounded-full border-2 shadow-brand transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'bg-surface border-hairline text-ink hover:bg-ground-tint'}`}
           >
             {dir === 'rtl' ? <ChevronRight className="size-8 me-2" /> : <ChevronLeft className="size-8 me-2" />}
             {t.previous}
@@ -426,7 +455,7 @@ export function RegistrationScreen() {
           <Button
             onClick={handleNext}
             size="lg"
-            className={`flex-1 h-20 text-3xl font-black rounded-brand shadow-brand-lg transition-all duration-200 active:scale-95 hover:scale-[1.02] ${step === 3 ? 'bg-brand-green' : 'bg-brand-blue'}`}
+            className={`flex-1 h-16 px-6 text-xl font-bold rounded-full shadow-brand transition-all duration-200 active:scale-95 hover:scale-[1.02] ${step === 3 ? 'bg-brand-green-solid text-surface' : 'bg-brand-blue text-surface'}`}
             disabled={
               isSubmitting ||
               (step === 1 && (!formData.name || !formData.age || !formData.gender || !email || !password)) ||

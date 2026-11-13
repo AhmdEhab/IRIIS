@@ -63,7 +63,7 @@ export function ParentSettingsScreen() {
     };
 
     return (
-        <div className="min-h-screen bg-brand-blue-wash via-white p-4">
+        <div className="min-h-screen bg-ground p-4">
             <div className="max-w-4xl mx-auto py-8">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
@@ -71,7 +71,7 @@ export function ParentSettingsScreen() {
                         onClick={handleBack}
                         variant="outline"
                         size="lg"
-                        className="bg-surface shadow-brand"
+                        className="h-14 px-6 rounded-full text-lg font-bold bg-surface border-2 border-hairline text-ink hover:bg-ground-tint shadow-brand"
                     >
                         <ArrowLeft className="size-5 me-2" />
                         {t.back}
@@ -85,7 +85,7 @@ export function ParentSettingsScreen() {
                         onClick={handleSave}
                         disabled={isSaving}
                         size="lg"
-                        className="bg-brand-green hover:bg-brand-green shadow-brand"
+                        className="h-14 px-6 rounded-full text-lg font-bold bg-brand-green-solid hover:bg-brand-green-solid text-surface shadow-brand"
                     >
                         {isSaving ? '...' : <Save className="size-5 me-2" />}
                         {t.save}
@@ -94,23 +94,23 @@ export function ParentSettingsScreen() {
 
                 <div className="grid gap-8">
                     {/* Section: Language */}
-                    <Card className="p-6">
+                    <Card className="p-6 bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10">
                         <div className="flex items-center gap-3 mb-6">
                             <Globe className="size-6 text-brand-blue-ink" />
-                            <h2 className="text-2xl font-bold">{language === 'ar' ? 'اللغة' : 'Language'}</h2>
+                            <h2 className="t-heading text-ink">{language === 'ar' ? 'اللغة' : 'Language'}</h2>
                         </div>
                         <div className="flex gap-4">
                             <Button
                                 onClick={() => { setLanguage('ar'); playSound('tap'); }}
                                 variant={language === 'ar' ? 'default' : 'outline'}
-                                className="flex-1 h-16 text-xl rounded-brand"
+                                className="flex-1 h-16 text-xl font-bold rounded-full"
                             >
                                 العربية 🇪🇬
                             </Button>
                             <Button
                                 onClick={() => { setLanguage('en'); playSound('tap'); }}
                                 variant={language === 'en' ? 'default' : 'outline'}
-                                className="flex-1 h-16 text-xl rounded-brand"
+                                className="flex-1 h-16 text-xl font-bold rounded-full"
                             >
                                 English 🇺🇸
                             </Button>
@@ -121,10 +121,10 @@ export function ParentSettingsScreen() {
                         never chosen from a diagnosis — it is the parent's view
                         of what helps their child; locks override the automatic
                         performance loop in AppContext). */}
-                    <Card className="p-6">
+                    <Card className="p-6 bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10">
                         <div className="flex items-center gap-3 mb-2">
                             <CheckCircle2 className="size-6 text-brand-blue-ink" />
-                            <h2 className="text-2xl font-bold">{language === 'ar' ? 'الراحة والحساسية' : 'Comfort & Sensory'}</h2>
+                            <h2 className="t-heading text-ink">{language === 'ar' ? 'الراحة والحساسية' : 'Comfort & Sensory'}</h2>
                         </div>
                         <p className="text-sm text-ink-muted mb-6">
                             {language === 'ar'
@@ -142,7 +142,7 @@ export function ParentSettingsScreen() {
                                     key={val}
                                     onClick={() => { setMotionPreference(val); playSound('tap'); }}
                                     variant={motionPreference === val ? 'default' : 'outline'}
-                                    className="flex-1 h-14 text-lg rounded-brand"
+                                    className="flex-1 h-14 text-lg font-bold rounded-full"
                                 >
                                     {label}
                                 </Button>
@@ -166,10 +166,10 @@ export function ParentSettingsScreen() {
                     </Card>
 
                     {/* Section: Profile */}
-                    <Card className="p-6">
+                    <Card className="p-6 bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10">
                         <div className="flex items-center gap-3 mb-6">
                             <User className="size-6 text-brand-purple-ink" />
-                            <h2 className="text-2xl font-bold">{t.childInfo}</h2>
+                            <h2 className="t-heading text-ink">{t.childInfo}</h2>
                         </div>
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
@@ -177,7 +177,7 @@ export function ParentSettingsScreen() {
                                 <Input
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    className="bg-surface-sunk"
+                                    className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface-sunk"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -186,7 +186,7 @@ export function ParentSettingsScreen() {
                                     type="number"
                                     value={formData.age}
                                     onChange={e => setFormData({ ...formData, age: e.target.value })}
-                                    className="bg-surface-sunk"
+                                    className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface-sunk"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -194,7 +194,7 @@ export function ParentSettingsScreen() {
                                 <Input
                                     value={formData.motherName}
                                     onChange={e => setFormData({ ...formData, motherName: e.target.value })}
-                                    className="bg-surface-sunk"
+                                    className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface-sunk"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -202,17 +202,17 @@ export function ParentSettingsScreen() {
                                 <Input
                                     value={formData.fatherName}
                                     onChange={e => setFormData({ ...formData, fatherName: e.target.value })}
-                                    className="bg-surface-sunk"
+                                    className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface-sunk"
                                 />
                             </div>
                         </div>
                     </Card>
 
                     {/* Section: Security & Danger Zone */}
-                    <Card className="p-6 border-brand-coral bg-brand-coral-wash/30">
+                    <Card className="p-6 rounded-brand-lg shadow-brand border-2 border-brand-coral bg-brand-coral-wash/30">
                         <div className="flex items-center gap-3 mb-6">
                             <Shield className="size-6 text-brand-coral-ink" />
-                            <h2 className="text-2xl font-bold text-brand-coral-ink">
+                            <h2 className="t-heading text-brand-coral-ink">
  {language === 'ar' ? 'إدارة البيانات' : 'Data Management'}
  </h2>
                         </div>
@@ -227,6 +227,7 @@ export function ParentSettingsScreen() {
                             </div>
                             <Button
                                 variant="destructive"
+                                className="h-14 px-6 rounded-full text-lg font-bold"
                                 onClick={() => setShowConfirmReset(true)}
                             >
                                 <RotateCcw className="size-4 me-2" />
@@ -248,7 +249,7 @@ export function ParentSettingsScreen() {
                         <div className="size-20 bg-brand-coral-wash text-brand-coral-ink rounded-full flex items-center justify-center mx-auto mb-6">
                             <Trash2 className="size-10" />
                         </div>
-                        <h2 className="text-2xl font-bold mb-4">
+                        <h2 className="t-heading text-ink mb-4">
  {language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
  </h2>
                         <p className="text-ink-muted mb-8">
@@ -259,14 +260,14 @@ export function ParentSettingsScreen() {
                         <div className="flex gap-4">
                             <Button
                                 variant="outline"
-                                className="flex-1 h-12 rounded-brand-sm"
+                                className="flex-1 h-14 rounded-full font-bold"
                                 onClick={() => setShowConfirmReset(false)}
                             >
                                 {t.cancel}
                             </Button>
                             <Button
                                 variant="destructive"
-                                className="flex-1 h-12 rounded-brand-sm"
+                                className="flex-1 h-14 rounded-full font-bold"
                                 onClick={handleReset}
                             >
                                 {language === 'ar' ? 'نعم، تصفير' : 'Yes, Reset'}

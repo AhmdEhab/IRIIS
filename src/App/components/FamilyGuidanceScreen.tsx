@@ -145,7 +145,7 @@ export function FamilyGuidanceScreen() {
     const Icon = categoryInfo?.icon || Book;
 
     return (
-      <div className="min-h-screen bg-brand-blue-wash via-white p-4">
+      <div className="min-h-screen bg-ground p-4">
         <div className="max-w-4xl mx-auto py-8">
           <Button
             onClick={() => {
@@ -154,7 +154,7 @@ export function FamilyGuidanceScreen() {
             }}
             variant="outline"
             size="lg"
-            className="mb-6"
+            className="mb-6 h-14 px-6 rounded-full text-lg font-bold bg-surface border-2 border-hairline text-ink hover:bg-ground-tint shadow-brand"
           >
             <ArrowLeft className="size-5 me-2" />
             {t.back}
@@ -164,13 +164,13 @@ export function FamilyGuidanceScreen() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
           >
-            <Card className="p-8">
+            <Card className="p-8 bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10">
               <div className="flex items-start gap-4 mb-6">
                 <div className={`p-4 rounded-full bg-brand-purple-wash`}>
                   <Icon className={`size-8 ${categoryInfo?.color}`} />
                 </div>
                 <div className="flex-1">
-                  <h1 className="t-title mb-2">{article.title}</h1>
+                  <h1 className="t-title text-ink mb-2">{article.title}</h1>
                   <p className="text-ink-muted">{article.summary}</p>
                 </div>
               </div>
@@ -182,7 +182,7 @@ export function FamilyGuidanceScreen() {
               <Button
                 onClick={() => handleReadAloud(article)}
                 size="lg"
-                className="w-full bg-brand-purple hover:bg-brand-purple"
+                className="w-full h-14 rounded-full text-xl font-bold bg-brand-purple hover:bg-brand-purple text-surface shadow-brand"
               >
                 <Volume2 className="size-6 me-2" />
                 {language === 'ar' ? 'استماع للمقال' : 'Listen to Article'}
@@ -195,7 +195,7 @@ export function FamilyGuidanceScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-blue-wash via-white p-4">
+    <div className="min-h-screen bg-ground p-4">
       <div className="max-w-7xl mx-auto py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -203,6 +203,7 @@ export function FamilyGuidanceScreen() {
             onClick={handleBack}
             variant="outline"
             size="lg"
+            className="h-14 px-6 rounded-full text-lg font-bold bg-surface border-2 border-hairline text-ink hover:bg-ground-tint shadow-brand"
           >
             <ArrowLeft className="size-5 me-2" />
             {t.back}
@@ -217,7 +218,7 @@ export function FamilyGuidanceScreen() {
 
         {/* Tabs */}
         <Tabs defaultValue="health" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8 rounded-brand-lg">
             {categories.map((category) => {
               const Icon = category.icon;
               return (
@@ -248,7 +249,7 @@ export function FamilyGuidanceScreen() {
                         transition={{ delay: index * 0.1 }}
                       >
                         <Card
-                          className="p-6 hover:shadow-brand transition-shadow cursor-pointer h-full"
+                          className="p-6 bg-surface rounded-brand-lg shadow-brand-sm border border-brand-blue/10 hover:shadow-brand transition-shadow cursor-pointer h-full"
                           onClick={() => handleArticleClick(article)}
                         >
                           <div className="flex items-start gap-4">
@@ -256,7 +257,7 @@ export function FamilyGuidanceScreen() {
                               <Icon className={`size-6 ${category.color}`} />
                             </div>
                             <div className="flex-1">
-                              <h3 className="text-xl font-bold mb-2">{article.title}</h3>
+                              <h3 className="t-heading text-ink mb-2">{article.title}</h3>
                               <p className="text-ink-muted text-sm">{article.summary}</p>
                             </div>
                           </div>
@@ -269,13 +270,13 @@ export function FamilyGuidanceScreen() {
           ))}
 
           <TabsContent value="chat">
-            <Card className="p-6 h-[600px] flex flex-col">
+            <Card className="p-6 h-[600px] flex flex-col bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10">
               <div className="flex items-center gap-3 mb-4 pb-4 border-b">
                 <div className="p-3 rounded-full bg-brand-purple-wash">
                   <MessageCircle className="size-6 text-brand-purple-ink" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">
+                  <h2 className="t-heading text-ink">
  {language === 'ar' ? 'المساعد الذكي للأهل' : 'AI Parent Assistant'}
  </h2>
                   <p className="text-sm text-ink-muted">
@@ -300,9 +301,9 @@ export function FamilyGuidanceScreen() {
               <div className="flex gap-2">
                 <Input
                   placeholder={language === 'ar' ? 'اكتب سؤالك هنا...' : 'Type your question here...'}
-                  className="flex-1"
+                  className="flex-1 h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
                 />
-                <Button className="bg-brand-purple hover:bg-brand-purple">
+                <Button className="h-14 rounded-full px-6 font-bold bg-brand-purple hover:bg-brand-purple text-surface">
                   {language === 'ar' ? 'إرسال' : 'Send'}
                 </Button>
               </div>
