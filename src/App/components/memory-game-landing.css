@@ -42,3 +42,10 @@
 .mg-landing button[class*="text-3xl"]:hover { background: #18508A !important; transform: translateY(-2px); }
 /* emoji tiles get a soft drop shadow like the landing artwork */
 .mg-landing .rounded-brand-xl span { filter: drop-shadow(0 6px 10px rgba(42, 33, 24, 0.15)); }
+
+/* Flip fix: ui/Card is a motion.div, so framer-motion leaves an inline
+   `transform: none` on each face, which beats the rotate-y-180 class and
+   made the emoji side always visible (cards appeared never to flip). A
+   stylesheet !important outranks inline styles; the container's rotateY
+   animation then works as designed. */
+.mg-landing .rotate-y-180 { transform: rotateY(180deg) !important; }
