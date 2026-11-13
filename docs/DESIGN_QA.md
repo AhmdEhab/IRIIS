@@ -9,3 +9,5 @@ Audit headline (full report summarized here):
 - animate-spin-slow in TransitionScreen is a dead class (never defined); rotation comes from a framer prop already gated. Cosmetic cleanup deferred.
 
 Next-tier items (documented, not yet done): migrate raw buttons (~30) to shared Button across IrisFlow/ParentSettings/ParentDashboard; single token-source consolidation (tokens.css absent; iris.css + theme.css overlap); Colors/Drawing art-palette hex → named palette tokens.
+
+3D: Object3DViewer (R3F, lazy 910KB chunk, WebGL probe, error boundary, reduced-motion aware) + Explore3D toggle + modelLibrary (13 authored/CC0 GLBs, 1MB total, duck=CC-BY SCEA). Wired: FruitsScreen. Drop-in next (5 lines each): ShapesScreen, AnimalsScreen — mappings already in modelLibrary.

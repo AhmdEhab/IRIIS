@@ -29,7 +29,7 @@ export function LandingPage({
   onAppMode: () => void;
   isAuthenticated: boolean;
 }) {
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const ar = language === 'ar';
   const reduced = useReducedMotion();
 
@@ -76,6 +76,17 @@ export function LandingPage({
             <a href="#parents" className="hover:text-brand-blue transition-colors">
               {ar ? 'للأهل' : 'For parents'}
             </a>
+            <span className="flex items-center gap-1 rounded-full border border-brand-blue/20 p-1" role="group" aria-label="Language">
+              {([['ar','عربي'],['en','EN']] as const).map(([code,label]) => (
+                <button
+                  key={code}
+                  onClick={() => setLanguage(code)}
+                  className={`px-3 py-1 rounded-full text-sm font-bold transition-colors ${language===code ? 'bg-brand-blue text-surface' : 'text-brand-blue hover:bg-brand-blue/10'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </span>
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
             <button onClick={onAppMode} className="hidden sm:inline-flex text-brand-blue font-bold px-3 py-2 rounded-full hover:bg-brand-blue/5">

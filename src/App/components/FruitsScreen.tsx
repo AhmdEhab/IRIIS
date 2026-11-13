@@ -7,6 +7,10 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import { BackButton } from './ui/BackButton';
 import { SyndromeLearningCard } from './SyndromeLearningCard';
+// The 3D layer: Explore3D is the safe half (no three.js at module scope) and
+// lazy-loads Object3DViewer only when a child opens the toggle.
+import { Explore3D } from './three/Explore3D';
+import { modelFor } from './three/modelLibrary';
 
 interface FoodItem {
     id: string;
@@ -156,6 +160,19 @@ export function FruitsScreen() {
                                         nameEn={selectedItem.nameEn}
                                         contextImage={selectedItem.contextImage}
                                         onComplete={handleLearningComplete}
+                                        language={language}
+                                   />
+
+                                    {/* Visual layer only. The learning card above keeps
+                                        its emoji, its photograph and its timed sequence
+                                        untouched; this adds an optional, draggable 3D
+                                        object below it for the items the library actually
+                                        has a model for. Fruits with no accurate model get
+                                        no button at all. */}
+                                    <Explore3D
+                                        src={modelFor(selectedItem.id)?.src ?? null}
+                                        emoji={selectedItem.emoji}
+                                        alt={language === 'ar' ? selectedItem.nameAr : selectedItem.nameEn}
                                         language={language}
                                     />
 
