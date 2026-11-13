@@ -140,7 +140,7 @@ export function AnimalsScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-yellow-wash via-white '}`}>
+        <div className={`wld-landing cl-learn min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-yellow-wash via-white '}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
@@ -223,3 +223,5 @@ export function AnimalsScreen() {
         </div>
     );
 }
+import './learning-screens-landing.css';
+import './world-screens-landing.css';

@@ -1,0 +1,305 @@
+/* ===========================================================================
+   Animals / Fruits / BodyParts / LifeSkills / Vehicles — the five "world"
+   activity screens, continued from learning-screens-landing.css.
+
+   These screens render the same <SyndromeLearningCard> browse-grid + lesson
+   plate as Letters/Numbers/Shapes/Colors, so the `cl-learn` block already
+   dresses the ground, title, tiles, plate, schedule dots and pills. This file
+   only adds what those four screens do not have:
+
+     1. the wider 3-up world grids (Fruits, Vehicles) — a touch more air
+        inside the pastel bubble, and the vehicle/animal emoji kept off the
+        label under it;
+     2. Explore3D (Fruits) — the 3-D door section under the plate;
+     3. LifeSkills — a different screen shape entirely: wide skill rows with
+        emoji bubbles, a Card (not the shared plate) with a coloured header
+        band, a step timeline, a focus panel, and Listen/Next/Done action
+        pills. Shared rules either do not match or would flatten these
+        controls into one secondary style, so the pill roles are restored
+        here with `.cl-learn.wld-landing` (higher specificity than the
+        shared `.cl-learn … button[class*='rounded-full']` rule).
+
+   Markup, state, sound, speech and routing are untouched; every rule is
+   scoped and uses the same landing tokens as the shared sheet.
+   ========================================================================= */
+
+/* ── 1 · Grids that are wider than the Letters sheet assumed ──────────────
+   Fruits and Vehicles render 3-up at lg with gap-8, so the bubble behind
+   the emoji gets the same air the Shapes/Colors screens took (their 2–3-up
+   grids set inset-inline: 20% in the shared sheet). */
+.cl-learn.wld-landing .grid.gap-8 button[class*='aspect-square']::before {
+  inset-inline: 18%;
+}
+/* Big text-8xl emoji + mb-4 must not graze the name underneath on the
+   roomier tiles; cap it a little harder than the shared 54%. */
+.cl-learn.wld-landing .grid button[class*='aspect-square'] > [class*='text-8xl'],
+.cl-learn.wld-landing .grid button[class*='aspect-square'] > [class*='text-7xl'] {
+  max-height: 52%;
+  min-height: 0;
+}
+
+/* RTL: the markup hardcodes text-left on the LifeSkills labels; logical
+   start keeps them on the reading side in Arabic. */
+.cl-learn.wld-landing [class*='text-left'] {
+  text-align: start !important;
+}
+
+/* ── Plate photo frame, world screens only ────────────────────────────────
+   Several contextImage URLs on these screens 404 upstream (data, untouched
+   here). Over the shared sheet's white frame a dead image is a white hole;
+   a soft landing-blue backing makes the same failure read as an intentional
+   pastel tile, with alt text in blue ink. Loaded photos are unchanged —
+   the img covers the backing. */
+.cl-learn.wld-landing [class*='size-56'] {
+  background: var(--cl-wash-blue) !important;
+  color: var(--cl-blue-ink) !important;
+}
+
+/* ── 2 · Explore3D (Fruits) — the 3-D door under the lesson plate ───────── */
+.cl-learn.wld-landing section[class*='rounded-brand-xl'] {
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: var(--cl-plate-shadow) !important;
+}
+/* emoji preview chip: pastel bubble, not the sunk well */
+.cl-learn.wld-landing section span[class*='size-14'] {
+  background: var(--cl-wash-blue) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 18px !important;
+  color: var(--cl-blue-ink) !important;
+  filter: var(--cl-emoji-shadow);
+}
+.cl-learn.wld-landing section [class*='t-body'] {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-weight: 800;
+}
+/* loading stage placeholder: pale blue, same footprint */
+.cl-learn.wld-landing section [class*='animate-pulse'] {
+  background: var(--cl-wash-blue) !important;
+  border-color: var(--cl-hair) !important;
+  border-radius: 22px !important;
+}
+/* the two pill buttons — landing pills, ≥52px, rounded-brand-pill never
+   matched the shared rounded-full rule so they are picked up here */
+.cl-learn.wld-landing section button[class*='rounded-brand-pill'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 10px 26px !important;
+  border-radius: 999px !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-weight: 800;
+  white-space: normal;
+}
+/* open = landing primary blue */
+.cl-learn.wld-landing section button[class*='bg-brand-blue-ink'] {
+  background: var(--cl-blue) !important;
+  color: #fff !important;
+  border: 2px solid transparent !important;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+}
+/* close = white plate + blue hairline */
+.cl-learn.wld-landing section button[class*='bg-surface']:not([class*='bg-brand-blue-ink']) {
+  background: var(--cl-surface) !important;
+  color: var(--cl-blue-ink) !important;
+  border: 2px solid var(--cl-hair-hover) !important;
+  box-shadow: 0 10px 22px -14px rgba(42, 33, 24, 0.26) !important;
+}
+
+/* ── 3 · LifeSkills — overview rows ────────────────────────────────────────
+   Wide rows (grid > motion.div > button, no aspect-square, so the shared
+   tile rules never fire). Same plate language as the level cards on the
+   landing child home. */
+.cl-learn.wld-landing .grid > div > button:not([class*='aspect-square']) {
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: var(--cl-plate-shadow) !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+/* emoji bubble: pastel by position, exactly the landing's one-accent cycle */
+.cl-learn.wld-landing .grid > div > button [class*='size-24'] {
+  background: var(--cl-wash-blue) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px !important;
+  box-shadow: 0 8px 18px -10px rgba(42, 33, 24, 0.28);
+  filter: var(--cl-emoji-shadow);
+}
+.cl-learn.wld-landing .grid > *:nth-child(4n+2) > button [class*='size-24'] { background: var(--cl-wash-yellow) !important; }
+.cl-learn.wld-landing .grid > *:nth-child(4n+3) > button [class*='size-24'] { background: var(--cl-wash-green) !important; }
+.cl-learn.wld-landing .grid > *:nth-child(4n+4) > button [class*='size-24'] { background: var(--cl-wash-coral) !important; }
+.cl-learn.wld-landing .grid > div > button h3 {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+}
+.cl-learn.wld-landing .grid > div > button p {
+  color: var(--cl-muted) !important;
+  font-weight: 600;
+}
+/* ➡️ chevron: blue ink, not the old grey */
+.cl-learn.wld-landing .grid > div > button > div:last-child {
+  color: var(--cl-blue) !important;
+  opacity: 0.85;
+  filter: none !important;
+}
+
+/* ── 4 · LifeSkills — the step Card ────────────────────────────────────────
+   The card element is the direct child of the max-w-4xl wrapper here (on
+   the other four screens that wrapper holds space-y-8 + the shared plate),
+   so this selector cannot leak onto the lesson plate. */
+.cl-learn.wld-landing [class*='max-w-4xl'] > [class*='rounded-brand-xl'] {
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 18px 40px -22px rgba(42, 33, 24, 0.28), 0 6px 16px -8px rgba(31, 103, 177, 0.1) !important;
+}
+/* header band: was a saturated gradient with white text → soft blue wash
+   with ink, the landing's one-dominant-colour panel */
+.cl-learn.wld-landing [class*='max-w-4xl'] > [class*='rounded-brand-xl'] > div[class*='p-12'] {
+  background: var(--cl-wash-blue) !important;
+  border-bottom: 2px solid var(--cl-hair) !important;
+  color: var(--cl-ink) !important;
+}
+.cl-learn.wld-landing [class*='max-w-4xl'] > [class*='rounded-brand-xl'] > div[class*='p-12'] h2 {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(26px, 3.2vw, 38px) !important;
+  line-height: 1.3 !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+.cl-learn.wld-landing [class*='max-w-4xl'] > [class*='rounded-brand-xl'] > div[class*='p-12'] > div {
+  filter: var(--cl-emoji-shadow) !important;
+}
+
+/* timeline step rows (direct motion.button children of div.grid) */
+.cl-learn.wld-landing [class*='min-h-[400px]'] .grid > button {
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 10px 24px -18px rgba(42, 33, 24, 0.24) !important;
+  transition: background-color 170ms ease, border-color 170ms ease, transform 170ms ease;
+}
+/* number chip: white text on a sunk circle was illegible → pastel bubble */
+.cl-learn.wld-landing [class*='min-h-[400px]'] .grid > button > div:first-child {
+  background: var(--cl-wash-blue) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  color: var(--cl-blue-ink) !important;
+  box-shadow: 0 6px 14px -8px rgba(31, 103, 177, 0.4) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+}
+.cl-learn.wld-landing [class*='min-h-[400px]'] .grid > *:nth-child(4n+2) > button > div:first-child { background: var(--cl-wash-yellow) !important; }
+.cl-learn.wld-landing [class*='min-h-[400px]'] .grid > *:nth-child(4n+3) > button > div:first-child { background: var(--cl-wash-green) !important; }
+.cl-learn.wld-landing [class*='min-h-[400px]'] .grid > *:nth-child(4n+4) > button > div:first-child { background: var(--cl-wash-coral) !important; }
+.cl-learn.wld-landing [class*='min-h-[400px]'] .grid > button p {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+}
+
+/* focus panel (one-step mode): hard 4px blue frame → landing hairline plate */
+.cl-learn.wld-landing [class*='min-h-[400px]'] > div[class*='bg-brand-blue-wash'] {
+  background: var(--cl-wash-blue) !important;
+  border: 2px solid var(--cl-hair-hover) !important;
+  border-radius: 26px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.cl-learn.wld-landing [class*='min-h-[400px]'] > div[class*='bg-brand-blue-wash'] > div:first-child {
+  color: var(--cl-blue-ink) !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+.cl-learn.wld-landing [class*='min-h-[400px]'] > div[class*='bg-brand-blue-wash'] p {
+  color: var(--cl-blue-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+}
+
+/* footer action strip: beige sunk slab → whisper of blue on the plate */
+.cl-learn.wld-landing [class*='bg-surface-sunk/50'] {
+  background: rgba(201, 229, 247, 0.25) !important;
+  border-top: 1.5px solid var(--cl-hair) !important;
+}
+
+/* ── 5 · LifeSkills pill roles ─────────────────────────────────────────────
+   The shared sheet flattens every rounded-full button to one white
+   secondary pill; inside the Card the actions need their roles back:
+   Listen = landing yellow CTA, Next = primary blue, Done = soft green
+   (correct is always the green family), Prev/Back stay shared secondary. */
+.cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'] {
+  min-height: 56px;
+}
+.cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'] svg {
+  width: 22px;
+  height: 22px;
+}
+/* Listen */
+.cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'][class*='bg-surface-sunk'] {
+  background: var(--cl-wash-yellow) !important;
+  color: #B07A1A !important;
+  border: 2px solid rgba(222, 162, 26, 0.45) !important;
+  box-shadow: 0 10px 22px -12px rgba(222, 162, 26, 0.5) !important;
+}
+/* Next */
+.cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'][class*='bg-brand-blue-ink'] {
+  background: var(--cl-blue) !important;
+  color: #fff !important;
+  border: 2px solid transparent !important;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+}
+/* Done — soft green, the landing's success family */
+.cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'][class*='bg-brand-green-solid'] {
+  background: var(--cl-wash-green) !important;
+  color: #2E965C !important;
+  border: 2px solid rgba(46, 150, 92, 0.35) !important;
+  box-shadow: 0 10px 22px -12px rgba(46, 150, 92, 0.45) !important;
+}
+
+/* ── Hovers, gated like the landing ──────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .cl-learn.wld-landing .grid > div > button:not([class*='aspect-square']):hover {
+    transform: translateY(-4px);
+    border-color: var(--cl-hair-hover) !important;
+    box-shadow: 0 22px 44px -22px rgba(42, 33, 24, 0.32) !important;
+  }
+  .cl-learn.wld-landing .grid > div > button:not([class*='aspect-square']):hover > div:last-child {
+    color: var(--cl-blue-ink) !important;
+    opacity: 1;
+  }
+  .cl-learn.wld-landing [class*='min-h-[400px]'] .grid > button:hover {
+    background: var(--cl-wash-blue) !important;
+    border-color: var(--cl-hair-hover) !important;
+    transform: translateY(-2px);
+  }
+  .cl-learn.wld-landing section button[class*='rounded-brand-pill']:hover {
+    transform: translateY(-2px);
+  }
+  .cl-learn.wld-landing section button[class*='bg-brand-blue-ink']:hover {
+    background: var(--cl-blue-ink) !important;
+    color: #fff !important;
+  }
+  .cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'][class*='bg-surface-sunk']:hover {
+    background: rgba(251, 231, 184, 0.9) !important;
+    color: #8A5A00 !important;
+  }
+  .cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'][class*='bg-brand-blue-ink']:hover {
+    background: var(--cl-blue-ink) !important;
+    color: #fff !important;
+  }
+  .cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'][class*='bg-brand-green-solid']:hover {
+    background: rgba(206, 238, 214, 0.95) !important;
+    color: #237A47 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-learn.wld-landing .grid > div > button:not([class*='aspect-square']),
+  .cl-learn.wld-landing [class*='min-h-[400px]'] .grid > button,
+  .cl-learn.wld-landing section button[class*='rounded-brand-pill'],
+  .cl-learn.wld-landing [class*='max-w-4xl'] button[class*='rounded-full'] {
+    transition-duration: 1ms;
+    transform: none !important;
+  }
+}
