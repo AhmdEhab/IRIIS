@@ -6,7 +6,6 @@ import { AUTH_TOKEN_KEY, API_URL as SHARED_API_URL } from '../config';
 
 export type Screen =
   | 'marketing'
-  | 'landing'
   | 'splash'
   | 'login'
   | 'registration'
@@ -208,14 +207,13 @@ const TOKEN_KEY = AUTH_TOKEN_KEY;
    so protected routes cannot be deep-linked by guessing a URL. */
 const SCREEN_PATHS: Partial<Record<Screen, string>> = {
   marketing: '/',
-  landing: '/start',
   login: '/login',
   registration: '/register',
   'iris-parent': '/parent',
   'child-mode': '/play',
 };
 const PATH_SCREENS: Record<string, Screen> = {
-  '/': 'marketing', '/start': 'landing', '/login': 'login',
+  '/': 'marketing', '/login': 'login',
   '/register': 'registration', '/parent': 'iris-parent', '/play': 'child-mode',
 };
 
@@ -501,11 +499,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setModuleProgress({});
     setEarnedBadges(['explorer', 'beginner']);
     setActivities([]);
-    // 'landing' is the app's home screen (the default currentScreen). Logout
+    // After logout the user lands back on the public marketing page.
     // used to drop the user on the older 'splash' screen instead, which shows
     // a different pair of entry buttons — so after logging out they landed
     // somewhere that did not match where they had started.
-    setCurrentScreen('landing');
+    setCurrentScreen('marketing');
   }, [authToken, authHeaders, setAuthToken]);
 
   /** Rehydrate a session on page load if a token + email survived a refresh. */

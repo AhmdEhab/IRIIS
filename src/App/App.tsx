@@ -13,7 +13,6 @@ import { ModeSelectionScreen } from './components/ModeSelectionScreen';
 import { AIAssessmentScreen } from './components/AIAssessmentScreen';
 import { ChildModeScreen } from './components/ChildModeScreen';
 import { ParentDashboardScreen } from './components/ParentDashboardScreen';
-import { IrisLanding } from './components/iris/IrisLanding';
 import { LandingPage } from './components/landing/LandingPage';
 import { IrisFlow, mapCondition } from './components/iris/IrisFlow';
 import { IrisParentDashboard } from './components/iris/IrisParentDashboard';
@@ -215,15 +214,7 @@ function AppContent() {
             isAuthenticated={!!readAuthToken()}
             onLogin={() => navigateTo('login')}
             onRegister={() => navigateTo(readAuthToken() ? 'iris-parent' : 'registration')}
-            onAppMode={() => navigateTo(readAuthToken() && childProfile ? 'iris-parent' : 'landing')}
-          />
-        );
-      case 'landing':
-        return (
-          <IrisLanding
-            key="landing"
-            onChildMode={() => navigateTo('child-mode')}
-            onParentMode={() => navigateTo(childProfile ? 'iris-parent' : 'login')}
+            onAppMode={() => navigateTo(readAuthToken() ? 'iris-parent' : 'login')}
           />
         );
       case 'splash':
@@ -246,7 +237,7 @@ function AppContent() {
             onSpecialists={() => navigateTo('iris-specialists')}
             onEnterChildMode={() => navigateTo('child-mode')}
             onSettings={() => navigateTo('parent-settings')}
-            onBack={() => navigateTo('landing')}
+            onBack={() => navigateTo('marketing')}
           />
         );
       case 'iris-progress':
@@ -287,7 +278,7 @@ function AppContent() {
         return (
           <IrisFlow
             key="child-mode"
-            onExit={() => navigateTo('landing')}
+            onExit={() => navigateTo(readAuthToken() ? 'iris-parent' : 'marketing')}
             prefillName={childProfile?.name}
             prefillCondition={childProfile?.condition}
             prefillAge={Number.isFinite(childProfile?.age) ? childProfile?.age : null}

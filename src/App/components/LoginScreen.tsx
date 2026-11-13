@@ -5,16 +5,9 @@ import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { authMessage } from '../authMessages';
-import {
-  ScreenFrame,
-  TopBar,
-  Logo,
-  DisplayTitle,
-  Button,
-  Field,
-  ErrorState,
-} from './iris/ui/brand';
+import { TopBar, Button, Field, ErrorState } from './iris/ui/brand';
 import { ChromeActions } from './iris/ui/ChromeActions';
+import { AuthShell } from './auth/AuthShell';
 
 /**
  * Parent login.
@@ -32,6 +25,16 @@ import { ChromeActions } from './iris/ui/ChromeActions';
  * The purple heading with a 👋 emoji, the 8px white card border, the four
  * different type sizes and the floating "Don't have an account?" card are all
  * replaced by the shared system.
+ *
+ * ── WHAT THE AUTH RESKIN CHANGED ──────────────────────────────────────────
+ * The frame, and only the frame. The screen hands its composition to
+ * <AuthShell/>, which gives it the same cream ground, blob-and-sparkle
+ * ambience, white plate, mascot and pill CTA as the marketing hero, so the
+ * product stops changing character in the step between "that looks lovely" and
+ * "let me in". Every decision above still holds: the same `ready` flag drives
+ * `disabled`, the same `hint` says what would enable the button, the same
+ * `Field` binds each label to its input by id, the same `ErrorState` owns the
+ * `role="alert"`, and the registration link keeps its own container.
  *
  * Auth logic, error handling, speech prompts and navigation are untouched.
  */
@@ -79,41 +82,56 @@ export function LoginScreen() {
 
   const handleBack = () => {
     playSound('tap');
-    navigateTo('landing');
+    navigateTo('marketing');
   };
 
   const ready = !!email && !!password;
 
   return (
-    <ScreenFrame
-      accent="blue"
-      width="sm"
+    <AuthShell
+      tone="blue"
+      title={ar ? 'مرحباً بعودتك' : 'Welcome back'}
+      tagline={ar ? 'سجّل الدخول لمتابعة تعلّم طفلك.' : "Sign in to see your child's learning."}
       topBar={
         <TopBar
           ar={ar}
           onBack={handleBack}
           backLabel={ar ? 'الرئيسية' : 'Home'}
           actions={<ChromeActions />}
+          sticky={false}
         />
+      }
+      footer={
+        /* The wrapper is load-bearing, not decoration. The registration link
+           is reached in QA (and by a screen reader walking the region) as
+           "the button next to 'Don't have an account?'". Without its own
+           container the nearest ancestor of that sentence is the whole form,
+           which holds the Login button too — so "the button beside the
+           question" becomes ambiguous and resolves to the wrong control. */
+        <div className="ir-auth-foot">
+          <p>
+            {ar ? 'ليس لديك حساب؟' : "Don't have an account?"}{' '}
+            <button
+              type="button"
+              onClick={() => {
+                playSound('tap');
+                navigateTo('registration');
+              }}
+              className="ir-auth-link"
+            >
+              {ar ? 'سجل الآن' : 'Register now'}
+            </button>
+          </p>
+        </div>
       }
     >
       <motion.div
         initial={reduceMotion ? false : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reduceMotion ? 0 : 0.4 }}
-        className="pt-4"
+        className="ir-auth-form"
       >
-        <div className="text-center mb-7">
-          <Logo size="md" />
-          <DisplayTitle size="title" className="mt-2">
-            {ar ? 'مرحباً بعودتك' : 'Welcome back'}
-          </DisplayTitle>
-          <p className="t-body text-ink-muted mt-2">
-            {ar ? 'سجّل الدخول لمتابعة تعلّم طفلك.' : "Sign in to see your child's learning."}
-          </p>
-        </div>
-
-        <div className="bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10 p-6 space-y-6">
+        <div className="ir-auth-field">
           <Field label={ar ? 'البريد الإلكتروني' : 'Email'} id="login-email">
             <input
               type="email"
@@ -123,12 +141,14 @@ export function LoginScreen() {
                 speak(ar ? 'البريد الإلكتروني' : 'Email', language);
                 playSound('tap');
               }}
-              className="w-full h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface text-ink placeholder:text-ink-muted transition-colors"
+              className="ir-auth-input"
               placeholder="example@email.com"
               autoComplete="email"
             />
           </Field>
+        </div>
 
+        <div className="ir-auth-field">
           <Field label={ar ? 'كلمة المرور' : 'Password'} id="login-password">
             <input
               type="password"
@@ -138,59 +158,41 @@ export function LoginScreen() {
                 speak(ar ? 'كلمة المرور' : 'Password', language);
                 playSound('tap');
               }}
-              className="w-full h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface text-ink placeholder:text-ink-muted transition-colors"
+              className="ir-auth-input"
               placeholder="••••••••"
               autoComplete="current-password"
             />
           </Field>
+        </div>
 
-          {/* Visible failure message. This used to be spoken only, so a muted
-              or deaf user got no explanation at all and the screen looked
-              simply broken. */}
-          {shownError && (
+        {/* Visible failure message. This used to be spoken only, so a muted
+            or deaf user got no explanation at all and the screen looked
+            simply broken. */}
+        {shownError && (
+          <div className="ir-auth-error">
             <ErrorState title={ar ? 'مش قادرين ندخّلك' : 'We could not sign you in'} body={shownError} />
-          )}
+          </div>
+        )}
 
-          <Button
-            variant="primary"
-            size="lg"
-            full
-            onClick={handleLogin}
-            disabled={isLoading || !ready}
-            iconEnd={ready && !isLoading ? 'forward' : undefined}
-            hint={
-              !ready
-                ? ar
-                  ? 'اكتبي البريد وكلمة المرور عشان نكمّل.'
-                  : 'Enter your email and password to continue.'
-                : undefined
-            }
-          >
-            {isLoading ? (ar ? 'جاري الدخول...' : 'Signing in…') : ar ? 'دخول الآن' : 'Login Now'}
-          </Button>
-        </div>
-
-        {/* The wrapper is load-bearing, not decoration. The registration link
-            is reached in QA (and by a screen reader walking the region) as
-            "the button next to 'Don't have an account?'". Without its own
-            container the nearest ancestor of that sentence is the whole form,
-            which holds the Login button too — so "the button beside the
-            question" becomes ambiguous and resolves to the wrong control. */}
-        <div className="mt-6">
-          <p className="text-center t-body text-ink-muted">
-            {ar ? 'ليس لديك حساب؟' : "Don't have an account?"}{' '}
-            <button
-              onClick={() => {
-                playSound('tap');
-                navigateTo('registration');
-              }}
-              className="text-brand-blue font-bold underline underline-offset-4 hover:no-underline"
-            >
-              {ar ? 'سجل الآن' : 'Register now'}
-            </button>
-          </p>
-        </div>
+        <Button
+          variant="primary"
+          size="lg"
+          full
+          onClick={handleLogin}
+          disabled={isLoading || !ready}
+          iconEnd={ready && !isLoading ? 'forward' : undefined}
+          hint={
+            !ready
+              ? ar
+                ? 'اكتبي البريد وكلمة المرور عشان نكمّل.'
+                : 'Enter your email and password to continue.'
+              : undefined
+          }
+          className="ir-auth-cta ir-auth-cta--full"
+        >
+          {isLoading ? (ar ? 'جاري الدخول...' : 'Signing in…') : ar ? 'دخول الآن' : 'Login Now'}
+        </Button>
       </motion.div>
-    </ScreenFrame>
+    </AuthShell>
   );
 }

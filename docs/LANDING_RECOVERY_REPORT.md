@@ -113,3 +113,16 @@ Full art-direction rebuild per the client brief:
 2. Orbiting cards → "scattered, not composed" → v3 (current): big calm
    mascot on pedestal + counter-rotating symmetric bead rings + parked
    scrapbook cards. Kid-friendly, modern, composed. All animation gated.
+
+## P16+P17 — mode-select screen removed; auth screens wear the landing look
+
+- The old in-app `landing` (وضع الطفل / وضع الوالدين cards) is deleted:
+  marketing CTAs now go straight to /login and /register; logout, parent
+  back and child-mode exit land on the marketing page (or parent hub when
+  authenticated). `/start` is retired.
+- LoginScreen + RegistrationScreen rebuilt on a shared AuthShell matching
+  the landing (cream stage, blobs/sparkles, white plate, IrisBuddy overlap,
+  yellow title swash, pill CTAs, coral error chip, step pills). All
+  strings, tests and flows byte-identical.
+- scripts/qa-auth.mjs screenshots both routes at 375/1440 ar+en:
+  overflow=0 everywhere; verified enabled CTA is brand blue.

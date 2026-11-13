@@ -1,0 +1,577 @@
+/* ===========================================================================
+   IRIS auth screens — the landing page's door.
+
+   The marketing page (components/landing/landing.css) is the only place in the
+   product where the brand looks the way the brochure looks: cream ground,
+   colour pooled at the edges in soft blobs, one white card with a 2px warm
+   border and a 28px corner, a chunky display heading with a yellow swash under
+   it, and pill buttons that lift when you hover them. Sign in and register are
+   the first two screens a parent sees after that page, and until now they were
+   built from Tailwind utilities directly — so the tone dropped the moment
+   someone tried to get in.
+
+   This file closes that gap WITHOUT owning anything behavioural. Every rule
+   here is presentation: it styles markup owned by AuthShell.tsx,
+   LoginScreen.tsx and RegistrationScreen.tsx, plus the shared brand components
+   those screens render (TopBar's chrome row, Field's label, ErrorState's chip).
+   Those components are not edited; they are retargeted by descendant selectors
+   scoped inside `.ir-auth-*`, which is why no rule needs `!important`:
+   Tailwind v4 puts its utilities in cascade layers, and an unlayered rule
+   beats a layered one at any specificity.
+
+   Two things this file deliberately does NOT do:
+     * It never removes a focus indicator. iris.css owns the keyboard ring
+       (`:focus-visible` at 3px brand blue, `!important`) and that ring is left
+       intact; the rules below only add the brand-blue border and halo that a
+       pointer focus gets.
+     * It never hides content to make a layout fit. Every width is a `min()` of
+       the container and a max, so the card shrinks instead of the page
+       scrolling sideways. The scene clips the X axis at the root.
+
+   RTL: every offset is a logical property (inset-inline, margin-inline,
+   border-inline, text-align: start/end), so the whole scene mirrors with
+   `dir` on <html> — the only exception is the decorative confetti cluster,
+   whose box-shadow offsets are physical and are mirrored by an explicit
+   `[dir='rtl']` rule.
+   ========================================================================= */
+
+/* ── Scene ───────────────────────────────────────────────────────────────── */
+.ir-auth-scene {
+  --ir-gutter: clamp(16px, 4.4vw, 30px);
+  --ir-card-pad: clamp(22px, 3vw, 34px);
+  --ir-buddy: 86px;
+  --ir-gap: clamp(16px, 2.4vw, 22px);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--iris-font-body);
+  font-size: 16px;
+  line-height: 1.7;
+}
+/* :where() keeps these resets at the specificity of `.ir-auth-scene` on its
+   own, so every component class further down this file still wins — a plain
+   `:is(button)` element rule at (0,1,1) would silently outrank `.ir-auth-cta`
+   and every button would come out at body font. */
+/* Only two blanket rules, both at :where() specificity, and neither of them
+   touches font or colour: Tailwind's preflight already inherits those, and an
+   unlayered `font: inherit` here would outrank the t-small / text-ink-muted
+   utilities that TopBar and ChromeActions style themselves with. */
+.ir-auth-scene :where(h1, h2, h3, h4, p, ul, ol) { margin: 0; }
+.ir-auth-scene :where(button, input, select, textarea) { -webkit-tap-highlight-color: transparent; }
+.ir-auth-scene img { display: block; max-width: 100%; }
+
+/* ── Ambient layer: the hero's blobs and sparkles, quieted ───────────────── */
+.ir-auth-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ir-auth-blob { position: absolute; width: clamp(230px, 34vw, 430px); height: auto; opacity: 0.5; }
+.ir-auth-blob--1 { inset-block-start: -14%; inset-inline-end: -10%; }
+.ir-auth-blob--2 { inset-block-end: -18%; inset-inline-start: -12%; width: clamp(210px, 28vw, 380px); opacity: 0.45; }
+.ir-auth-spark { position: absolute; width: 22px; height: 22px; opacity: 0.7; }
+.ir-auth-spark--1 { inset-block-start: 14%; inset-inline-start: 7%; }
+.ir-auth-spark--2 { inset-block-start: 24%; inset-inline-end: 11%; width: 16px; height: 16px; }
+.ir-auth-spark--3 { inset-block-end: 26%; inset-inline-end: 8%; width: 14px; height: 14px; }
+.ir-auth-spark--4 { inset-block-end: 16%; inset-inline-start: 12%; width: 18px; height: 18px; }
+.ir-auth-spark--5 { inset-block-start: 46%; inset-inline-start: 4%; width: 12px; height: 12px; opacity: 0.55; }
+.ir-auth-spark--6 { inset-block-start: 52%; inset-inline-end: 4%; width: 12px; height: 12px; opacity: 0.55; }
+
+/* ── Chrome row: logo beside the app controls ───────────────────────────── */
+.ir-auth-chrome {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 2vw, 18px);
+  width: min(100%, 980px);
+  margin-inline: auto;
+  padding-inline: var(--ir-gutter);
+  padding-block: clamp(12px, 2vh, 20px);
+}
+.ir-auth-logo { width: 96px; height: auto; flex-shrink: 0; }
+/* The shared TopBar is opaque and ruled because on a content screen it sits
+   above scrolling content. Here it floats on the cream ground, so it carries
+   no plate and no hairline; the row it builds still owns the back control and
+   ChromeActions, which is what makes them reachable in the first place. */
+.ir-auth-chrome-bar { flex: 1 1 auto; min-width: 0; }
+.ir-auth-chrome-bar > header {
+  background: transparent;
+  border-block-end: 0;
+  position: relative;
+}
+.ir-auth-chrome-bar > header > div { max-width: none; padding-inline: 0; padding-block: 0; }
+
+/* ── Stage and card ─────────────────────────────────────────────────────── */
+.ir-auth-main {
+  position: relative;
+  z-index: 10;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  /* top padding = half the mascot, so the buddy overlapping the card's top
+     edge can never collide with the chrome row above it. */
+  padding: calc(var(--ir-buddy) / 2 + 18px) var(--ir-gutter) clamp(32px, 6vh, 64px);
+}
+.ir-auth-stack { display: flex; flex-direction: column; gap: 20px; width: 100%; align-items: center; }
+.ir-auth-card {
+  --ir-buddy-half: calc(var(--ir-buddy) / 2);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(18px, 2.6vw, 26px);
+  width: min(100%, 460px);
+  padding: calc(var(--ir-buddy-half) + 16px) var(--ir-card-pad) var(--ir-card-pad);
+  background: var(--surface);
+  border: 2px solid var(--border-soft);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+}
+/* Registration carries three fields per row, so it gets the wider card — and
+   a neutral hairline instead of the blue tint, because its tiles are already
+   coloured by category. */
+.ir-auth-card--wide { width: min(100%, 640px); }
+.ir-auth-card--blue { border-color: color-mix(in srgb, var(--brand-blue) 24%, var(--border-soft)); }
+/* Three confetti dots in the top corner, the .lp-belief::after mark: one dot
+   plus two offset shadows. Mirrored for RTL because box-shadow is physical. */
+.ir-auth-card::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 20px;
+  inset-inline-end: 24px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--brand-coral);
+  box-shadow: -17px 12px 0 -1px var(--brand-yellow), 6px 26px 0 -2px var(--brand-blue);
+}
+[dir='rtl'] .ir-auth-card::after { box-shadow: 17px 12px 0 -1px var(--brand-yellow), -6px 26px 0 -2px var(--brand-blue); }
+/* The mascot sits ON the card's top edge. Absolutely positioned and centred
+   with auto margins rather than a transform, so it is in neither the RTL flow
+   nor the card's scroll box, and cannot widen it. */
+.ir-auth-buddy {
+  position: absolute;
+  inset-block-start: calc(var(--ir-buddy) / -2);
+  inset-inline: 0;
+  margin-inline: auto;
+  width: var(--ir-buddy);
+  height: var(--ir-buddy);
+  z-index: 2;
+  filter: drop-shadow(0 10px 14px rgba(42, 33, 24, 0.14));
+}
+
+/* ── Head ───────────────────────────────────────────────────────────────── */
+.ir-auth-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+.ir-auth-title {
+  position: relative;
+  padding-block-end: 14px;
+  font-family: var(--iris-font-display);
+  font-weight: 800;
+  font-size: clamp(26px, 3.4vw, 36px);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-align: center;
+  text-wrap: balance;
+}
+/* The brochure's marker swipe, turned sideways: instead of highlighting a word
+   (which would mean editing the heading strings), a rounded yellow swash sits
+   under the whole line. */
+.ir-auth-title::after {
+  content: '';
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: min(78%, 210px);
+  height: 10px;
+  border-radius: 999px;
+  background: var(--brand-yellow-wash);
+  box-shadow: inset 0 -6px 0 var(--brand-yellow);
+}
+.ir-auth-tagline { color: var(--muted-text); font-size: 16px; line-height: 1.8; max-width: 40ch; text-align: center; }
+
+/* ── Card body ──────────────────────────────────────────────────────────── */
+.ir-auth-body { display: flex; flex-direction: column; gap: var(--ir-gap); min-width: 0; }
+.ir-auth-form { display: flex; flex-direction: column; gap: var(--ir-gap); min-width: 0; }
+
+/* ── Fields ─────────────────────────────────────────────────────────────── */
+/* Registration puts its label and input directly in here. Login wraps the
+   shared <Field/> instead, whose own div already spaces label from control —
+   the gap above is inert for a single child, so both screens get one rhythm
+   without fighting each other's markup. */
+.ir-auth-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ir-auth-label,
+.ir-auth-field label {
+  font-family: var(--iris-font-body);
+  font-size: 14.5px;
+  font-weight: 800;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0;
+}
+/* A label for a PAIR of choice buttons rather than for one field: it is a
+   group caption, so it keeps its own space below instead of the 6px the
+   label/input pair gets. */
+.ir-auth-label--block { margin-block-end: 8px; }
+.ir-auth-grid--tight { gap: 12px; }
+.ir-auth-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  height: auto;
+  padding: 0 16px;
+  font-family: var(--iris-font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--background);
+  border: 2px solid var(--border-soft);
+  border-radius: 16px;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.ir-auth-input::placeholder { color: color-mix(in srgb, var(--muted-text) 78%, transparent); }
+.ir-auth-input:hover { border-color: color-mix(in srgb, var(--brand-blue) 34%, var(--border-soft)); }
+/* Pointer focus gets the brand-blue border and a soft halo. Keyboard focus
+   keeps the product-wide 3px outline from iris.css on top of it — the ring is
+   never traded away for a prettier one. */
+.ir-auth-input:focus {
+  border-color: var(--brand-blue);
+  background: var(--surface);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-blue) 18%, transparent);
+}
+.ir-auth-input[aria-invalid='true'] { border-color: var(--brand-coral); }
+.ir-auth-input[type='date'] { padding-inline-start: 14px; }
+.ir-auth-input[type='number'] { -moz-appearance: textfield; }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.ir-auth-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 12px 26px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  font-family: var(--iris-font-display);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.5;
+  text-align: center;
+  background: var(--brand-blue);
+  color: var(--surface);
+  box-shadow: 0 10px 24px -10px rgba(31, 103, 177, 0.55);
+  transition: background-color 170ms ease, box-shadow 170ms ease, transform 170ms ease, color 170ms ease;
+}
+.ir-auth-cta--full { width: 100%; }
+.ir-auth-cta--grow { flex: 1 1 220px; }
+.ir-auth-cta:not(:disabled):hover { background: var(--brand-blue-ink); transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(31, 103, 177, 0.55); }
+.ir-auth-cta:not(:disabled):active { transform: translateY(1px) scale(0.99); box-shadow: inset 0 2px 5px rgba(42, 33, 24, 0.15); }
+/* Step 3 is the last commit — the journey turns green, as it does on the
+   landing page's final card. */
+.ir-auth-cta--finish:not(:disabled) { background: var(--brand-green); box-shadow: 0 10px 24px -10px rgba(73, 184, 122, 0.55); }
+.ir-auth-cta--finish:not(:disabled):hover { background: var(--brand-green-solid); box-shadow: 0 16px 30px -12px rgba(73, 184, 122, 0.55); }
+/* Disabled is NOT a faded blue slab (audit defect D11). It is a quiet outlined
+   pill, and the shared Button still prints its hint line under it. */
+.ir-auth-cta:disabled {
+  opacity: 1;
+  background: var(--surface-sunk);
+  color: var(--muted-text);
+  border-color: var(--border);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
+.ir-auth-cta-inner { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+@keyframes irAuthSpin { to { rotate: 360deg; } }
+
+/* Secondary, still a button: "Previous". */
+.ir-auth-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 12px 22px;
+  border: 2px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--brand-blue-ink);
+  font-family: var(--iris-font-display);
+  font-size: 16.5px;
+  font-weight: 800;
+  line-height: 1.5;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 170ms ease, border-color 170ms ease, transform 170ms ease;
+}
+.ir-auth-ghost:hover { background: var(--brand-blue-wash); border-color: color-mix(in srgb, var(--brand-blue) 34%, var(--border-soft)); }
+.ir-auth-ghost:active { transform: translateY(1px) scale(0.99); }
+
+/* Text button: "Register now" beside the question. 44px target, underline that
+   belongs to the link rather than to the sentence. */
+.ir-auth-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--brand-blue-ink);
+  font-family: var(--iris-font-body);
+  font-size: 16px;
+  font-weight: 800;
+  text-align: start;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  border-radius: 999px;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.ir-auth-link:hover { background: var(--brand-blue-wash); }
+
+.ir-auth-nav { display: flex; align-items: stretch; flex-wrap: wrap; gap: 12px; }
+
+/* Below the card (login's "not a member yet?" line). The wrapper matters: it
+   keeps the sentence and its button in one container so "the button next to
+   the question" resolves to exactly one control. */
+.ir-auth-foot { display: flex; justify-content: center; }
+.ir-auth-foot p { color: var(--muted-text); font-size: 15.5px; font-weight: 600; text-align: center; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; }
+
+/* ── Error chip ─────────────────────────────────────────────────────────── */
+/* Both screens own their chip markup (login reuses the shared ErrorState,
+   registration renders its own), so the styling attaches to whatever element
+   carries role="alert" inside the wrapper — no component had to be edited. */
+.ir-auth-error { display: flex; min-width: 0; }
+.ir-auth-error > [role='alert'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 2px solid color-mix(in srgb, var(--brand-coral) 45%, var(--border-soft));
+  border-radius: 16px;
+  background: var(--brand-coral-wash);
+  box-shadow: var(--shadow-sm);
+}
+.ir-auth-error :is(p, span) { font-size: 14.5px; font-weight: 700; line-height: 1.7; color: var(--brand-coral-ink); }
+.ir-auth-error :is(p, span):first-of-type { color: var(--text); }
+.ir-auth-error svg { flex-shrink: 0; width: 22px; height: 22px; color: var(--brand-coral-ink); }
+/* The registration chip keeps its aria-hidden warning glyph; it is a mark, not
+   a message, so it must not shrink when the sentence wraps. */
+.ir-auth-error .ir-auth-error-mark { flex-shrink: 0; font-size: 19px; line-height: 1.5; }
+
+/* ── Registration: step meta + progress pills ──────────────────────────── */
+.ir-auth-progress { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ir-auth-progress-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.ir-auth-progress-eyebrow { color: var(--brand-blue-ink); font-size: 13.5px; font-weight: 800; line-height: 1.6; min-width: 0; }
+.ir-auth-progress-count { color: var(--muted-text); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ir-auth-steps { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
+.ir-auth-step {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 10px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
+  text-align: center;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+.ir-auth-step--active { background: var(--brand-blue); color: var(--surface); box-shadow: 0 10px 20px -14px rgba(31, 103, 177, 0.9); }
+.ir-auth-step--done { background: var(--brand-green); color: var(--surface); }
+.ir-auth-step--upcoming { background: var(--background); color: var(--muted-text); border-color: var(--border-soft); }
+.ir-auth-step-num { font-variant-numeric: tabular-nums; }
+.ir-auth-step-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Registration: a step's own block ──────────────────────────────────── */
+/* The card in the card is dropped: one white plate per screen, and the step
+   inside it reads as a section — icon chip, heading, fields. */
+.ir-auth-step-card { display: flex; flex-direction: column; gap: var(--ir-gap); padding: 0; background: transparent; border: 0; box-shadow: none; }
+.ir-auth-step-head { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.ir-auth-step-head--center { justify-content: center; text-align: center; }
+.ir-auth-step-glyph {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.ir-auth-step-glyph--purple { background: var(--brand-purple-wash); color: var(--brand-purple-ink); }
+.ir-auth-step-glyph--blue { background: var(--brand-blue-wash); color: var(--brand-blue-ink); }
+.ir-auth-step-glyph--yellow { background: var(--brand-yellow-wash); color: var(--brand-yellow-ink); }
+.ir-auth-step-title {
+  font-family: var(--iris-font-display);
+  font-size: clamp(19px, 2.2vw, 22px);
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--text);
+  min-width: 0;
+}
+
+.ir-auth-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ir-gap); min-width: 0; }
+.ir-auth-grid--2sm { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ir-auth-span-2 { grid-column: 1 / -1; }
+
+/* Choice buttons (gender) and condition tiles. */
+.ir-auth-choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 16px;
+  border: 2px solid var(--border-soft);
+  border-radius: 20px;
+  background: var(--background);
+  color: var(--muted-text);
+  font-family: var(--iris-font-display);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.5;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 170ms ease, border-color 170ms ease, color 170ms ease, box-shadow 170ms ease;
+}
+.ir-auth-choice:hover { border-color: color-mix(in srgb, var(--brand-blue) 40%, var(--border-soft)); }
+.ir-auth-choice--boy-on { background: var(--brand-blue-wash); border-color: var(--brand-blue); color: var(--brand-blue-ink); box-shadow: var(--shadow); }
+.ir-auth-choice--girl-on { background: var(--brand-coral-wash); border-color: var(--brand-coral); color: var(--brand-coral-ink); box-shadow: var(--shadow); }
+
+.ir-auth-tiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ir-gap); }
+.ir-auth-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: clamp(18px, 2.6vw, 24px);
+  border: 2px solid var(--border-soft);
+  border-radius: 24px;
+  background: var(--background);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 170ms ease, border-color 170ms ease, box-shadow 170ms ease;
+}
+.ir-auth-tile:hover { border-color: color-mix(in srgb, var(--brand-purple) 45%, var(--border-soft)); }
+.ir-auth-tile--on { background: var(--brand-purple-wash); border-color: var(--brand-purple); box-shadow: var(--shadow); }
+.ir-auth-tile-icon { font-size: clamp(42px, 8vw, 56px); line-height: 1.3; }
+.ir-auth-tile-name { font-family: var(--iris-font-display); font-size: 18px; font-weight: 800; color: var(--text); line-height: 1.5; }
+.ir-auth-tile-check {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-purple);
+  color: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.ir-auth-note {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--muted-text);
+  background: var(--background);
+  border: 2px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.ir-auth-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 2px solid color-mix(in srgb, var(--brand-purple) 30%, var(--border-soft));
+  border-radius: 20px;
+  background: var(--brand-purple-wash);
+  cursor: pointer;
+}
+.ir-auth-consent input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  flex-shrink: 0;
+  margin-block-start: 4px;
+  margin-inline: 0;
+  accent-color: var(--brand-blue);
+  cursor: pointer;
+}
+.ir-auth-consent span { font-size: 14.5px; font-weight: 700; line-height: 1.8; color: var(--text); }
+
+/* ── Breakpoints ────────────────────────────────────────────────────────── */
+@media (min-width: 700px) {
+  .ir-auth-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ir-auth-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 599px) {
+  .ir-auth-scene { --ir-gutter: 16px; --ir-buddy: 70px; --ir-card-pad: 20px; --ir-gap: 16px; }
+  .ir-auth-card { border-radius: 24px; }
+  .ir-auth-logo { width: 78px; }
+  .ir-auth-title { font-size: clamp(24px, 7.6vw, 29px); padding-block-end: 12px; }
+  .ir-auth-title::after { width: min(64%, 170px); }
+  .ir-auth-tagline { font-size: 15px; }
+  .ir-auth-card::after { inset-block-start: 16px; inset-inline-end: 18px; }
+  .ir-auth-step { padding: 9px 8px; font-size: 11.5px; gap: 5px; }
+  .ir-auth-choice { font-size: 17px; }
+  .ir-auth-nav { gap: 10px; }
+  .ir-auth-ghost { flex: 1 1 100%; }
+}
+@media (max-width: 479px) {
+  .ir-auth-grid--2sm { grid-template-columns: minmax(0, 1fr); }
+  .ir-auth-tile { flex-direction: row; justify-content: flex-start; gap: 14px; text-align: start; padding: 14px 16px; }
+  .ir-auth-tile-icon { font-size: 34px; }
+  .ir-auth-tile-check { inset-block-start: 50%; inset-inline-end: 14px; transform: translateY(-50%); }
+}
+
+/* ── Motion ─────────────────────────────────────────────────────────────── */
+/* Opt-in only. Under prefers-reduced-motion the scene is simply static: the
+   card, the swash and the mascot are all legible without moving once. */
+@media (prefers-reduced-motion: no-preference) {
+  .ir-auth-card { animation: irAuthRise 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .ir-auth-buddy { animation: irAuthPop 560ms cubic-bezier(0.2, 0.8, 0.2, 1) 90ms both; }
+  /* "Saving…" still needs a moving mark for people who DO want motion; the
+     label carries the same information on its own when motion is off. */
+  .ir-auth-spin { animation: irAuthSpin 1.6s linear infinite; }
+  .ir-auth-spark { animation: irAuthTwinkle 4.2s ease-in-out infinite; }
+  .ir-auth-spark--2 { animation-duration: 5.4s; animation-delay: -1.6s; }
+  .ir-auth-spark--3 { animation-duration: 6.2s; animation-delay: -2.8s; }
+  .ir-auth-spark--4 { animation-duration: 4.8s; animation-delay: -0.9s; }
+  .ir-auth-spark--5 { animation-duration: 7s; animation-delay: -3.4s; }
+  .ir-auth-spark--6 { animation-duration: 5.8s; animation-delay: -4.2s; }
+  .ir-auth-blob--1 { animation: irAuthDrift 18s ease-in-out infinite; }
+  .ir-auth-blob--2 { animation: irAuthDrift 22s ease-in-out -6s infinite reverse; }
+}
+@keyframes irAuthRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes irAuthPop { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: none; } }
+@keyframes irAuthTwinkle { 0%, 100% { opacity: 0.3; transform: scale(0.84) rotate(-6deg); } 50% { opacity: 0.9; transform: scale(1.06) rotate(8deg); } }
+@keyframes irAuthDrift { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, 14px, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ir-auth-cta, .ir-auth-ghost, .ir-auth-input, .ir-auth-tile, .ir-auth-choice, .ir-auth-step { transition-duration: 1ms; }
+  .ir-auth-card, .ir-auth-buddy, .ir-auth-spark, .ir-auth-blob { animation: none; }
+  .ir-auth-spin { animation: none; }
+}

@@ -8,9 +8,37 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { authMessage } from '../authMessages';
-import { ScreenFrame, TopBar, DisplayTitle } from './iris/ui/brand';
+import { TopBar } from './iris/ui/brand';
 import { ChromeActions } from './iris/ui/ChromeActions';
+import { AuthShell } from './auth/AuthShell';
 
+/**
+ * Parent registration — three steps: the child, the family, the condition.
+ *
+ * ── WHAT THE AUTH RESKIN CHANGED ──────────────────────────────────────────
+ * Presentation only. The screen now composes itself inside <AuthShell/>, the
+ * same cream scene, ambient blobs, white plate and pill CTA as the marketing
+ * hero, so signing up looks like the same product that persuaded someone to
+ * sign up. Inside that frame:
+ *
+ *   * One plate, not two. Each step used to render its own bordered Card on
+ *     top of the screen's card, so the wizard was a box inside a box. The step
+ *     is now a section — a colour chip, a heading, its fields — and the white
+ *     plate belongs to the screen.
+ *   * The step indicator keeps its three labelled pills (the format the
+ *     comment below defends) and keeps its `role="progressbar"` semantics;
+ *     only the paint changed, via classes.
+ *   * Labels are now bound to their inputs with id/htmlFor. Before the reskin
+ *     they were adjacent `<label>` elements with no association, so a screen
+ *     reader announcing "edit text" had nothing to say about what the field
+ *     was. No string, value or name moved.
+ *   * The heading appears once, as the card's `<h1>`. It used to render in the
+ *     top bar AND as a `DisplayTitle` under it — the same defect (D4) the
+ *     landing audit caught with the logo above a retyped heading.
+ *
+ * Step flow, validation, the speak/play prompts, `startTransition` and the
+ * submit path are untouched, as is the `dir` handling on the chevrons.
+ */
 export function RegistrationScreen() {
   const { registerUser, authError, clearAuthError, navigateTo, startTransition } = useApp();
   const { speak, playSound } = useAudio();
@@ -18,7 +46,7 @@ export function RegistrationScreen() {
 
   const handleBack = () => {
     playSound('tap');
-    navigateTo('landing');
+    navigateTo('marketing');
   };
 
   const [step, setStep] = useState(1);
@@ -114,43 +142,32 @@ export function RegistrationScreen() {
   };
 
   return (
-    <ScreenFrame
-      accent="blue"
-      width="md"
+    <AuthShell
+      tone="neutral"
+      wide
+      title={t.registration}
+      tagline={language === 'ar' ? 'رحلة جديدة تبدأ هنا' : 'A new journey starts here'}
       topBar={
         <TopBar
           ar={language === 'ar'}
           onBack={handleBack}
           backLabel={language === 'ar' ? 'رجوع' : 'Back'}
-          title={t.registration}
           actions={<ChromeActions />}
+          sticky={false}
         />
       }
-    >
-      <div>
-        {/* Header */}
-        <motion.div
-          initial={{ y: -12, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="text-center mb-7"
-        >
-          <DisplayTitle size="title">{t.registration}</DisplayTitle>
-          <p className="t-body text-ink-muted mt-2">
-            {language === 'ar' ? 'رحلة جديدة تبدأ هنا' : 'A new journey starts here'}
-          </p>
-        </motion.div>
-
-        {/* Progress: three dots, not a filled bar. Three steps is exactly the
-            case where a bar tells a parent less than the dots do. */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <span className="t-label text-brand-blue-ink">
+      head={
+        /* Progress: three labelled pills, not a filled bar. Three steps is exactly the
+           case where a bar tells a parent less than the dots do. */
+        <div className="ir-auth-progress">
+          <div className="ir-auth-progress-meta">
+            <span className="ir-auth-progress-eyebrow">
               {step === 1 ? t.childInfo : step === 2 ? t.familyInfo : t.conditionSelection}
             </span>
-            <span dir="ltr" className="t-small text-ink tabular-nums">{step} / 3</span>
+            <span dir="ltr" className="ir-auth-progress-count">{step} / 3</span>
           </div>
           <div
-            className="flex items-stretch justify-between gap-2"
+            className="ir-auth-steps"
             role="progressbar"
             aria-valuemin={1}
             aria-valuemax={3}
@@ -161,321 +178,317 @@ export function RegistrationScreen() {
               const n = i + 1;
               const state = step > n ? 'done' : step === n ? 'active' : 'upcoming';
               return (
-                <span
-                  key={label}
-                  dir={language === 'ar' ? 'rtl' : 'ltr'}
-                  className={
-                    'flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-2 py-2.5 t-small font-bold text-center ' +
-                    (state === 'active'
-                      ? 'bg-brand-blue text-surface'
-                      : state === 'done'
-                        ? 'bg-brand-green text-surface'
-                        : 'bg-brand-blue/10 text-brand-blue')
-                  }
-                >
-                  {state === 'done' ? <Check className="size-4 shrink-0" /> : <span className="tabular-nums">{n}</span>}
-                  <span className="truncate">{label}</span>
+                <span key={label} dir={language === 'ar' ? 'rtl' : 'ltr'} className={`ir-auth-step ir-auth-step--${state}`}>
+                  {state === 'done' ? <Check className="size-4 shrink-0" /> : <span className="ir-auth-step-num">{n}</span>}
+                  <span className="ir-auth-step-label">{label}</span>
                 </span>
               );
             })}
           </div>
         </div>
-
-        <AnimatePresence mode="wait">
-          {/* Step 1: Child Information */}
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-            >
-              <Card className="p-5 sm:p-6 space-y-8 rounded-brand-lg shadow-brand border border-brand-blue/10 bg-surface">
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="p-4 rounded-brand-lg bg-brand-purple-wash text-brand-purple-ink">
-                    <Baby className="size-10" />
-                  </div>
-                  <h2 className="t-heading text-ink">{t.childInfo}</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</label>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                      placeholder="hero@kingdom.com"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{language === 'ar' ? 'كلمة المرور' : 'Password'}</label>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                      placeholder="••••••••"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.childName}</label>
-                    <Input
-                      value={formData.name || ''}
-                      onChange={(e) => updateField('name', e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                      placeholder={language === 'ar' ? 'اسم طفلنا البطل' : "Our Hero's Name"}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <label className="text-lg font-black text-ink-muted">{t.age}</label>
-                      <Input
-                        type="number"
-                        value={formData.age || ''}
-                        onChange={(e) => updateField('age', e.target.value)}
-                        className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-lg font-black text-ink-muted">{language === 'ar' ? 'تاريخ الميلاد' : 'Birth Date'}</label>
-                      <Input
-                        type="date"
-                        value={formData.dateOfBirth}
-                        onChange={(e) => updateField('dateOfBirth', e.target.value)}
-                        className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2 space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.gender}</label>
-                    <div className="grid grid-cols-2 gap-6 mt-2">
-                      <Button
-                        variant={formData.gender === 'male' ? 'default' : 'outline'}
-                        onClick={() => { updateField('gender', 'male'); playSound('tap'); }}
-                        className={`h-20 text-2xl font-black rounded-brand border-4 transition-all duration-200 ${formData.gender === 'male' ? 'bg-brand-blue border-brand-blue text-surface scale-105 shadow-brand' : 'bg-surface border-hairline text-ink-muted hover:bg-ground-tint active:scale-95'}`}
-                      >
-                        👦 {t.male}
-                      </Button>
-                      <Button
-                        variant={formData.gender === 'female' ? 'default' : 'outline'}
-                        onClick={() => { updateField('gender', 'female'); playSound('tap'); }}
-                        className={`h-20 text-2xl font-black rounded-brand border-4 transition-all duration-200 ${formData.gender === 'female' ? 'bg-brand-coral-solid border-brand-coral-solid text-surface scale-105 shadow-brand' : 'bg-surface border-hairline text-ink-muted hover:bg-ground-tint active:scale-95'}`}
-                      >
-                        👧 {t.female}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Step 2: Family Information */}
-          {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-            >
-              <Card className="p-5 sm:p-6 space-y-10 rounded-brand-lg shadow-brand border border-brand-blue/10 bg-surface">
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="p-4 rounded-brand-lg bg-brand-blue-wash text-brand-blue-ink">
-                    <Users className="size-10" />
-                  </div>
-                  <h2 className="t-heading text-ink">{t.familyInfo}</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.country}</label>
-                    <Input
-                      value={formData.country}
-                      onChange={(e) => updateField('country', e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.city}</label>
-                    <Input
-                      value={formData.city}
-                      onChange={(e) => updateField('city', e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.motherName}</label>
-                    <Input
-                      value={formData.motherName}
-                      onChange={(e) => updateField('motherName', e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.motherJob}</label>
-                    <Input
-                      value={formData.motherJob}
-                      onChange={(e) => updateField('motherJob', e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.fatherName}</label>
-                    <Input
-                      value={formData.fatherName}
-                      onChange={(e) => updateField('fatherName', e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.fatherJob}</label>
-                    <Input
-                      value={formData.fatherJob}
-                      onChange={(e) => updateField('fatherJob', e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2 space-y-3">
-                    <label className="text-lg font-black text-ink-muted">{t.phone}</label>
-                    <Input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => updateField('phone', e.target.value)}
-                      className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 text-center tracking-widest"
-                      placeholder="+20 123 456 7890"
-                    />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Step 3: Condition Selection */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-            >
-              <Card className="p-5 sm:p-6 space-y-10 rounded-brand-lg shadow-brand border border-brand-blue/10 bg-surface">
-                <div className="flex items-center gap-4 mb-2 text-center justify-center">
-                  <div className="p-4 rounded-brand-lg bg-brand-yellow-wash text-brand-yellow-ink">
-                    <Brain className="size-10" />
-                  </div>
-                  <h2 className="t-title text-ink">{t.conditionSelection}</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {conditions.map((condition) => (
-                    <motion.button
-                      key={condition.id}
-                      onClick={() => {
-                        updateField('condition', condition.id);
-                        playSound('tap');
-                        speak(condition.name, language);
-                      }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={`p-10 rounded-brand-xl border-8 transition-all duration-200 relative flex flex-col items-center shadow-brand ${formData.condition === condition.id
-                        ? 'border-brand-purple bg-brand-purple-wash scale-105'
-                        : 'border-hairline bg-surface hover:border-hairline active:scale-95'
-                        }`}
-                    >
-                      {formData.condition === condition.id && (
-                        <div className="absolute top-4 right-4 bg-brand-purple-ink text-white p-2 rounded-full shadow-brand">
-                          <Check className="size-6" />
-                        </div>
-                      )}
-                      <div className="text-8xl mb-6 filter drop-shadow-brand">{condition.icon}</div>
-                      <div className="font-black text-2xl text-ink">{condition.name}</div>
-                    </motion.button>
-                  ))}
-                </div>
-
-                <p className="text-sm text-ink-muted bg-ground-tint rounded-brand p-4 border-2 border-hairline">
-                  {language === 'ar'
-                    ? 'ملاحظة: هذه المعلومة تُستخدم فقط لتفعيل تسهيلات الوصول (وقت إضافي، إعادة الصوت، تقليل الحركة). لا تحدد قدرة طفلك ولا مستواه — مسار التعلم يعتمد بالكامل على أدائه الفعلي.'
-                    : "Note: this is used only to enable access accommodations (extra time, audio repeat, reduced animation). It never determines your child's ability or level — the learning pathway is driven entirely by actual performance."}
-                </p>
-
-                <label className="flex items-start gap-4 bg-brand-purple-wash rounded-brand p-5 border-2 border-hairline cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={consentGiven}
-                    onChange={(e) => setConsentGiven(e.target.checked)}
-                    className="mt-1 size-6 accent-brand-purple shrink-0"
-                  />
-                  <span className="text-sm md:text-base font-bold text-ink-muted">
-                    {language === 'ar'
-                      ? 'أوافق على استخدام IRIS كنموذج أولي تعليمي مبني على الأدلة (غير مُعتمد إكلينيكيًا بعد) لتخصيص أنشطة التعلّم لطفلي، وعلى حفظ بيانات تقدّمه لهذا الغرض فقط.'
-                      : "I agree to use IRIS as a research-informed educational prototype (not yet clinically validated) to personalise my child's learning activities, and to store their progress data for this purpose only."}
-                  </span>
-                </label>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Visible registration failure. The server distinguishes a duplicate
-            email from a short password from an invalid address; all three used
-            to be spoken only and otherwise looked like the form silently
-            refusing to submit. */}
-        {authError && (
-          <div
-            role="alert"
-            className="mt-8 rounded-brand border-4 border-brand-yellow bg-brand-yellow-wash px-5 py-4 text-lg font-bold text-brand-yellow-ink flex items-start gap-3"
+      }
+    >
+      <AnimatePresence mode="wait">
+        {/* Step 1: Child Information */}
+        {step === 1 && (
+          <motion.div
+            key="step1"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
           >
-            <span aria-hidden="true" className="text-2xl leading-none">⚠️</span>
-            <span>{authMessage(authError, language === 'ar' ? 'ar' : 'en')}</span>
-          </div>
+            <Card className="ir-auth-step-card">
+              <div className="ir-auth-step-head">
+                <span className="ir-auth-step-glyph ir-auth-step-glyph--purple">
+                  <Baby className="size-7" />
+                </span>
+                <h2 className="ir-auth-step-title">{t.childInfo}</h2>
+              </div>
+
+              <div className="ir-auth-grid ir-auth-grid--2">
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-email">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</label>
+                  <Input
+                    id="reg-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="ir-auth-input"
+                    placeholder="hero@kingdom.com"
+                  />
+                </div>
+
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-password">{language === 'ar' ? 'كلمة المرور' : 'Password'}</label>
+                  <Input
+                    id="reg-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="ir-auth-input"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-child-name">{t.childName}</label>
+                  <Input
+                    id="reg-child-name"
+                    value={formData.name || ''}
+                    onChange={(e) => updateField('name', e.target.value)}
+                    className="ir-auth-input"
+                    placeholder={language === 'ar' ? 'اسم طفلنا البطل' : "Our Hero's Name"}
+                  />
+                </div>
+
+                <div className="ir-auth-grid ir-auth-grid--2sm">
+                  <div className="ir-auth-field">
+                    <label className="ir-auth-label" htmlFor="reg-age">{t.age}</label>
+                    <Input
+                      id="reg-age"
+                      type="number"
+                      value={formData.age || ''}
+                      onChange={(e) => updateField('age', e.target.value)}
+                      className="ir-auth-input"
+                    />
+                  </div>
+                  <div className="ir-auth-field">
+                    <label className="ir-auth-label" htmlFor="reg-dob">{language === 'ar' ? 'تاريخ الميلاد' : 'Birth Date'}</label>
+                    <Input
+                      id="reg-dob"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => updateField('dateOfBirth', e.target.value)}
+                      className="ir-auth-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="ir-auth-span-2">
+                  <div className="ir-auth-label ir-auth-label--block">{t.gender}</div>
+                  <div className="ir-auth-grid ir-auth-grid--2sm ir-auth-grid--tight">
+                    <Button
+                      variant={formData.gender === 'male' ? 'default' : 'outline'}
+                      onClick={() => { updateField('gender', 'male'); playSound('tap'); }}
+                      className={`ir-auth-choice ${formData.gender === 'male' ? 'ir-auth-choice--boy-on' : ''}`}
+                    >
+                      👦 {t.male}
+                    </Button>
+                    <Button
+                      variant={formData.gender === 'female' ? 'default' : 'outline'}
+                      onClick={() => { updateField('gender', 'female'); playSound('tap'); }}
+                      className={`ir-auth-choice ${formData.gender === 'female' ? 'ir-auth-choice--girl-on' : ''}`}
+                    >
+                      👧 {t.female}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
         )}
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between items-center mt-12 gap-8">
-          <Button
-            onClick={handlePrevious}
-            variant="outline"
-            size="lg"
-            className={`h-16 px-6 text-xl font-bold rounded-full border-2 shadow-brand transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'bg-surface border-hairline text-ink hover:bg-ground-tint'}`}
+        {/* Step 2: Family Information */}
+        {step === 2 && (
+          <motion.div
+            key="step2"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
           >
-            {dir === 'rtl' ? <ChevronRight className="size-8 me-2" /> : <ChevronLeft className="size-8 me-2" />}
-            {t.previous}
-          </Button>
+            <Card className="ir-auth-step-card">
+              <div className="ir-auth-step-head">
+                <span className="ir-auth-step-glyph ir-auth-step-glyph--blue">
+                  <Users className="size-7" />
+                </span>
+                <h2 className="ir-auth-step-title">{t.familyInfo}</h2>
+              </div>
 
-          <Button
-            onClick={handleNext}
-            size="lg"
-            className={`flex-1 h-16 px-6 text-xl font-bold rounded-full shadow-brand transition-all duration-200 active:scale-95 hover:scale-[1.02] ${step === 3 ? 'bg-brand-green-solid text-surface' : 'bg-brand-blue text-surface'}`}
-            disabled={
-              isSubmitting ||
-              (step === 1 && (!formData.name || !formData.age || !formData.gender || !email || !password)) ||
-              (step === 2 && (!formData.country || !formData.phone)) ||
-              (step === 3 && (!formData.condition || !consentGiven))
-            }
+              <div className="ir-auth-grid ir-auth-grid--2">
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-country">{t.country}</label>
+                  <Input
+                    id="reg-country"
+                    value={formData.country}
+                    onChange={(e) => updateField('country', e.target.value)}
+                    className="ir-auth-input"
+                  />
+                </div>
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-city">{t.city}</label>
+                  <Input
+                    id="reg-city"
+                    value={formData.city}
+                    onChange={(e) => updateField('city', e.target.value)}
+                    className="ir-auth-input"
+                  />
+                </div>
+
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-mother-name">{t.motherName}</label>
+                  <Input
+                    id="reg-mother-name"
+                    value={formData.motherName}
+                    onChange={(e) => updateField('motherName', e.target.value)}
+                    className="ir-auth-input"
+                  />
+                </div>
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-mother-job">{t.motherJob}</label>
+                  <Input
+                    id="reg-mother-job"
+                    value={formData.motherJob}
+                    onChange={(e) => updateField('motherJob', e.target.value)}
+                    className="ir-auth-input"
+                  />
+                </div>
+
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-father-name">{t.fatherName}</label>
+                  <Input
+                    id="reg-father-name"
+                    value={formData.fatherName}
+                    onChange={(e) => updateField('fatherName', e.target.value)}
+                    className="ir-auth-input"
+                  />
+                </div>
+                <div className="ir-auth-field">
+                  <label className="ir-auth-label" htmlFor="reg-father-job">{t.fatherJob}</label>
+                  <Input
+                    id="reg-father-job"
+                    value={formData.fatherJob}
+                    onChange={(e) => updateField('fatherJob', e.target.value)}
+                    className="ir-auth-input"
+                  />
+                </div>
+
+                <div className="ir-auth-field ir-auth-span-2">
+                  <label className="ir-auth-label" htmlFor="reg-phone">{t.phone}</label>
+                  <Input
+                    id="reg-phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => updateField('phone', e.target.value)}
+                    className="ir-auth-input"
+                    placeholder="+20 123 456 7890"
+                  />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Step 3: Condition Selection */}
+        {step === 3 && (
+          <motion.div
+            key="step3"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
           >
-            <div className="flex items-center justify-center gap-3">
-              {isSubmitting ? (
-                <><Sparkles className="animate-spin size-8" />{language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}</>
-              ) : (
-                <>
-                  {step === 3 ? t.submit : t.next}
-                  {dir === 'rtl' ? <ChevronLeft className="size-8 ms-2" /> : <ChevronRight className="size-8 ms-2" />}
-                </>
-              )}
-            </div>
-          </Button>
+            <Card className="ir-auth-step-card">
+              <div className="ir-auth-step-head ir-auth-step-head--center">
+                <span className="ir-auth-step-glyph ir-auth-step-glyph--yellow">
+                  <Brain className="size-7" />
+                </span>
+                <h2 className="ir-auth-step-title">{t.conditionSelection}</h2>
+              </div>
+
+              <div className="ir-auth-tiles">
+                {conditions.map((condition) => (
+                  <motion.button
+                    key={condition.id}
+                    onClick={() => {
+                      updateField('condition', condition.id);
+                      playSound('tap');
+                      speak(condition.name, language);
+                    }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`ir-auth-tile ${formData.condition === condition.id ? 'ir-auth-tile--on' : ''}`}
+                  >
+                    {formData.condition === condition.id && (
+                      <div className="ir-auth-tile-check">
+                        <Check className="size-4" />
+                      </div>
+                    )}
+                    <div className="ir-auth-tile-icon">{condition.icon}</div>
+                    <div className="ir-auth-tile-name">{condition.name}</div>
+                  </motion.button>
+                ))}
+              </div>
+
+              <p className="ir-auth-note">
+                {language === 'ar'
+                  ? 'ملاحظة: هذه المعلومة تُستخدم فقط لتفعيل تسهيلات الوصول (وقت إضافي، إعادة الصوت، تقليل الحركة). لا تحدد قدرة طفلك ولا مستواه — مسار التعلم يعتمد بالكامل على أدائه الفعلي.'
+                  : "Note: this is used only to enable access accommodations (extra time, audio repeat, reduced animation). It never determines your child's ability or level — the learning pathway is driven entirely by actual performance."}
+              </p>
+
+              <label className="ir-auth-consent">
+                <input
+                  type="checkbox"
+                  checked={consentGiven}
+                  onChange={(e) => setConsentGiven(e.target.checked)}
+                />
+                <span className="ir-auth-consent-text">
+                  {language === 'ar'
+                    ? 'أوافق على استخدام IRIS كنموذج أولي تعليمي مبني على الأدلة (غير مُعتمد إكلينيكيًا بعد) لتخصيص أنشطة التعلّم لطفلي، وعلى حفظ بيانات تقدّمه لهذا الغرض فقط.'
+                    : "I agree to use IRIS as a research-informed educational prototype (not yet clinically validated) to personalise my child's learning activities, and to store their progress data for this purpose only."}
+                </span>
+              </label>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Visible registration failure. The server distinguishes a duplicate
+          email from a short password from an invalid address; all three used
+          to be spoken only and otherwise looked like the form silently
+          refusing to submit. */}
+      {authError && (
+        <div className="ir-auth-error">
+          <div role="alert">
+            <span aria-hidden="true" className="ir-auth-error-mark">⚠️</span>
+            <span>{authMessage(authError, language === 'ar' ? 'ar' : 'en')}</span>
+          </div>
         </div>
+      )}
+
+      {/* Navigation Buttons */}
+      <div className="ir-auth-nav">
+        <Button
+          onClick={handlePrevious}
+          variant="outline"
+          size="lg"
+          className={`ir-auth-ghost ${step === 1 ? 'opacity-0 pointer-events-none' : ''}`}
+        >
+          {dir === 'rtl' ? <ChevronRight className="size-6 me-2" /> : <ChevronLeft className="size-6 me-2" />}
+          {t.previous}
+        </Button>
+
+        <Button
+          onClick={handleNext}
+          size="lg"
+          className={`ir-auth-cta ir-auth-cta--grow ${step === 3 ? 'ir-auth-cta--finish' : ''}`}
+          disabled={
+            isSubmitting ||
+            (step === 1 && (!formData.name || !formData.age || !formData.gender || !email || !password)) ||
+            (step === 2 && (!formData.country || !formData.phone)) ||
+            (step === 3 && (!formData.condition || !consentGiven))
+          }
+        >
+          <div className="ir-auth-cta-inner">
+            {isSubmitting ? (
+              <><Sparkles className="ir-auth-spin size-6" />{language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}</>
+            ) : (
+              <>
+                {step === 3 ? t.submit : t.next}
+                {dir === 'rtl' ? <ChevronLeft className="size-6 ms-2" /> : <ChevronRight className="size-6 ms-2" />}
+              </>
+            )}
+          </div>
+        </Button>
       </div>
-    </ScreenFrame>
+    </AuthShell>
   );
 }
