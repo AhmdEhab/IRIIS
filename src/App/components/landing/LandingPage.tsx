@@ -76,11 +76,12 @@ function HeadingBlock({
 
 function ModelCard({ src, alt, emoji, label }: { src: string; alt: string; emoji: string; label: string }) {
   const reduced = useReducedMotion();
+  const { language } = useLanguage();
   return (
     <div className="bg-brand-yellow-wash rounded-3xl border border-brand-yellow/40 p-3 shadow-brand">
       <div className="aspect-square rounded-2xl overflow-hidden bg-surface">
         <Suspense fallback={<div className="size-full grid place-items-center text-5xl" aria-hidden>{emoji}</div>}>
-          <Object3DViewer src={src} alt={alt} autoRotate={!reduced} fallbackEmoji={emoji} />
+          <Object3DViewer src={src} alt={alt} lang={language} autoRotate={!reduced} fallbackEmoji={emoji} />
         </Suspense>
       </div>
       <p className="text-center font-bold text-sm py-2 px-1 text-brand-yellow-ink truncate">{label}</p>
@@ -288,8 +289,8 @@ export function LandingPage({
               </div>
               {/* The 3D preview lives in its own strip below the artwork —
                   it never covers a face at any width (screenshot defect fixed). */}
-              <div className="mt-4 mx-auto lg:mx-0 lg:ms-6 flex items-center gap-4 max-w-sm rounded-3xl bg-surface border border-brand-blue/10 shadow-brand p-3">
-                <div className="w-20 sm:w-24 shrink-0">
+              <div className="mt-4 mx-auto lg:mx-0 lg:ms-6 flex items-center gap-4 max-w-md rounded-3xl bg-surface border border-brand-blue/10 shadow-brand p-3">
+                <div className="w-28 sm:w-32 shrink-0">
                   <ModelCard src="/models/apple.glb" alt="Apple" emoji="🍎" label={ar ? 'تفاحة' : 'Apple'} />
                 </div>
                 <p className="text-sm sm:text-base text-ink-muted leading-snug pe-2">
