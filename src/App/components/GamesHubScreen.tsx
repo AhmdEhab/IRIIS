@@ -66,7 +66,7 @@ export function GamesHubScreen() {
     return (
         <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
                 ? 'bg-ground-tint'
-                : 'bg-brand-purple-wash via-surface '
+                : 'bg-brand-purple-wash'
             }`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">

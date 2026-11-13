@@ -71,7 +71,7 @@ export function SplashScreen() {
               <Card className="p-8 rounded-brand-xl shadow-brand-lg border-2 border-hairline bg-surface text-center space-y-8">
                 <div className="space-y-3">
                   <h1 className="t-title text-ink">
- {t.welcomeMessage} <span className="inline-block animate-bounce"></span>
+ {t.welcomeMessage} <span className="inline-block motion-safe:animate-bounce motion-reduce:animate-none"></span>
  </h1>
                   <p className="text-xl md:text-2xl text-brand-purple-ink font-bold max-w-2xl mx-auto">
                     {language === 'ar'

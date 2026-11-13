@@ -183,7 +183,7 @@ export function MemoryGameScreen() {
                                             flex items-center justify-center rounded-brand-xl
                                             group-hover:shadow-brand/50 transition-shadow
                                         `}>
-                                            <Brain className={`size-20 animate-pulse ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-white/40'}`} />
+                                            <Brain className={`size-20 motion-safe:animate-pulse motion-reduce:animate-none ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-white/40'}`} />
 
                                             {/* Visual Hint (Ghosting) for Syndrome Support */}
                                             {activeRules?.gameAdjustments?.memoryGameHints && !card.isMatched && (

@@ -52,7 +52,7 @@ export function ModeSelectionScreen() {
         <motion.h1
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-5xl font-bold text-center mb-12 text-brand-purple-ink"
+          className="t-title text-5xl font-bold text-center mb-12 text-brand-purple-ink"
         >
           {t.selectMode}
         </motion.h1>

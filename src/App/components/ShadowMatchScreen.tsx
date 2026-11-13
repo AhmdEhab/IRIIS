@@ -107,7 +107,7 @@ export function ShadowMatchScreen() {
     };
 
     return (
-        <div className="min-h-screen bg-brand-blue-wash via-surface p-4 overflow-hidden">
+        <div className="min-h-screen bg-brand-blue-wash p-4 overflow-hidden">
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 {/* Header */}
@@ -124,7 +124,7 @@ export function ShadowMatchScreen() {
                 </div>
 
                 {!isGameOver ? (
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
+                    <div className="grid lg:grid-cols-2 gap-6 items-center">
                         <motion.div key={round + 'shadow'} initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex flex-col items-center">
                             <Card className="w-full aspect-square max-w-md bg-surface border-2 border-hairline shadow-brand-lg rounded-brand-xl flex flex-col items-center justify-center p-12 relative overflow-hidden">
                                 <div className="absolute top-6 left-6 opacity-10">

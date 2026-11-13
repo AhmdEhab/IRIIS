@@ -20,15 +20,15 @@ export function DrawingScreen() {
     const [isEraser, setIsEraser] = useState(false);
 
     const colors = [
-        { name: 'Red', hex: '#ef4444' },
-        { name: 'Blue', hex: '#3b82f6' },
-        { name: 'Green', hex: '#22c55e' },
-        { name: 'Yellow', hex: '#eab308' },
-        { name: 'Orange', hex: '#f97316' },
-        { name: 'Purple', hex: '#a855f7' },
-        { name: 'Pink', hex: '#ec4899' },
-        { name: 'Brown', hex: '#78350f' },
-        { name: 'Black', hex: '#000000' }
+        { name: 'Red', nameAr: 'أحمر', hex: '#ef4444' },
+        { name: 'Blue', nameAr: 'أزرق', hex: '#3b82f6' },
+        { name: 'Green', nameAr: 'أخضر', hex: '#22c55e' },
+        { name: 'Yellow', nameAr: 'أصفر', hex: '#eab308' },
+        { name: 'Orange', nameAr: 'برتقالي', hex: '#f97316' },
+        { name: 'Purple', nameAr: 'بنفسجي', hex: '#a855f7' },
+        { name: 'Pink', nameAr: 'وردي', hex: '#ec4899' },
+        { name: 'Brown', nameAr: 'بني', hex: '#78350f' },
+        { name: 'Black', nameAr: 'أسود', hex: '#000000' }
     ];
 
     useEffect(() => {
@@ -100,13 +100,13 @@ export function DrawingScreen() {
     return (
         <div className={`min-h-screen p-4 overflow-hidden transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
                 ? 'bg-ground-tint'
-                : 'bg-brand-blue-wash via-surface '
+                : 'bg-brand-blue-wash'
             }`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-7xl mx-auto h-[calc(100vh-2rem)] flex flex-col">
                 <div className="flex justify-between items-center mb-6">
                     <div className="w-24" />
-                    <h1 className={`text-4xl md:text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal'
+                    <h1 className={`t-title text-4xl md:text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal'
                             ? 'text-ink-muted'
                             : 'text-brand-coral-ink'
                         }`}>
@@ -121,7 +121,7 @@ export function DrawingScreen() {
                     <Card className="lg:col-span-2 p-4 flex lg:flex-col gap-4 overflow-auto lg:overflow-visible shadow-brand-lg rounded-brand-xl">
                         <div className="flex lg:flex-col gap-3 flex-1 overflow-auto p-1">
                             {colors.map((c) => (
-                                <motion.button key={c.hex} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setColor(c.hex); setIsEraser(false); playSound('tap'); speak(language === 'ar' ? c.name : c.name, language); }} className={`size-12 rounded-full border-4 flex-shrink-0 ${color === c.hex && !isEraser ? 'border-hairline scale-110 shadow-brand' : 'border-hairline shadow-brand-sm'}`} style={{ backgroundColor: c.hex }} />
+                                <motion.button key={c.hex} aria-label={language === 'ar' ? c.nameAr : c.name} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setColor(c.hex); setIsEraser(false); playSound('tap'); speak(language === 'ar' ? c.nameAr : c.name, language); }} className={`size-12 rounded-full border-4 flex-shrink-0 ${color === c.hex && !isEraser ? 'border-hairline scale-110 shadow-brand' : 'border-hairline shadow-brand-sm'}`} style={{ backgroundColor: c.hex }} />
                             ))}
                         </div>
                         <div className="lg:h-px lg:w-full w-px h-12 bg-surface-sunk" />

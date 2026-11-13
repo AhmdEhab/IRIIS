@@ -112,7 +112,7 @@ export function BalloonPopScreen() {
     }, [isGameOver, score, unlockBadge, playSound, incrementProgress]);
 
     return (
-        <div className="h-screen w-full bg-brand-blue-wash to-white overflow-hidden relative touch-none">
+        <div className="h-screen w-full bg-brand-blue-wash overflow-hidden relative touch-none">
             <BackButton onClick={handleBack} />
             <div className="absolute top-0 inset-x-0 p-6 flex justify-between items-center z-50">
                 <div className="w-24" />
@@ -125,7 +125,7 @@ export function BalloonPopScreen() {
                     <div className="h-10 w-px bg-brand-blue-wash" />
                     <div className="text-center">
                         <p className="text-xs font-black text-brand-blue-ink uppercase">{language === 'ar' ? 'الوقت' : 'Time'}</p>
-                        <p className={`text-3xl font-black ${timeLeft < 10 ? 'text-brand-coral-ink animate-pulse' : 'text-brand-blue-ink'}`}>
+                        <p className={`text-3xl font-black ${timeLeft < 10 ? 'text-brand-coral-ink motion-safe:animate-pulse motion-reduce:animate-none' : 'text-brand-blue-ink'}`}>
                             {timeLeft}s
                         </p>
                     </div>
@@ -199,7 +199,7 @@ export function BalloonPopScreen() {
                                 </>
                             ) : (
                                 <>
-                                    <div className="text-9xl mb-8 animate-bounce">🎈</div>
+                                    <div className="text-9xl mb-8 motion-safe:animate-bounce motion-reduce:animate-none">🎈</div>
                                     <h2 className="t-title text-brand-blue-ink mb-4">
  {t.balloonPop}
  </h2>

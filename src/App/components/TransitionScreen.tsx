@@ -11,7 +11,7 @@ export function TransitionScreen() {
     const isSelectingIQ = transitionState.message === t.preparingJourney;
 
     return (
-        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>
+        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash'}`}>
             <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -50,7 +50,7 @@ export function TransitionScreen() {
                         {isSelectingIQ ? (
                             <Brain className={`size-32 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-blue-ink'}`} />
                         ) : (
-                            <Settings className={`size-32 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-purple-ink'} animate-spin-slow`} />
+                            <Settings className={`size-32 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-purple-ink'} motion-safe:animate-spin-slow motion-reduce:animate-none`} />
                         )}
                     </motion.div>
 
@@ -77,7 +77,7 @@ export function TransitionScreen() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className={`text-4xl md:text-5xl font-black ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink' : 'text-ink'}`}
+                        className={`t-title text-4xl md:text-5xl font-black ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink' : 'text-ink'}`}
                     >
                         {transitionState.message}
                     </motion.h2>

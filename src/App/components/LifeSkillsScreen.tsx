@@ -180,12 +180,12 @@ export function LifeSkillsScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash'}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-brand-blue-ink' : 'text-brand-blue-ink'}`}>
+                    <h1 className={`t-title text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-brand-blue-ink' : 'text-brand-blue-ink'}`}>
  {language === 'ar' ? 'عادات صحية' : 'Healthy Habits'} 
  </h1>
                     <div className="w-24" />

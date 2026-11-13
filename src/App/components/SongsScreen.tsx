@@ -189,12 +189,12 @@ export function SongsScreen() {
     const videoId = selectedSong ? (language === 'ar' ? selectedSong.youtubeIdAr : selectedSong.youtubeIdEn) : '';
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash'}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-blue-ink'}`}>
+                    <h1 className={`t-title text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-blue-ink'}`}>
  {language === 'ar' ? 'أغاني ومرح' : 'Songs & Fun'} 
  </h1>
                     <div className="w-24" />
@@ -259,7 +259,7 @@ export function SongsScreen() {
                                                         >
                                                             <Music className="size-32 text-brand-coral-ink mx-auto" />
                                                         </motion.div>
-                                                        <h3 className="t-heading text-brand-coral-ink animate-pulse">
+                                                        <h3 className="t-heading text-brand-coral-ink motion-safe:animate-pulse motion-reduce:animate-none">
                                                             {language === 'ar' ? 'استعد للنغمات! 🎵' : 'Ready for Rhythm! 🎵'}
                                                         </h3>
                                                     </div>
@@ -271,7 +271,7 @@ export function SongsScreen() {
                                                             transition={{ duration: 3, repeat: Infinity }}
                                                             className="absolute inset-0 bg-brand-blue-wash/30"
                                                         />
-                                                        <Sparkles className="size-24 text-brand-blue-ink animate-pulse mx-auto z-10" />
+                                                        <Sparkles className="size-24 text-brand-blue-ink motion-safe:animate-pulse motion-reduce:animate-none mx-auto z-10" />
                                                         <h3 className="t-heading text-brand-blue-ink z-10">
                                                             {language === 'ar' ? 'هدوء... لنستمع معاً.' : 'Calm... let\'s listen together.'}
                                                         </h3>
