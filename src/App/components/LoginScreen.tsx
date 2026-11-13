@@ -5,7 +5,8 @@ import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { authMessage } from '../authMessages';
-import { TopBar, Button, Field, ErrorState } from './iris/ui/brand';
+import { Button, Field, ErrorState } from './iris/ui/brand';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ChromeActions } from './iris/ui/ChromeActions';
 import { AuthShell } from './auth/AuthShell';
 
@@ -93,13 +94,13 @@ export function LoginScreen() {
       title={ar ? 'مرحباً بعودتك' : 'Welcome back'}
       tagline={ar ? 'سجّل الدخول لمتابعة تعلّم طفلك.' : "Sign in to see your child's learning."}
       topBar={
-        <TopBar
-          ar={ar}
-          onBack={handleBack}
-          backLabel={ar ? 'الرئيسية' : 'Home'}
-          actions={<ChromeActions showLanguage={false} />}
-          sticky={false}
-        />
+        <div className="ir-auth-bar">
+          <button type="button" className="ir-auth-back" onClick={handleBack}>
+            {ar ? <ChevronRight aria-hidden="true" /> : <ChevronLeft aria-hidden="true" />}
+            <span>{ar ? 'الرئيسية' : 'Home'}</span>
+          </button>
+          <ChromeActions showLanguage={false} />
+        </div>
       }
       footer={
         /* The wrapper is load-bearing, not decoration. The registration link

@@ -8,7 +8,6 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { authMessage } from '../authMessages';
-import { TopBar } from './iris/ui/brand';
 import { ChromeActions } from './iris/ui/ChromeActions';
 import { AuthShell } from './auth/AuthShell';
 
@@ -148,13 +147,13 @@ export function RegistrationScreen() {
       title={t.registration}
       tagline={language === 'ar' ? 'رحلة جديدة تبدأ هنا' : 'A new journey starts here'}
       topBar={
-        <TopBar
-          ar={language === 'ar'}
-          onBack={handleBack}
-          backLabel={language === 'ar' ? 'رجوع' : 'Back'}
-          actions={<ChromeActions showLanguage={false} />}
-          sticky={false}
-        />
+        <div className="ir-auth-bar">
+          <button type="button" className="ir-auth-back" onClick={handleBack}>
+            {dir === 'rtl' ? <ChevronRight aria-hidden="true" /> : <ChevronLeft aria-hidden="true" />}
+            <span>{language === 'ar' ? 'رجوع' : 'Back'}</span>
+          </button>
+          <ChromeActions showLanguage={false} />
+        </div>
       }
       head={
         /* Progress: three labelled pills, not a filled bar. Three steps is exactly the

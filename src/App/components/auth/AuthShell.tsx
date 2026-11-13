@@ -93,17 +93,9 @@ export function AuthShell({
         <Sparkle className="ir-auth-spark ir-auth-spark--6" fill="var(--brand-blue)" />
       </div>
 
-      {/* The logo is a mark here, not a link: the way out of this scene is the
-          back control inside `topBar`, which is where it has always been. */}
+      {/* The logo now sits inside the card, above the form, as requested:
+          here the chrome row only carries the back control and mute. */}
       <div className="ir-auth-chrome">
-        <img
-          src="/images/iris-logo-tight.png"
-          width={726}
-          height={509}
-          alt="IRIS"
-          draggable={false}
-          className="ir-auth-logo"
-        />
         <div className="ir-auth-chrome-bar">{topBar}</div>
       </div>
 
@@ -113,6 +105,14 @@ export function AuthShell({
           <div className={cx('ir-auth-card', wide && 'ir-auth-card--wide', tone === 'blue' && 'ir-auth-card--blue')}>
             <IrisBuddy mood="happy" className="ir-auth-buddy" />
             <div className="ir-auth-head">
+              <img
+                src="/images/iris-logo-tight.png"
+                width={726}
+                height={509}
+                alt="IRIS"
+                draggable={false}
+                className="ir-auth-card-logo"
+              />
               <h1 className="ir-auth-title">{title}</h1>
               {tagline && <p className="ir-auth-tagline">{tagline}</p>}
             </div>
