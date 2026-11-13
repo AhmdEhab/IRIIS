@@ -175,6 +175,25 @@
 @keyframes lpFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 @keyframes lpTwinkle { 0%, 100% { opacity: 0.35; transform: scale(0.82) rotate(-6deg); } 50% { opacity: 0.95; transform: scale(1.06) rotate(8deg); } }
 
+/* ── Floating glass language toggle (single round button) ── */
+.lp-lang-round {
+  position: fixed; inset-block-end: clamp(52px, 9vh, 86px); right: 20px; z-index: 60;
+  display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.9); cursor: pointer;
+  background: rgba(201, 229, 247, 0.52); color: var(--brand-blue-ink);
+  backdrop-filter: blur(16px) saturate(1.8); -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  box-shadow: 0 14px 34px -12px rgba(31, 103, 177, 0.45), 0 2px 8px rgba(42, 33, 24, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  font-family: var(--iris-font-display); font-size: 17px; font-weight: 800; letter-spacing: 0.3px; line-height: 1;
+}
+.lp-lang-round:hover { color: var(--surface); background: var(--brand-blue); }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-lang-round { animation: lpLangBob 5.2s ease-in-out infinite; transition: background-color 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease; }
+  .lp-lang-round:hover { transform: scale(1.08); box-shadow: 0 16px 30px -10px rgba(31, 103, 177, 0.6); }
+  .lp-lang-round:active { transform: scale(0.94); }
+}
+@keyframes lpLangBob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
+@media (max-width: 599px) { .lp-lang-round { width: 50px; height: 50px; font-size: 15px; right: 14px; inset-block-end: 46px; } }
+
 /* ── Belief (#about) ───────────────────────────────────── */
 .lp-belief-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(40px, 6vw, 80px); align-items: center; }
 .lp-belief-head .lp-lead { max-width: 520px; }
@@ -383,7 +402,7 @@
   .lp-header-grid { gap: 8px; min-height: 70px; }
   .lp-brand img { width: 76px; }
   .lp-header-actions { gap: 6px; }
-  .lp-header-language, .lp-header-login { display: none; }
+  .lp-header-login { display: none; }
   .lp-header-actions .lp-button--compact { font-size: 13px; padding-inline: 14px; min-height: 44px; }
   .lp-menu-toggle { width: 44px; min-height: 44px; }
   .lp-mobile-content nav { grid-template-columns: 1fr; }

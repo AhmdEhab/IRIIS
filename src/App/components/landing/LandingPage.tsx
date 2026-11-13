@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { LandingHeader, landingLinks } from './LandingHeader';
+import { LandingHeader, FloatingLanguage, landingLinks } from './LandingHeader';
 import { LandingButton, LandingSection, SectionHeading } from './LandingPrimitives';
 import { LearningPreview } from './LearningPreview';
 import { PersonalizedPaths } from './PersonalizedPaths';
@@ -52,6 +52,7 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
     <div className="iris-landing" dir={ar ? 'rtl' : 'ltr'} lang={language}>
       <a className="lp-skip" href="#landing-main">{text('انتقل للمحتوى', 'Skip to content')}</a>
       <LandingHeader onLogin={onLogin} onStart={goStart} isAuthenticated={isAuthenticated} />
+      <FloatingLanguage />
       <main id="landing-main" tabIndex={-1}>
 
         {/* ── Hero ─────────────────────────────────────────── */}

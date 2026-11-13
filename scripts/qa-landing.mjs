@@ -23,7 +23,7 @@ for (const lang of languages) {
   await page.goto(origin, { waitUntil: 'networkidle', timeout: 60000 });
   await page.evaluate(() => document.fonts.ready);
   if (lang === 'en') {
-    const en = page.locator('header button').filter({ hasText: /^EN$/ }).first();
+    const en = page.locator('button.lp-lang-round[data-language="en"]');
     await en.click();
     await page.waitForFunction(() => document.documentElement.lang === 'en');
     await page.evaluate(() => document.fonts.ready);

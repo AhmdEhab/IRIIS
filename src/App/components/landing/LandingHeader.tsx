@@ -12,26 +12,6 @@ export const landingLinks = (ar: boolean) => [
   { href: '#faq', label: ar ? 'أسئلة شائعة' : 'FAQ' },
 ];
 
-export function LanguageSwitch({ expanded = false }: { expanded?: boolean }) {
-  const { language, setLanguage } = useLanguage();
-  return (
-    <div className="lp-language" dir="ltr" role="group" aria-label={language === 'ar' ? 'لغة الموقع' : 'Site language'}>
-      {(['en', 'ar'] as const).map(code => (
-        <button
-          key={code}
-          type="button"
-          lang={code}
-          data-language={code}
-          aria-pressed={language === code}
-          onClick={() => setLanguage(code)}
-        >
-          {code === 'ar' ? 'عربي' : expanded ? 'English' : 'EN'}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function LandingHeader({ onLogin, onStart, isAuthenticated }: {
   onLogin: () => void;
   onStart: () => void;
@@ -87,7 +67,6 @@ export function LandingHeader({ onLogin, onStart, isAuthenticated }: {
           {links.map(link => <a key={link.href} href={link.href}>{link.label}</a>)}
         </nav>
         <div className="lp-header-actions">
-          <div className="lp-header-language"><LanguageSwitch /></div>
           {!isAuthenticated && (
             <LandingButton compact variant="text" className="lp-header-login" onClick={login} data-testid="header-login">
               {ar ? 'دخول' : 'Log in'}
@@ -118,11 +97,28 @@ export function LandingHeader({ onLogin, onStart, isAuthenticated }: {
             ))}
           </nav>
           <div className="lp-mobile-bottom">
-            <LanguageSwitch expanded />
             {!isAuthenticated && <LandingButton compact variant="secondary" onClick={login} data-testid="mobile-login">{ar ? 'عندي حساب' : 'Log in'}</LandingButton>}
           </div>
         </div>
       </div>
     </header>
+  );
+}
+
+/** Glassy round floating language toggle: shows the target language. */
+export function FloatingLanguage() {
+  const { language, setLanguage } = useLanguage();
+  const ar = language === 'ar';
+  return (
+    <button
+      type="button"
+      className="lp-lang-round"
+      data-language={ar ? 'en' : 'ar'}
+      aria-label={ar ? 'التحويل إلى الإنجليزية' : 'Switch to Arabic'}
+      title={ar ? 'English' : 'عربي'}
+      onClick={() => setLanguage(ar ? 'en' : 'ar')}
+    >
+      {ar ? 'EN' : 'AR'}
+    </button>
   );
 }

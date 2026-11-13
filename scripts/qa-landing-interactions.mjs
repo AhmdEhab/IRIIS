@@ -13,13 +13,7 @@ async function openLanding(page, lang, width) {
   await page.waitForSelector('.iris-landing');
   await page.evaluate(() => document.fonts.ready);
   if (lang === 'en') {
-    if (width < 600) {
-      await page.getByTestId('menu-toggle').click();
-      await page.locator('#landing-mobile-menu [data-language="en"]').click();
-      await page.getByTestId('menu-toggle').click();
-    } else {
-      await page.locator('.lp-header-language [data-language="en"]').click();
-    }
+    await page.locator('button.lp-lang-round[data-language="en"]').click();
     await page.waitForFunction(() => document.documentElement.lang === 'en');
   }
 }
