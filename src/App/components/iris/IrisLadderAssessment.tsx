@@ -37,8 +37,14 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
   const ar = language === 'ar';
 
   const [phase, setPhase] = useState<Phase>('INTRO');
-  const [calIndex, setCalIndex] = useState(0);
-  const [calResponses, setCalResponses] = useState<any[]>([]);
+  /* Calibration is 10 short games — long enough to lose to a dead battery.
+     Its progress rides in the same localStorage envelope as the probe. */
+  const CAL_KEY = 'iris_ladder_cal_v1';
+  const savedCal = (() => {
+    try { return JSON.parse(localStorage.getItem(CAL_KEY) || 'null'); } catch { return null; }
+  })();
+  const [calIndex, setCalIndex] = useState<number>(savedCal?.calIndex ?? 0);
+  const [calResponses, setCalResponses] = useState<any[]>(Array.isArray(savedCal?.calResponses) ? savedCal.calResponses : []);
   const [visitItems, setVisitItems] = useState<any[]>([]);
   const [visitIndex, setVisitIndex] = useState(0);
   const [visitCorrect, setVisitCorrect] = useState(0);
@@ -57,6 +63,13 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
     setVisitCorrect(0);
   }, []);
 
+  useEffect(() => {
+    try {
+      if (phase === 'CALIBRATION' && calResponses.length > 0) localStorage.setItem(CAL_KEY, JSON.stringify({ calIndex, calResponses }));
+      else localStorage.removeItem(CAL_KEY);
+    } catch { /* private mode */ }
+  }, [phase, calIndex, calResponses]);
+  const hasSavedCal = calResponses.length > 0 && calResponses.length < (probes.length || 99);
   const hasSavedProbe = !!iris.probeState && !!iris.currentVisit;
   const startOrResume = () => {
     if (hasSavedProbe && iris.currentVisit) {
@@ -64,6 +77,7 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
       setPhase('PROBE');
       return;
     }
+    if (hasSavedCal) { setPhase('CALIBRATION'); return; }
     startCalibration();
   };
   const startCalibration = () => {
@@ -135,7 +149,7 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
               : "We'll play a few short games so we know where to start. There is no right or wrong — everything you do helps."}
           </p>
           <Button variant="play" size="lg" icon="play" onClick={startOrResume}>
-            {ar ? (hasSavedProbe ? 'يلا نكمّل' : 'يلا نبدأ') : (hasSavedProbe ? "Let's continue" : "Let's start")}
+            {ar ? (hasSavedProbe || hasSavedCal ? 'يلا نكمّل' : 'يلا نبدأ') : (hasSavedProbe || hasSavedCal ? "Let's continue" : "Let's start")}
           </Button>
         </div>
       </Shell>
