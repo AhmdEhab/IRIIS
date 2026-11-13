@@ -15,6 +15,7 @@ import { ChildModeScreen } from './components/ChildModeScreen';
 import { ParentDashboardScreen } from './components/ParentDashboardScreen';
 import { LandingPage } from './components/landing/LandingPage';
 import { IrisFlow, mapCondition } from './components/iris/IrisFlow';
+import { LandingChildMode } from './components/LandingChildMode';
 import { IrisParentDashboard } from './components/iris/IrisParentDashboard';
 import { IrisParentChat } from './components/iris/IrisParentChat';
 import { ChildShell } from './components/iris/ui/ChildShell';
@@ -275,17 +276,10 @@ function AppContent() {
       case 'ai-assessment':
         return <AIAssessmentScreen key="ai-assessment" />;
       case 'child-mode':
-        return (
-          <IrisFlow
-            key="child-mode"
-            onExit={() => navigateTo(readAuthToken() ? 'iris-parent' : 'marketing')}
-            prefillName={childProfile?.name}
-            prefillCondition={childProfile?.condition}
-            prefillAge={Number.isFinite(childProfile?.age) ? childProfile?.age : null}
-            onLegacyGame={(id) => navigateTo(id as any)}
-            onGoParent={() => navigateTo('iris-parent')}
-          />
-        );
+        // The repository's child home (hero + curriculum categories), wearing
+        // the landing page's design language. The adaptive IrisFlow stays
+        // reachable from the parent hub's snapshot screen.
+        return <LandingChildMode key="child-mode" />;
       case 'parent-dashboard':
         return <ParentDashboardScreen key="parent-dashboard" />;
       case 'stories':
