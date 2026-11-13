@@ -174,7 +174,7 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
 
         {/* ── Personalized learning ────────────────────────── */}
         <LandingSection id="features" tone="blue">
-          <SectionHeading id="features" centered eyebrow={text('تعلّم متكيّف بالتصميم', 'Adaptive by design')} title={text('نفس السن. نفس المنصة. مسار مختلف.', 'Same age. Same platform. Different paths.')} description={text('كل مهارة ليها خمس مستويات، وIRIS بتتحرك بين المستويات دي حسب أداء الطفل — مش حسب عمره ولا تشخيصه.', 'Every skill has five levels, and IRIS moves between them with the child\u2019s performance — not their age or a label.')} />
+          <SectionHeading id="features" centered eyebrow={text('تعلّم متكيّف بالتصميم', 'Adaptive by design')} title={text('نفس المنصة. مسار مختلف.', 'Same platform. Different path.')} description={text('كل مهارة ليها ٥ مستويات، وIRIS تختار المستوى اللي يناسب كل طفل.', 'Every skill has 5 levels — IRIS picks the one that fits each child.')} />
           <Reveal y={22}><PersonalizedPaths /></Reveal>
         </LandingSection>
 
