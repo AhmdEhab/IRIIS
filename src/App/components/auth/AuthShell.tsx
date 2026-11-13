@@ -1,6 +1,7 @@
 import React from 'react';
 import { Blob, Sparkle } from '../landing/LandingDecor';
 import { IrisBuddy } from '../iris/ui/IrisBuddy';
+import { FloatingLanguage } from '../landing/LandingHeader';
 import './auth.css';
 
 /**
@@ -106,6 +107,7 @@ export function AuthShell({
         <div className="ir-auth-chrome-bar">{topBar}</div>
       </div>
 
+      <FloatingLanguage />
       <div className="ir-auth-main">
         <div className="ir-auth-stack">
           <div className={cx('ir-auth-card', wide && 'ir-auth-card--wide', tone === 'blue' && 'ir-auth-card--blue')}>

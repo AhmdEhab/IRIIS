@@ -152,7 +152,7 @@ export function RegistrationScreen() {
           ar={language === 'ar'}
           onBack={handleBack}
           backLabel={language === 'ar' ? 'رجوع' : 'Back'}
-          actions={<ChromeActions />}
+          actions={<ChromeActions showLanguage={false} />}
           sticky={false}
         />
       }

@@ -97,7 +97,7 @@ export function LoginScreen() {
           ar={ar}
           onBack={handleBack}
           backLabel={ar ? 'الرئيسية' : 'Home'}
-          actions={<ChromeActions />}
+          actions={<ChromeActions showLanguage={false} />}
           sticky={false}
         />
       }
