@@ -23,12 +23,23 @@ const User = sequelize.define('User', {
             isEmail: true
         }
     },
+    /**
+     * SECURITY: stores a bcrypt HASH, never a plaintext password.
+     * The length validator was removed because a hash is always 60 chars;
+     * password length is validated before hashing, inside the route.
+     */
     password: {
         type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-            len: [6, 100]
-        }
+        allowNull: false
+    },
+    /** Consent gate — doc 20 requires it on every mutating endpoint. */
+    consent_mvp_use: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    consent_at: {
+        type: DataTypes.STRING,
+        allowNull: true
     },
     gender: {
         type: DataTypes.STRING,
