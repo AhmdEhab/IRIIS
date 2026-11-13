@@ -267,35 +267,37 @@ export function LandingPage({
               </p>
             </div>
 
-            {/* Hero visual: overlays only where there is room for them */}
+            {/* Hero visual — flow-only composition. Root cause of the
+                overlapping complaints was decorative overlays (star chip,
+                floating 3D card) placed with absolute + negative offsets:
+                at wide containers they landed ON the drawn children and the
+                drawn apple, and the tiny 128px card squashed the viewer's
+                own caption into unreadable fragments. The illustration is
+                the focal point; the two companion cards sit UNDER it in a
+                predictable grid. Nothing floats, so nothing can overlap. */}
             <motion.div {...fade(0.1)} className="min-w-0">
-              <div className="relative">
-                <div className="aspect-[4/3] rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-brand-blue/10 shadow-brand-lg">
-                  <img
-                    src="/images/landing/hero-learning.jpg"
-                    alt={ar ? 'أطفال يتعلمون مع شخصية إيريس' : 'Children learning with the IRIS companion'}
-                    width={1400} height={1050}
-                    className="size-full object-cover"
-                  />
-                </div>
-
-                <div className="hidden sm:flex absolute top-3 -end-4 items-center gap-2.5 bg-surface rounded-2xl shadow-brand-lg border border-brand-blue/10 p-3">
-                  <span className="size-10 rounded-xl bg-brand-green-wash grid place-items-center text-2xl" aria-hidden>⭐</span>
-                  <div className="leading-tight">
-                    <p className="font-bold text-sm">{ar ? '١٢ نجمة النهارده' : '12 stars today'}</p>
-                    <p className="text-xs text-ink-muted">{ar ? 'من غير ضغط' : 'No pressure'}</p>
+              <div className="aspect-[4/3] rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-brand-blue/10 shadow-brand-lg">
+                <img
+                  src="/images/landing/hero-learning.jpg"
+                  alt={ar ? 'أطفال يتعلمون مع شخصية إيريس' : 'Children learning with the IRIS companion'}
+                  width={1400} height={1050}
+                  className="size-full object-cover"
+                />
+              </div>
+              <div className="mt-4 sm:mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 items-stretch">
+                <ModelCard src="/models/apple.glb" alt="Apple" emoji="🍎" label={ar ? 'تفاحة من جوه الأنشطة' : 'An in-app apple'} />
+                <div className="bg-surface rounded-[1.75rem] border border-brand-green/25 shadow-brand p-4 flex flex-col justify-center gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="size-10 shrink-0 rounded-2xl bg-brand-green-wash grid place-items-center text-2xl" aria-hidden>⭐</span>
+                    <div className="leading-tight min-w-0">
+                      <p className="font-bold text-sm sm:text-base">{ar ? '١٢ نجمة النهارده' : '12 stars today'}</p>
+                      <p className="text-xs text-ink-muted">{ar ? 'من غير ضغط ولا مقارنة' : 'No pressure, no comparison'}</p>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full bg-brand-blue/10 overflow-hidden" role="img" aria-label={ar ? 'شريط تقدم النشاط' : 'Activity progress'}>
+                    <div className="h-full w-3/4 rounded-full bg-brand-green" />
                   </div>
                 </div>
-              </div>
-              {/* The 3D preview lives in its own strip below the artwork —
-                  it never covers a face at any width (screenshot defect fixed). */}
-              <div className="mt-4 mx-auto lg:mx-0 lg:ms-6 flex items-center gap-4 max-w-md rounded-3xl bg-surface border border-brand-blue/10 shadow-brand p-3">
-                <div className="w-28 sm:w-32 shrink-0">
-                  <ModelCard src="/models/apple.glb" alt="Apple" emoji="🍎" label={ar ? 'تفاحة' : 'Apple'} />
-                </div>
-                <p className="text-sm sm:text-base text-ink-muted leading-snug pe-2">
-                  {ar ? 'نموذج حقيقي من جوه الأنشطة — اسحب ولفّه زي ما طفل هيلعب بيه.' : 'A real model from inside the activities — spin it the way a child will.'}
-                </p>
               </div>
             </motion.div>
           </div>
