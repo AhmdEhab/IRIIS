@@ -33,6 +33,9 @@ export function MemoryGameScreen() {
     const initialDifficulty = activeRules?.repetitionFrequency === 'high' ? 4 : 6;
     const [difficulty, setDifficulty] = useState<4 | 6 | 8>(initialDifficulty as any);
     const [isProcessing, setIsProcessing] = useState(false);
+    // 'peek': every card is face-up so the child can memorise them; a big
+    // start pill flips the board and hands control over.
+    const [phase, setPhase] = useState<'peek' | 'playing'>('peek');
 
     const initGame = useCallback(() => {
         // Robust Fisher-Yates Shuffle
@@ -66,8 +69,13 @@ export function MemoryGameScreen() {
         initGame();
     }, [initGame]);
 
+    const startPlay = () => {
+        playSound('tap');
+        setPhase('playing');
+        speak(language === 'ar' ? 'هيا نختبر ذاكرتنا القوية!' : "Let's test our super memory!", language);
+    };
     const handleCardClick = (id: number) => {
-        if (isProcessing || flippedCards.length === 2 || cards[id].isFlipped || cards[id].isMatched || isGameOver) return;
+        if (phase === 'peek' || isProcessing || flippedCards.length === 2 || cards[id].isFlipped || cards[id].isMatched || isGameOver) return;
 
         playSound('tap');
 
@@ -133,7 +141,7 @@ export function MemoryGameScreen() {
     };
 
     return (
-        <div className={`mg-landing min-h-screen p-4 overflow-hidden relative transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-ground-tint' : 'bg-transparent'}`}>
+        <div data-peek={phase === 'peek' ? '1' : '0'} className={`mg-landing min-h-screen p-4 overflow-hidden relative transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-ground-tint' : 'bg-transparent'}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8 h-full flex flex-col relative z-10">
                 {/* Header */}
@@ -158,6 +166,7 @@ export function MemoryGameScreen() {
                 {/* Game Area */}
                 <div className="flex-1 flex flex-col items-center justify-center min-h-0">
                     {!isGameOver ? (
+                        <>
                         <div className={`
                             grid gap-8 w-full max-w-5xl p-6
                             ${difficulty === 4 ? 'grid-cols-2 lg:grid-cols-4' :
@@ -168,12 +177,12 @@ export function MemoryGameScreen() {
                                 <motion.button
                                     key={card.id}
                                     onClick={() => handleCardClick(card.id)}
-                                    whileHover={{ scale: card.isFlipped || card.isMatched ? 1 : 1.05 }}
+                                    whileHover={{ scale: phase === 'playing' && !card.isFlipped && !card.isMatched ? 1.05 : 1 }}
                                     whileTap={{ scale: 0.95 }}
                                     className="aspect-square relative perspective-1000 group"
                                 >
                                     <motion.div
-                                        animate={{ rotateY: card.isFlipped || card.isMatched ? 180 : 0 }}
+                                        animate={{ rotateY: phase === 'peek' || card.isFlipped || card.isMatched ? 180 : 0 }}
                                         transition={{ duration: 0.4, type: 'spring', stiffness: 300, damping: 20 }}
                                         className="w-full h-full preserve-3d relative"
                                     >
@@ -220,6 +229,20 @@ export function MemoryGameScreen() {
                                 </motion.button>
                             ))}
                         </div>
+                        {phase === 'peek' && (
+                            <div className="mt-6 flex justify-center">
+                                <motion.button
+                                    whileHover={{ scale: 1.04 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={startPlay}
+                                    className="mg-start-pill"
+                                >
+                                    <Sparkles className="size-6" />
+                                    {language === 'ar' ? 'اقلب الكروت وابدأ اللعب' : 'Flip the cards & start!'}
+                                </motion.button>
+                            </div>
+                        )}
+                        </>
                     ) : (
                         /* Game Over Screen */
                         <motion.div

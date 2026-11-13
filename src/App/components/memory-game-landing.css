@@ -49,3 +49,27 @@
    stylesheet !important outranks inline styles; the container's rotateY
    animation then works as designed. */
 .mg-landing .rotate-y-180 { transform: rotateY(180deg) !important; }
+
+/* Peek phase: memorise the board, then the landing pill starts the game */
+.mg-landing[data-peek="1"] .aspect-square { cursor: default; }
+.mg-landing .mg-start-pill {
+  display: inline-flex; align-items: center; gap: 12px;
+  min-height: 58px; padding: 12px 34px; border-radius: 999px;
+  border: 2px solid transparent; background: #1F67B1; color: #fff;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-size: 18px; font-weight: 800;
+  box-shadow: 0 14px 30px -12px rgba(31, 103, 177, 0.55);
+  cursor: pointer; transition: background-color 170ms ease;
+}
+.mg-landing .mg-start-pill:hover { background: #18508A; }
+
+/* difficulty chips in the footer: landing blue instead of legacy green */
+.mg-landing button[class*="bg-brand-green-solid"] {
+  background: #1F67B1 !important; color: #fff !important;
+  border-radius: 999px; box-shadow: 0 10px 22px -12px rgba(31, 103, 177, 0.5);
+}
+.mg-landing button[class*="bg-brand-green-wash"] {
+  background: rgba(201, 229, 247, 0.7) !important; color: #18508A !important;
+  border-radius: 999px;
+}
+.mg-landing .t-title { color: #2A2118 !important; }
