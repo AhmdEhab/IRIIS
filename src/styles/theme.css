@@ -1,81 +1,77 @@
+/* ===========================================================================
+   shadcn/ui compatibility layer.
+
+   WHAT THIS FILE IS FOR
+   The 22 primitives in src/App/components/ui/ (button, card, input, dialog…)
+   are styled from shadcn's variable names: --background, --primary,
+   --muted-foreground and so on. Those names are not going away, so this file
+   MAPS them onto the IRIS brand tokens rather than defining a second palette.
+
+   WHAT CHANGED IN PHASE 10
+   1. This file used to DEFINE --background and --primary, which iris.css also
+      defines. Two sources of truth for one variable. They happened to agree,
+      so nothing was visibly broken — but the next edit to either would have
+      desynced them silently. Every colour here now reads through
+      var(--brand-…) / var(--surface) / var(--text), which iris.css owns.
+   2. The .dark block is gone. IRIS has no dark mode and never offered one; the
+      block that was here was a cool neutral grey ramp that would have wiped
+      out the warm identity the moment anything toggled it.
+   3. The --sidebar-* group is gone. There is no sidebar in this product, and
+      those were the last oklch values left over from the scaffold.
+   4. The base h1–h4 weight-500 rules are gone. Every brand screen overrode
+      them to font-black, so they only ever fought the design system. The
+      typographic scale now lives in iris.css as tokens.
+
+   ORDER MATTERS: index.css imports fonts → tailwind → theme → iris. iris.css
+   is last so it owns the brand layer; this file only borrows from it, which
+   is why the var() references below resolve.
+=========================================================================== */
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Ground and surfaces — see iris.css for the source values. */
+  --background: #fef6ea;
+  --foreground: #2a2118;
+  --card: #fffcf6;
+  --card-foreground: #2a2118;
+  --popover: #fffcf6;
+  --popover-foreground: #2a2118;
+
+  /* Brand roles. */
+  --primary: #1f67b1;
+  --primary-foreground: #ffffff;
+  --secondary: #f0eaf8;
+  --secondary-foreground: #5a437e;
+  --muted: #f7edda;
+  --muted-foreground: #594d40;
+  --accent: #fdf3d8;
+  --accent-foreground: #614d14;
+
+  /* Coral is the attention colour. It is named "destructive" only because the
+     shadcn primitives expect that name; nothing child-facing uses it. */
+  --destructive: #863236;
+  --destructive-foreground: #ffffff;
+
+  --border: #e6d7c0;
+  --input: transparent;
+  --input-background: #fffcf6;
+  --switch-background: #e6d7c0;
+  --ring: #1f67b1;
+
+  /* Charts: the five brand colours, in the order that keeps adjacent series
+     distinguishable for the most common colour-vision differences (blue and
+     yellow first, then green, purple, coral). Series must ALSO differ by dash
+     pattern or direct label — colour alone is not allowed to carry meaning. */
+  --chart-1: #1f67b1;
+  --chart-2: #feca34;
+  --chart-3: #49b87a;
+  --chart-4: #8060b4;
+  --chart-5: #f45b63;
+
+  --radius: 1.25rem;
 }
 
 @theme inline {
@@ -105,18 +101,6 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
@@ -128,128 +112,51 @@
     @apply bg-background text-foreground;
   }
 
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
   html {
     font-size: var(--font-size);
   }
 
-  h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
-  }
-
-  /* RTL Support */
-  [dir="rtl"] {
+  /* RTL / LTR direction. */
+  [dir='rtl'] {
     direction: rtl;
   }
 
-  [dir="ltr"] {
+  [dir='ltr'] {
     direction: ltr;
   }
 
-  /* Spacing utilities for RTL */
-  [dir="rtl"] .me-1 {
+  /* Logical spacing helpers used by older screens. Kept so nothing regresses;
+     new code uses Tailwind's own ms-/me- utilities directly. */
+  [dir='rtl'] .me-1,
+  [dir='ltr'] .me-1 {
     margin-inline-end: 0.25rem;
   }
-
-  [dir="rtl"] .me-2 {
+  [dir='rtl'] .me-2,
+  [dir='ltr'] .me-2 {
     margin-inline-end: 0.5rem;
   }
-
-  [dir="rtl"] .me-3 {
+  [dir='rtl'] .me-3,
+  [dir='ltr'] .me-3 {
     margin-inline-end: 0.75rem;
   }
-
-  [dir="rtl"] .me-4 {
+  [dir='rtl'] .me-4,
+  [dir='ltr'] .me-4 {
     margin-inline-end: 1rem;
   }
-
-  [dir="rtl"] .ms-1 {
+  [dir='rtl'] .ms-1,
+  [dir='ltr'] .ms-1 {
     margin-inline-start: 0.25rem;
   }
-
-  [dir="rtl"] .ms-2 {
+  [dir='rtl'] .ms-2,
+  [dir='ltr'] .ms-2 {
     margin-inline-start: 0.5rem;
   }
-
-  [dir="rtl"] .ms-3 {
+  [dir='rtl'] .ms-3,
+  [dir='ltr'] .ms-3 {
     margin-inline-start: 0.75rem;
   }
-
-  [dir="rtl"] .ms-4 {
-    margin-inline-start: 1rem;
-  }
-
-  [dir="ltr"] .me-1 {
-    margin-inline-end: 0.25rem;
-  }
-
-  [dir="ltr"] .me-2 {
-    margin-inline-end: 0.5rem;
-  }
-
-  [dir="ltr"] .me-3 {
-    margin-inline-end: 0.75rem;
-  }
-
-  [dir="ltr"] .me-4 {
-    margin-inline-end: 1rem;
-  }
-
-  [dir="ltr"] .ms-1 {
-    margin-inline-start: 0.25rem;
-  }
-
-  [dir="ltr"] .ms-2 {
-    margin-inline-start: 0.5rem;
-  }
-
-  [dir="ltr"] .ms-3 {
-    margin-inline-start: 0.75rem;
-  }
-
-  [dir="ltr"] .ms-4 {
+  [dir='rtl'] .ms-4,
+  [dir='ltr'] .ms-4 {
     margin-inline-start: 1rem;
   }
 }

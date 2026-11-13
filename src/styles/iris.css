@@ -1,0 +1,617 @@
+/* ===========================================================================
+   IRIS design tokens.
+
+   SOURCE OF TRUTH: IRIS_Brand_Identity_Pack/BRAND_IDENTITY.md §2, and the
+   logo/brochure artwork it ships with. Every colour below is sampled from
+   that identity — nothing here is a generic UI palette.
+
+   WHAT CHANGED AND WHY
+   The previous token set named violet #7c3aed as the IRIS colour. Violet is
+   not in the brand palette at all, and in practice nothing consumed these
+   tokens anyway: a search for `var(--iris-…)` outside this folder returned no
+   hits, while components hardcoded Tailwind utilities (slate ×339, purple
+   ×209, gray ×152). So the identity lived in a PDF and the product looked
+   like a different company.
+
+   Two things fix that, and both are load-bearing:
+     1. The tokens below are the real brand values, named semantically.
+     2. The @theme block turns them into first-class Tailwind utilities
+        (bg-surface, text-ink, border-hairline, bg-brand-blue …). Tokens that
+        are only CSS variables get ignored; tokens that are utilities get used.
+
+   ON NEUTRALS
+   The neutral ramp is WARM (a brown-biased grey), not slate. Slate and gray
+   are cool blue-greys: on a warm off-white ground they read as dirty rather
+   than as neutral. A warm ramp is what makes "warm white" actually feel warm.
+=========================================================================== */
+
+:root {
+  /* ── Brand colours, straight from the identity pack ───────────────────── */
+  --brand-blue: #1f67b1; /* trust, intelligence, technology */
+  --brand-coral: #f45b63; /* warmth, action, confidence */
+  --brand-yellow: #feca34; /* optimism, energy, hope */
+  --brand-green: #49b87a; /* growth, balance, life */
+  --brand-purple: #8060b4; /* imagination, creativity */
+
+  /* ── INK: brand colour as TEXT ────────────────────────────────────────
+     These were tuned in Phase 3 to clear 4.5:1 (AA) on the warm ground. A
+     live contrast audit in Phase 10 measured them where they are actually
+     used — most often as text on their OWN wash, inside a Pill or a tinted
+     card — and there they were as low as 3.95:1, below even AA.
+
+     Retuned so each one clears 7:1 (AAA) against ALL FOUR light grounds the
+     product has: ground, ground-tint, surface and surface-sunk. The bright
+     brand values above remain the FILL colours; these are only ever ink.
+
+     Bonus property, load-bearing below: white on any of these clears 8:1, so
+     the same value doubles as a solid button fill for body-size text. */
+  --brand-blue-ink: #18508a;
+  --brand-coral-ink: #863236;
+  --brand-yellow-ink: #614d14;
+  --brand-green-ink: #23583b;
+  --brand-purple-ink: #5a437e;
+
+  /* ── SOLID: brand colour as a FILL UNDER WHITE TEXT ───────────────────
+     A big coral button with white text is the child's primary action, and it
+     should still look coral — dropping it to the ink value would make it
+     maroon. WCAG's large-text bar is 4.5:1, and these are the lightest values
+     that reach it, so they stay as close to the brand colour as the contrast
+     allows. Blue and purple already passed and are unchanged.
+
+     YELLOW IS DIFFERENT: no yellow dark enough to carry white is still yellow.
+     Yellow buttons carry INK text instead, at 10.3:1. */
+  --brand-blue-solid: #1f67b1;
+  --brand-coral-solid: #c84b51;
+  --brand-green-solid: #358458;
+  --brand-purple-solid: #8060b4;
+
+  /* Soft washes for tinted surfaces and badges. */
+  --brand-blue-wash: #e5eff9;
+  --brand-coral-wash: #fde9ea;
+  --brand-yellow-wash: #fdf3d8;
+  --brand-green-wash: #e6f5ed;
+  --brand-purple-wash: #f0eaf8;
+
+  /* ── Semantic roles ───────────────────────────────────────────────────── */
+  --primary: var(--brand-blue);
+  --primary-ink: var(--brand-blue-ink);
+  --primary-wash: var(--brand-blue-wash);
+
+  --secondary: var(--brand-purple);
+  --secondary-ink: var(--brand-purple-ink);
+  --secondary-wash: var(--brand-purple-wash);
+
+  --accent: var(--brand-yellow); /* stars, rewards, the "well done" colour */
+  --accent-ink: var(--brand-yellow-ink);
+  --accent-wash: var(--brand-yellow-wash);
+
+  --success: var(--brand-green);
+  --success-ink: var(--brand-green-ink);
+  --success-wash: var(--brand-green-wash);
+
+  /* Coral is IRIS's attention colour. It is deliberately NOT called "error"
+     and never appears in child-facing feedback: doc 31 §I14 requires failure
+     wording to describe the attempt, not the child, and a red flash beside a
+     young child's answer does the opposite of that. */
+  --warning: var(--brand-coral);
+  --warning-ink: var(--brand-coral-ink);
+  --warning-wash: var(--brand-coral-wash);
+
+  /* ── Ground and surfaces ──────────────────────────────────────────────── */
+  --background: #fef6ea; /* brand warm white */
+  --background-tint: #fbf0de; /* a half-step down, for banded sections */
+  --surface: #fffcf6; /* cards sit just above the ground */
+  --surface-sunk: #f7edda; /* wells, inputs, disabled */
+
+  /* ── Warm neutral ramp (replaces slate/gray) ──────────────────────────── */
+  --text: #2a2118; /* warm near-black — 13.6:1 on the ground */
+  /* Retuned from #6b5d4d, which measured 5.48:1. Secondary text is still
+     text: it carries the caveats, the "not measured yet" notes and the demo
+     labelling, and a parent acting on a sentence they had to squint at is
+     the failure this token exists to prevent. */
+  --muted-text: #594d40; /* 7.06:1 */
+  /* DECORATIVE ONLY — 2.85:1. Never put information in this colour. It is
+     here for hairline-adjacent marks, not for text. */
+  --faint-text: #9a8b77;
+  --border: #e6d7c0;
+  --border-soft: #f0e5d2;
+
+  /* ── Shape ────────────────────────────────────────────────────────────── */
+  /* Generous radii: the brand language is "rounded cards and organic blobs",
+     and nothing in the child UI should have a sharp corner. */
+  --radius-sm: 0.75rem;
+  --radius: 1.25rem;
+  --radius-lg: 1.75rem;
+  --radius-xl: 2.25rem;
+  --radius-pill: 999px;
+
+  /* ── Elevation ────────────────────────────────────────────────────────── */
+  /* Warm-tinted shadows. A neutral black shadow on a cream ground looks like
+     grime; tinting it toward the ink colour keeps it soft. */
+  --shadow-sm: 0 1px 2px rgba(42, 33, 24, 0.05), 0 2px 8px -4px rgba(42, 33, 24, 0.1);
+  --shadow: 0 2px 4px rgba(42, 33, 24, 0.05), 0 12px 28px -14px rgba(42, 33, 24, 0.22);
+  --shadow-lg: 0 4px 8px rgba(42, 33, 24, 0.06), 0 24px 48px -20px rgba(42, 33, 24, 0.28);
+
+  /* ── Sizing ───────────────────────────────────────────────────────────── */
+  --iris-touch-min: 44px; /* WCAG 2.5.5 target size floor */
+  --iris-touch-child: 56px; /* Child Mode floor — larger, forgiving targets */
+
+  /* ── Type scale (Phase 10) ────────────────────────────────────────────────
+     Before this existed, sizes were picked per screen with raw utilities: six
+     different size/weight pairs were measured on the login screen alone. These
+     seven steps are the whole vocabulary now.
+
+     `display` and `title` fluid-scale so one heading works from 360px to
+     1440px without a breakpoint per screen. Everything below them is fixed —
+     body text that grows with the viewport is harder to read, not easier.
+
+     ON ARABIC: the same sizes are used, but Arabic line-height is multiplied
+     (see the [lang='ar'] block further down). Arabic diacritics need the room;
+     Latin does not.
+  ------------------------------------------------------------------------- */
+  --text-display: clamp(2.25rem, 1.5rem + 3.2vw, 3.5rem);
+  --text-display-lh: 1.05;
+  --text-title: clamp(1.75rem, 1.35rem + 1.7vw, 2.25rem);
+  --text-title-lh: 1.15;
+  --text-heading: 1.375rem;
+  --text-heading-lh: 1.3;
+  --text-body-lg: 1.0625rem; /* Child Mode floor */
+  --text-body-lg-lh: 1.7;
+  --text-body: 1rem;
+  --text-body-lh: 1.6;
+  --text-small: 0.875rem;
+  --text-small-lh: 1.5;
+  --text-label: 0.75rem;
+  --text-label-lh: 1.4;
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  /* One easing curve for the whole product. Decorative only — every state
+     change is also carried by text and layout, so reduced-motion loses
+     nothing informational. */
+  --motion-fast: 150ms;
+  --motion: 250ms;
+  --motion-slow: 400ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ── Screen accent ────────────────────────────────────────────────────────
+     THE ONE-DOMINANT-COLOUR RULE, MADE MECHANICAL.
+
+     The brochure never puts five colours on one panel: each panel has a single
+     dominant colour, and the others appear only as small category marks. The
+     app broke that rule everywhere, because there was nothing stopping a
+     screen from reaching for any colour it liked.
+
+     ScreenFrame sets these four variables once, at the screen root. Section
+     rules, progress, focus decoration, empty states and the default card tone
+     all read from them. A screen therefore gets its accent by declaring it,
+     not by repeating a colour thirty times — and it is visible in one place
+     when a screen is using too many.
+
+     The default below is blue, so a screen that forgets to declare one still
+     renders in a brand colour rather than in nothing.
+  ------------------------------------------------------------------------- */
+  --screen-accent: var(--brand-blue);
+  --screen-accent-ink: var(--brand-blue-ink);
+  --screen-accent-wash: var(--brand-blue-wash);
+  --screen-accent-rgb: 31 103 177;
+
+  /* Kept as aliases so any straggling reference still resolves to a brand
+     colour rather than to violet. */
+  --iris-primary: var(--primary);
+  --iris-ink: var(--text);
+  --iris-radius: var(--radius);
+}
+
+/* ---------------------------------------------------------------------------
+   Screen accent presets.
+
+   Applied by ScreenFrame as `data-accent="yellow"` etc. Kept as data
+   attributes rather than classes so that Tailwind's class scanner can never
+   tree-shake them away — these values are chosen at runtime from a prop.
+--------------------------------------------------------------------------- */
+[data-accent='blue'] {
+  --screen-accent: var(--brand-blue);
+  --screen-accent-ink: var(--brand-blue-ink);
+  --screen-accent-wash: var(--brand-blue-wash);
+  --screen-accent-rgb: 31 103 177;
+}
+[data-accent='coral'] {
+  --screen-accent: var(--brand-coral);
+  --screen-accent-ink: var(--brand-coral-ink);
+  --screen-accent-wash: var(--brand-coral-wash);
+  --screen-accent-rgb: 244 91 99;
+}
+[data-accent='yellow'] {
+  --screen-accent: var(--brand-yellow);
+  --screen-accent-ink: var(--brand-yellow-ink);
+  --screen-accent-wash: var(--brand-yellow-wash);
+  --screen-accent-rgb: 254 202 52;
+}
+[data-accent='green'] {
+  --screen-accent: var(--brand-green);
+  --screen-accent-ink: var(--brand-green-ink);
+  --screen-accent-wash: var(--brand-green-wash);
+  --screen-accent-rgb: 73 184 122;
+}
+[data-accent='purple'] {
+  --screen-accent: var(--brand-purple);
+  --screen-accent-ink: var(--brand-purple-ink);
+  --screen-accent-wash: var(--brand-purple-wash);
+  --screen-accent-rgb: 128 96 180;
+}
+
+/* ---------------------------------------------------------------------------
+   Tailwind v4 theme mapping.
+
+   This is the half that makes the tokens real. Each entry generates the usual
+   utility families, so a component writes `bg-surface text-ink border-hairline`
+   instead of `bg-white text-slate-800 border-slate-200`. There is no
+   tailwind.config.js in this project — v4 is configured CSS-first, so this
+   block IS the configuration.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-brand-blue: #1f67b1;
+  --color-brand-coral: #f45b63;
+  --color-brand-yellow: #feca34;
+  --color-brand-green: #49b87a;
+  --color-brand-purple: #8060b4;
+
+  --color-brand-blue-ink: #18508a;
+  --color-brand-coral-ink: #863236;
+  --color-brand-yellow-ink: #614d14;
+  --color-brand-green-ink: #23583b;
+  --color-brand-purple-ink: #5a437e;
+
+  --color-brand-blue-solid: #1f67b1;
+  --color-brand-coral-solid: #c84b51;
+  --color-brand-green-solid: #358458;
+  --color-brand-purple-solid: #8060b4;
+
+  --color-brand-blue-wash: #e5eff9;
+  --color-brand-coral-wash: #fde9ea;
+  --color-brand-yellow-wash: #fdf3d8;
+  --color-brand-green-wash: #e6f5ed;
+  --color-brand-purple-wash: #f0eaf8;
+
+  --color-ground: #fef6ea;
+  --color-ground-tint: #fbf0de;
+  --color-surface: #fffcf6;
+  --color-surface-sunk: #f7edda;
+
+  --color-ink: #2a2118;
+  --color-ink-muted: #594d40;
+  --color-ink-faint: #9a8b77;
+  --color-hairline: #e6d7c0;
+  --color-hairline-soft: #f0e5d2;
+
+  --color-accent-screen: var(--screen-accent);
+  --color-accent-screen-ink: var(--screen-accent-ink);
+  --color-accent-screen-wash: var(--screen-accent-wash);
+
+  --radius-brand-sm: 0.75rem;
+  --radius-brand: 1.25rem;
+  --radius-brand-lg: 1.75rem;
+  --radius-brand-xl: 2.25rem;
+  --radius-brand-pill: 999px;
+
+  --font-display: var(--iris-font-display);
+  --font-body: var(--iris-font-body);
+
+  --shadow-brand-sm: 0 1px 2px rgba(42, 33, 24, 0.05), 0 2px 8px -4px rgba(42, 33, 24, 0.1);
+  --shadow-brand: 0 2px 4px rgba(42, 33, 24, 0.05), 0 12px 28px -14px rgba(42, 33, 24, 0.22);
+  --shadow-brand-lg: 0 4px 8px rgba(42, 33, 24, 0.06), 0 24px 48px -20px rgba(42, 33, 24, 0.28);
+}
+
+/* ---------------------------------------------------------------------------
+   Page ground.
+   The brand's warm white is the base everything sits on. Set here rather than
+   per screen so no screen can forget it and fall back to plain white.
+--------------------------------------------------------------------------- */
+body {
+  background-color: var(--background);
+  color: var(--text);
+}
+
+/* ---------------------------------------------------------------------------
+   Keyboard accessibility.
+   The UI is touch-first, but it must remain operable from a keyboard (and from
+   a switch device that emulates one). A visible, high-contrast focus ring is
+   the minimum for that. :focus-visible keeps the ring off mouse/touch users.
+--------------------------------------------------------------------------- */
+/* NOTE ON SPECIFICITY: this was originally written with :where(), which has
+   zero specificity — Tailwind's `outline-none` utility on the shared Button
+   component silently won, and keyboard users got no focus ring at all. A QA
+   check caught it. Plain selectors plus !important guarantee the ring survives
+   whatever utility classes a component happens to carry. */
+button:focus-visible,
+[role='button']:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  /* Longhands, not the `outline` shorthand: Tailwind's base layer sets
+     outline-width/'--ring' colour separately, and a shorthand loses the
+     individual property it does not win outright. Setting each longhand
+     !important is what actually survives. A box-shadow ring is added too, so
+     the indicator is still visible in forced-colors/high-contrast modes where
+     outline colour may be overridden. */
+  outline-style: solid !important;
+  outline-width: 3px !important;
+  outline-color: var(--primary) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px rgba(31, 103, 177, 0.25) !important;
+}
+
+/* Skip stray outlines on programmatic/mouse focus, but never remove :focus-visible. */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Touch targets.
+   Young children and children with fine-motor differences need forgiving hit
+   areas. The project's own gap register notes that touch-target size has NO
+   research basis in this corpus, so 44px here is the WCAG floor used as an
+   engineering default — not a research-derived number. Child Mode raises it
+   to 56px further down, where .iris-child is styled.
+--------------------------------------------------------------------------- */
+button,
+[role='button'],
+a[href],
+input,
+select,
+textarea {
+  min-height: var(--iris-touch-min);
+}
+
+/* Inline links inside prose must NOT be stretched to 44px — that rule is for
+   controls, and applying it to a link in a sentence blows the line height
+   apart. */
+p a[href],
+li a[href],
+span a[href] {
+  min-height: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced motion.
+   Respects the OS setting (WCAG 2.3.3). Animation is decoration here — every
+   state change is also carried by text and layout, so removing motion removes
+   nothing informational. Transitions are reduced to near-zero rather than 0s
+   so that transition-end handlers still fire.
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Screen-reader-only text, for labels that must exist but not be shown.
+--------------------------------------------------------------------------- */
+.sr-only-iris {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Child-mode typographic floor.
+   Short instructions at a comfortable size; long paragraphs belong in Parent
+   Mode, not here.
+--------------------------------------------------------------------------- */
+.iris-child {
+  color: var(--text);
+}
+.iris-child p,
+.iris-child li {
+  font-size: var(--text-body-lg);
+  line-height: var(--text-body-lg-lh);
+}
+
+/* Child Mode targets are larger than the WCAG floor. Fine-motor differences
+   are common in this audience and an under-sized target is the difference
+   between "I got it wrong" and "I could not hit it". */
+.iris-child button,
+.iris-child [role='button'] {
+  min-height: var(--iris-touch-child);
+  min-width: var(--iris-touch-child);
+}
+/* …except inside the shared top bar, which is chrome, not play. Stretching
+   the language toggle to 56px pushed the bar taller than the content on a
+   390px screen. */
+.iris-child header button {
+  min-height: var(--iris-touch-min);
+  min-width: var(--iris-touch-min);
+}
+
+/* ---------------------------------------------------------------------------
+   Legacy activity headings.
+
+   The twenty original activity screens each chose their own heading colour:
+   Memory Game's title was green, Songs' was purple, Balloon Pop's was red.
+   None of them agreed with each other or with the screen they sat on, and
+   after the palette sweep they simply became five different BRAND colours
+   disagreeing instead of five arbitrary ones.
+
+   Rather than hunt the class down in twenty files, Child Mode declares the
+   rule once: an activity heading is ink, in the display face, like every other
+   heading in the product. The activity's colour is carried by the frame's
+   accent, its tiles and its chips — not by shouting the title in green.
+
+   Specificity note: `.iris-child :is(h1,h2)` is (0,1,1), which beats a
+   Tailwind text-* utility at (0,1,0). That is deliberate — the utilities are
+   exactly what this is overriding. A heading that genuinely needs colour can
+   put it on an inner <span>.
+--------------------------------------------------------------------------- */
+.iris-child :is(h1, h2):not([class*='t-display']):not([class*='t-title']):not([class*='t-heading']) {
+  color: var(--text);
+  font-family: var(--iris-font-display);
+  /* Legacy titles ranged from text-4xl to text-6xl (60px), which on a 390px
+     phone wrapped to three lines and shoved the game off the fold. One scale,
+     the same one the rest of the product uses. */
+  font-size: var(--text-title);
+  line-height: var(--text-title-lh);
+  font-weight: 800;
+  text-shadow: none;
+}
+[lang='ar'] .iris-child :is(h1, h2):not([class*='t-display']):not([class*='t-title']):not([class*='t-heading']) {
+  line-height: 1.35;
+}
+
+/* ---------------------------------------------------------------------------
+   Typographic roles.
+
+   These are classes rather than Tailwind utilities because each one binds
+   THREE things together — family, size and line-height — and the whole point
+   is that they cannot be picked apart. A heading that takes the display size
+   but not the display family is the exact drift Phase 10 is undoing.
+--------------------------------------------------------------------------- */
+.t-display {
+  font-family: var(--iris-font-display);
+  font-size: var(--text-display);
+  line-height: var(--text-display-lh);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.t-title {
+  font-family: var(--iris-font-display);
+  font-size: var(--text-title);
+  line-height: var(--text-title-lh);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.t-heading {
+  font-family: var(--iris-font-display);
+  font-size: var(--text-heading);
+  line-height: var(--text-heading-lh);
+  font-weight: 700;
+}
+
+.t-body-lg {
+  font-size: var(--text-body-lg);
+  line-height: var(--text-body-lg-lh);
+  font-weight: 500;
+}
+
+.t-body {
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
+  font-weight: 500;
+}
+
+.t-small {
+  font-size: var(--text-small);
+  line-height: var(--text-small-lh);
+  font-weight: 600;
+}
+
+/* Micro-labels above a section ("TODAY", "PRIORITIES"). Latin only gets the
+   uppercase treatment — Arabic has no case, and fonts.css neutralises it. */
+.t-label {
+  font-size: var(--text-label);
+  line-height: var(--text-label-lh);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Arabic sits a little more open at every step. */
+[lang='ar'] .t-display,
+[lang='ar'] .t-title {
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+[lang='ar'] .t-heading {
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------------
+   The brochure's marker-swipe highlight.
+
+   In print, IRIS emphasises ONE phrase inside a sentence with a yellow marker
+   stroke behind it — not a border, not a badge, not bold. This reproduces it
+   as a background so the text stays selectable and the emphasis survives a
+   screen reader (which reads the words, and should not hear "highlight").
+--------------------------------------------------------------------------- */
+.iris-mark {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 12%,
+    var(--brand-yellow-wash) 12%,
+    var(--brand-yellow) 55%,
+    var(--brand-yellow) 88%,
+    transparent 88%
+  );
+  background-repeat: no-repeat;
+  padding-inline: 0.2em;
+  border-radius: 0.15em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* ---------------------------------------------------------------------------
+   Accent-driven decoration.
+
+   `iris-accent-rule` is the section divider: the logo's dashed arc, flattened.
+   It reads the SCREEN accent, so a screen's dividers can never disagree with
+   its dominant colour.
+--------------------------------------------------------------------------- */
+.iris-accent-rule {
+  border: 0;
+  border-top: 3px dashed var(--screen-accent);
+  border-radius: 999px;
+  opacity: 0.55;
+}
+
+.iris-accent-dots::before {
+  content: '';
+  display: block;
+  width: 3.5rem;
+  height: 6px;
+  margin-bottom: 0.5rem;
+  border-radius: 999px;
+  background-image: radial-gradient(circle, var(--screen-accent) 45%, transparent 46%);
+  background-size: 12px 6px;
+  background-repeat: repeat-x;
+}
+
+/* ---------------------------------------------------------------------------
+   Hand-drawn accents.
+   The brand language calls for "dotted/dashed accents" and "wavy underlines".
+   These are utility classes rather than components so any heading can take one
+   without importing anything.
+--------------------------------------------------------------------------- */
+.iris-dashed-rule {
+  border: 0;
+  border-top: 3px dashed var(--brand-yellow);
+  border-radius: 999px;
+  opacity: 0.75;
+}
+
+.iris-dot-row::before {
+  content: '';
+  display: block;
+  width: 3.5rem;
+  height: 6px;
+  margin-bottom: 0.5rem;
+  border-radius: 999px;
+  background-image: radial-gradient(circle, var(--brand-yellow) 45%, transparent 46%);
+  background-size: 12px 6px;
+  background-repeat: repeat-x;
+}

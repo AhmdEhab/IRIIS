@@ -1,24 +1,93 @@
-/* Import Google Fonts for Arabic and English */
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&family=Quicksand:wght@400;500;600;700&display=swap');
+/* Web fonts, with real fallbacks.
+ *
+ * THREE ROLES, NOT ONE
+ *   display — Baloo 2 (Latin) / Baloo Bhaijaan 2 (Arabic). Heavy, rounded,
+ *             slightly hand-cut. This is the brochure's headline voice, and
+ *             it was the one thing missing from the product: every heading
+ *             rendered in the same Bold as the body, so nothing on screen
+ *             looked like the printed identity. Baloo is used SPARINGLY —
+ *             one display line per screen — because the identity pack is
+ *             explicit that not every line should look handwritten.
+ *             Latin and Arabic are the same superfamily, so a bilingual
+ *             heading does not change personality when the language flips.
+ *   ui/body — Quicksand (Latin) / Cairo (Arabic). Unchanged: already correct,
+ *             already legible, already tuned for Arabic diacritics.
+ *   numerals— tabular, dir=ltr. Handled in components, not here.
+ *
+ * WHY BALOO AND NOT A DISPLAY WEIGHT OF QUICKSAND
+ * Quicksand's heaviest weight is 700 and its terminals are geometric; scaled
+ * up it reads as "large body text", not as a headline. Baloo's 800 has the
+ * chunky rounded terminals the brochure lettering has. The cost is one extra
+ * font request; both families are subset by the same Google Fonts call below.
+ *
+ * THE IMPORT IS A PROGRESSIVE ENHANCEMENT. It is the first thing to fail on a
+ * slow connection, an offline demo machine, or a locked-down network. So each
+ * stack names real, widely-installed local faces before the generic fallback:
+ *   - Arabic: Tahoma and Segoe UI both ship on Windows and render Arabic well;
+ *     Geeza Pro / Al Nile cover macOS and iOS; Noto Naskh Arabic covers Linux.
+ *   - Latin: Segoe UI Variable / Segoe UI on Windows, SF via -apple-system on
+ *     Apple platforms, Nunito/Segoe UI as the rounded-friendly options.
+ * The display stacks fall back to the BODY stacks rather than to a generic
+ * serif, so a failed display font degrades to "bold Quicksand/Cairo" — which
+ * is exactly where the product was before Phase 10, i.e. a safe floor.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&family=Quicksand:wght@400;500;600;700&family=Baloo+2:wght@600;700;800&family=Baloo+Bhaijaan+2:wght@600;700;800&display=swap');
 
-/* Set font families based on language */
+:root {
+  --iris-font-latin: 'Quicksand', 'Nunito', 'Segoe UI Variable Display', 'Segoe UI',
+    -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  --iris-font-arabic: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, 'Geeza Pro', 'Al Nile',
+    'Noto Naskh Arabic', 'Arial Unicode MS', sans-serif;
+
+  /* Display. Note each one ends in the matching BODY stack. */
+  --iris-font-display-latin: 'Baloo 2', var(--iris-font-latin);
+  --iris-font-display-arabic: 'Baloo Bhaijaan 2', var(--iris-font-arabic);
+
+  /* Resolved per language by the rules below, so a component can simply say
+     font-family: var(--iris-font-display) and get the right one. */
+  --iris-font-display: var(--iris-font-display-latin);
+  --iris-font-body: var(--iris-font-latin);
+}
+
 body {
-  font-family: 'Quicksand', 'Cairo', sans-serif;
+  font-family: var(--iris-font-body);
 }
 
-[lang="ar"] {
-  font-family: 'Cairo', 'Tajawal', sans-serif;
-  letter-spacing: 0.01em;
+[lang='ar'],
+[lang='ar'] body {
+  --iris-font-display: var(--iris-font-display-arabic);
+  --iris-font-body: var(--iris-font-arabic);
+  font-family: var(--iris-font-arabic);
+  /* Arabic needs a little more line height than Latin at the same size, or
+     ascenders/diacritics collide — especially at the large child-mode sizes. */
+  line-height: 1.75;
+  letter-spacing: 0;
 }
 
-[lang="en"] {
-  font-family: 'Quicksand', 'Cairo', sans-serif;
+[lang='en'] {
+  --iris-font-display: var(--iris-font-display-latin);
+  --iris-font-body: var(--iris-font-latin);
+  font-family: var(--iris-font-latin);
 }
 
-/* Improve Arabic text rendering */
-[lang="ar"] * {
+/* Arabic shaping/ligature quality. */
+[lang='ar'] * {
   font-feature-settings: 'liga' 1, 'calt' 1;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Never letter-space Arabic — it breaks the cursive joins between glyphs.
+   Tailwind's tracking-* utilities are applied in a few shared components, so
+   this has to win against them. */
+[lang='ar'] * {
+  letter-spacing: 0 !important;
+}
+
+/* Arabic has no case. `uppercase` on Arabic is a no-op visually but it is also
+   applied by the shared label style, and on a few Latin-in-Arabic strings it
+   produced SHOUTED transliterations. Neutralised here once. */
+[lang='ar'] * {
+  text-transform: none !important;
 }

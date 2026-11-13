@@ -1,1 +1,32 @@
+# dependencies
 node_modules
+
+# build output — must not be committed; it silently diverges from src/
+dist
+
+# LOCAL DATABASE — contains child and parent records. NEVER COMMIT.
+# (This file was previously tracked, together with plaintext passwords.
+#  See IRIS_IMPLEMENTATION_AUDIT.md §7.7 / §14.1.)
+server/database.sqlite
+server/database.sqlite-journal
+*.sqlite
+*.sqlite3
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# generated narration audio — rebuilt on demand from ElevenLabs, and tied to
+# whichever voice IDs are configured, so it must not be committed
+server/.tts-cache
+
+# test / demo artefacts
+e2e-shots
+coverage
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.vscode
+.idea
