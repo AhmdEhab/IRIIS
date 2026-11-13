@@ -106,3 +106,10 @@ Full art-direction rebuild per the client brief:
 - Contrast: final-CTA eyebrow uses yellow-wash (AA on brand blue); axe clean.
 - Verified: build + 168/168 engine tests + 30/30 viewport/language overflow
   checks + full interaction/keyboard/WCAG suite green after every step.
+
+## Hero stage iteration log (user feedback loop)
+
+1. Dashed rings + floating cards → "rings boring, mascot wobbles" → orbit v2.
+2. Orbiting cards → "scattered, not composed" → v3 (current): big calm
+   mascot on pedestal + counter-rotating symmetric bead rings + parked
+   scrapbook cards. Kid-friendly, modern, composed. All animation gated.
