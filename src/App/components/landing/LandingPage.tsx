@@ -140,7 +140,7 @@ export function LandingPage({
             </DisplayTitle>
             <p className="mt-5 text-xl leading-relaxed text-ink-muted max-w-xl">
               {ar
-                ? 'IRIS رحلة تعلّم متكيفة للأطفال من أصحاب الإعاقة الذهنية ونمو التطور — تبدأ بالتعرّف على الطفل، وتبني معاه خطوة خطوة، والخطة بتتغيّر معاه لحظة بلحظة. والأهل في كل لحظة في الصورة.'
+                ? 'IRIS رحلة تعلّم متكيفة للأطفال من أصحاب الإعاقة الذهنية والتوحد وتأخر النمو — تبدأ بالتعرّف على الطفل، وتبني معاه خطوة خطوة، والخطة بتتغيّر معاه لحظة بلحظة. والأهل في كل لحظة في الصورة.'
                 : 'IRIS is an adaptive learning journey for children with intellectual and developmental disabilities — it starts by getting to know your child, builds step by step, and the plan shifts in real time. Parents are part of it all.'}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -208,7 +208,7 @@ export function LandingPage({
           <motion.div {...fade(0.12)} className="grid grid-cols-2 gap-4">
             {[
               { c: 'bg-brand-blue-wash', k: ar ? '٥ مستويات لكل مهارة' : '5 levels per skill', d: ar ? 'من أساسيات لخطوات متقدمة' : 'from basics to further steps' },
-              { c: 'bg-brand-yellow-wash', k: ar ? 'جلسات قصيرة' : 'Short sessions', d: ar ? 'عشرون دقيقة تكفي' : 'ten minutes is enough' },
+              { c: 'bg-brand-yellow-wash', k: ar ? 'جلسات قصيرة' : 'Short sessions', d: ar ? 'عشر دقايق تكفي' : 'ten minutes is enough' },
               { c: 'bg-brand-green-wash', k: ar ? 'خطة بيتية' : 'A home plan', d: ar ? 'حاجات بسيطة تعمليها معاه' : 'small everyday things to do' },
               { c: 'bg-brand-purple-wash', k: ar ? 'بلا مصطلحات مخوّفة' : 'No scary jargon', d: ar ? 'لغة طيبة ومفهومة' : 'kind, plain language' },
             ].map((s, i) => (
