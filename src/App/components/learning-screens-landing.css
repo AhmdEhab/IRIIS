@@ -1,0 +1,346 @@
+/* ===========================================================================
+   Letters / Numbers / Shapes / Colors — the four browse-and-learn activity
+   screens dressed in the marketing landing's design language.
+
+   Markup, state, sound, speech, routing and data are NOT touched. Each screen
+   adds one scope class (`lsl-landing` | `nsl-landing` | `ssl-landing` |
+   `csl-landing`) plus the shared `cl-learn` to its root div, and these
+   unlayered rules retarget the Tailwind utilities that the screens — and the
+   shared <SyndromeLearningCard> they render — actually carry. Tailwind v4
+   ships its utilities inside cascade layers, so an unlayered rule wins without
+   editing ui/* or the card. Same trick as games-hub-landing.css and
+   memory-game-landing.css; tokens are the same landing values.
+
+   The `cl-learn` block does the work all four share; the four scope classes
+   exist for the handful of differences (a text glyph vs an emoji, grid
+   density, title wording).
+   ========================================================================= */
+
+/* ── Shared skin ─────────────────────────────────────────────────────── */
+.cl-learn {
+  --cl-blue: #1F67B1;
+  --cl-blue-ink: #18508A;
+  --cl-ink: #2A2118;
+  --cl-muted: #6B655D;
+  --cl-surface: #FFFDF6;
+  --cl-hair: rgba(31, 103, 177, 0.16);
+  --cl-hair-hover: rgba(31, 103, 177, 0.34);
+  --cl-wash-blue: rgba(201, 229, 247, 0.55);
+  --cl-wash-yellow: rgba(251, 231, 184, 0.6);
+  --cl-wash-green: rgba(206, 238, 214, 0.7);
+  --cl-wash-coral: rgba(252, 217, 219, 0.7);
+  --cl-plate-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.24);
+  --cl-emoji-shadow: drop-shadow(0 6px 10px rgba(42, 33, 24, 0.15));
+
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), var(--iris-font-body, 'Cairo'), cursive;
+  color: var(--cl-ink);
+}
+
+/* Ground: the landing's cream with the polka-dot texture and the two radial
+   washes, copied from .lc-root / .gh-landing. Low-arousal keeps the calmer
+   flat surface the screen already picks for itself. */
+.cl-learn:not(.bg-surface-sunk) {
+  background:
+    radial-gradient(rgba(31, 103, 177, 0.05) 2px, transparent 2.5px) 0 0 / 44px 44px,
+    radial-gradient(1100px 560px at 90% -8%, rgba(201, 229, 247, 0.55), transparent 60%),
+    radial-gradient(900px 520px at 4% 108%, rgba(251, 231, 184, 0.5), transparent 62%),
+    #FFF6E9 !important;
+}
+
+/* Title: ink Baloo, no drop shadow, centered, with the landing's yellow
+   swash bar underneath (see .lc-section-title::after / .gh-landing h1::after).
+   Flex-column keeps the bar centred under the text in both RTL and LTR, so
+   nothing is hardcoded left/right. */
+.cl-learn h1:not([class*='text-ink-muted']) {
+  color: var(--cl-ink) !important;
+}
+.cl-learn h1 {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(32px, 4vw, 46px) !important;
+  font-weight: 800;
+  line-height: 1.24 !important;
+  text-shadow: none !important;
+  filter: none !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-block-end: 4px;
+}
+.cl-learn h1::after {
+  content: '';
+  width: clamp(120px, 20vw, 260px);
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 210, 77, 0.15), #FFD24D 28%, #FFD24D 72%, rgba(255, 210, 77, 0.15));
+}
+
+/* ── Option plates (the browse grid) ────────────────────────────────────
+   Legacy saturated fills (bg-brand-coral / -green / -purple / bg-brown-500)
+   and the sunk beige well become white landing plates with a blue hairline;
+   the colour a tile used to shout now lives in a flat pastel bubble behind
+   the glyph, the way the landing keeps one dominant colour per panel. */
+.cl-learn .grid button[class*='aspect-square'] {
+  position: relative;
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: var(--cl-plate-shadow) !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.cl-learn .grid button[class*='aspect-square']::before {
+  content: '';
+  position: absolute;
+  inset-inline: 14%;
+  inset-block-start: 11%;
+  inset-block-end: 24%;
+  border-radius: 999px;
+  background: var(--cl-wash-blue);
+  z-index: 0;
+}
+.cl-learn .grid > *:nth-child(4n+2) > button[class*='aspect-square']::before { background: var(--cl-wash-yellow); }
+.cl-learn .grid > *:nth-child(4n+3) > button[class*='aspect-square']::before { background: var(--cl-wash-green); }
+.cl-learn .grid > *:nth-child(4n+4) > button[class*='aspect-square']::before { background: var(--cl-wash-coral); }
+/* A tall Arabic ascender (ج، ش) must not touch the label under it, so the
+   glyph box is capped and the tile's own padding keeps it off the name. */
+.cl-learn .grid button[class*='aspect-square'] > :first-child {
+  max-height: 54%;
+  min-height: 0;
+}
+/* content sits above the bubble, and never in white on a white plate */
+.cl-learn .grid button[class*='aspect-square'] > * {
+  position: relative;
+  z-index: 1;
+  text-shadow: none !important;
+}
+.cl-learn .grid button[class*='aspect-square'] [class*='text-white'] {
+  color: var(--cl-ink) !important;
+  filter: none !important;
+}
+.cl-learn .grid button[class*='aspect-square'] > :first-child {
+  filter: var(--cl-emoji-shadow);
+}
+/* the name under the glyph reads as a label, not a second headline */
+.cl-learn .grid button[class*='aspect-square'] h3,
+.cl-learn .grid button[class*='aspect-square'] > :last-child {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800;
+  color: var(--cl-blue-ink) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cl-learn .grid button[class*='aspect-square']:hover {
+    transform: translateY(-3px);
+    border-color: var(--cl-hair-hover) !important;
+    box-shadow: 0 20px 38px -18px rgba(42, 33, 24, 0.3) !important;
+  }
+}
+/* pressed = the landing's selected treatment: blue edge + blue wash fill */
+.cl-learn .grid button[class*='aspect-square']:active,
+.cl-learn .grid button[class*='aspect-square'][aria-pressed='true'] {
+  border-color: var(--cl-blue) !important;
+  background: var(--cl-wash-blue) !important;
+  color: var(--cl-blue-ink) !important;
+}
+
+/* ── The lesson plate (shared SyndromeLearningCard) ─────────────────────
+   Structure and phase logic are the card's; only its skin is retargeted,
+   and every rule is anchored on `min-h-[500px]`, which only that element
+   carries, so nothing else in the app is affected. */
+.cl-learn [class*='min-h-[500px]'] {
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 18px 40px -22px rgba(42, 33, 24, 0.28), 0 6px 16px -8px rgba(31, 103, 177, 0.1) !important;
+}
+.cl-learn [class*='min-h-[500px]']:not([class*='bg-surface-sunk']) {
+  background: var(--cl-surface) !important;
+}
+/* confetti dots in the plate corner, like .lc-hero::before */
+.cl-learn [class*='min-h-[500px]']::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  inset-inline-end: 18px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #F45B63;
+  box-shadow: -16px 6px 0 -2px #2E965C, -8px 20px 0 -3px #1F67B1, -24px 18px 0 -1px #FFD24D;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Headings inside the plate: ink, display face, no white-on-cream. */
+.cl-learn [class*='min-h-[500px]'] h2 {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(26px, 3.2vw, 38px) !important;
+  line-height: 1.3 !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* The big visual: white on a white plate is invisible, so the glyph wears
+   blue ink with the landing's soft emoji shadow. */
+.cl-learn [class*='min-h-[500px]'] [class*='text-[150px]'] {
+  color: var(--cl-blue-ink) !important;
+  text-shadow: none !important;
+  filter: var(--cl-emoji-shadow) !important;
+}
+
+/* Success line: the brand green family, kept soft. */
+.cl-learn [class*='min-h-[500px]'] [class*='text-[120px]'] {
+  filter: var(--cl-emoji-shadow) !important;
+}
+.cl-learn [class*='min-h-[500px]'] [class*='text-[120px]'] + h2 {
+  background: rgba(206, 238, 214, 0.8);
+  color: #2E965C !important;
+  border: 1.5px solid rgba(46, 150, 92, 0.32);
+  border-radius: 999px;
+  padding: 8px 28px;
+}
+
+/* Tap-to-continue prompt: a landing primary pill, not a dark ink slab. */
+.cl-learn [class*='min-h-[500px]'] [class*='bg-ink'][class*='rounded-brand-lg'] {
+  background: var(--cl-blue) !important;
+  color: #fff !important;
+  border: 2px solid transparent !important;
+  border-radius: 999px !important;
+  padding: 12px 30px !important;
+  min-height: 52px;
+  font-size: clamp(17px, 1.8vw, 21px) !important;
+  font-weight: 800;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+}
+
+/* "IRIS is waiting" phase: blue-ink wash instead of white-on-white. */
+.cl-learn [class*='min-h-[500px]'] [class*='text-white/50'] {
+  color: rgba(24, 80, 138, 0.6) !important;
+}
+.cl-learn [class*='min-h-[500px]'] [class*='text-white/50'] p {
+  color: var(--cl-blue-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+}
+
+/* Photo frame inside the plate: landing plate + soft radius. */
+.cl-learn [class*='size-56'] {
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 16px 34px -18px rgba(42, 33, 24, 0.3) !important;
+}
+.cl-learn [class*='size-56'] img { border-radius: 20px !important; }
+
+/* Visual-schedule dots (Autism): blue-ink glass chips, mirrored for RTL.
+   The markup hardcodes `right-10`; inset-inline-end undoes that for Arabic. */
+.cl-learn [class~='top-10'][class~='right-10'] {
+  right: auto !important;
+  inset-inline-end: 2.5rem !important;
+}
+.cl-learn [class~='top-10'][class~='right-10'] > div {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 999px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+  background: var(--cl-wash-blue) !important;
+  box-shadow: 0 4px 10px -4px rgba(31, 103, 177, 0.4);
+}
+.cl-learn [class~='top-10'][class~='right-10'] > div[class*='bg-brand-green'] {
+  background: var(--cl-blue) !important;
+  box-shadow: 0 6px 14px -4px rgba(31, 103, 177, 0.55) !important;
+}
+
+/* ── Buttons: landing pills ──────────────────────────────────────────────
+   Finish / Repeat inside the plate, and "choose another …" below it. */
+.cl-learn [class*='min-h-[500px]'] button[class*='text-3xl'],
+.cl-learn button[class*='rounded-full'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 30px !important;
+  border: 2px solid transparent !important;
+  border-radius: 999px !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: 18px !important;
+  font-weight: 800;
+  line-height: 1.5;
+  white-space: normal;
+  text-align: center;
+}
+/* primary: blue pill */
+.cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-green-solid'],
+.cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-blue-ink'],
+.cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-coral-solid'],
+.cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-purple'] {
+  background: var(--cl-blue) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+}
+/* the softer of the two step-downs to a white plate + blue hairline */
+.cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-blue-ink'] {
+  background: var(--cl-surface) !important;
+  color: var(--cl-blue-ink) !important;
+  border-color: var(--cl-hair-hover) !important;
+  box-shadow: 0 10px 22px -14px rgba(42, 33, 24, 0.26) !important;
+}
+/* secondary / ghost under the plate */
+.cl-learn button[class*='rounded-full'] {
+  background: var(--cl-surface) !important;
+  color: var(--cl-blue-ink) !important;
+  border-color: var(--cl-hair-hover) !important;
+  box-shadow: 0 10px 22px -14px rgba(42, 33, 24, 0.26) !important;
+}
+.cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-blue-ink'] svg,
+.cl-learn button[class*='rounded-full'] svg {
+  width: 22px;
+  height: 22px;
+  color: var(--cl-blue) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cl-learn [class*='min-h-[500px]'] button:hover,
+  .cl-learn button[class*='rounded-full']:hover {
+    transform: translateY(-2px);
+  }
+  .cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-green-solid']:hover,
+  .cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-coral-solid']:hover {
+    background: #18508A !important;
+  }
+  .cl-learn [class*='min-h-[500px]'] button[class*='bg-brand-blue-ink']:hover,
+  .cl-learn button[class*='rounded-full']:hover {
+    background: var(--cl-wash-blue) !important;
+    border-color: var(--cl-blue) !important;
+  }
+}
+
+/* ── Per-screen differences ────────────────────────────────────────────────
+   Letters + Numbers put a TEXT glyph in the tile and in the plate, so it must
+   be legible on the pastel bubble; Shapes + Colors put an emoji there. */
+.lsl-landing .grid button[class*='aspect-square'] > :first-child,
+.nsl-landing .grid button[class*='aspect-square'] > :first-child {
+  color: var(--cl-blue-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  filter: none !important;
+}
+/* Numbers tiles are denser (5-up) and Shapes/Colors are 2–3-up, so the bubble
+   keeps a little more breathing room on the wide grids. */
+.ssl-landing .grid button[class*='aspect-square']::before,
+.csl-landing .grid button[class*='aspect-square']::before {
+  inset-inline: 20%;
+}
+/* Colors: the pastel bubble is the only place a colour name can be echoed, so
+   it stays slightly more present than on the other screens. */
+.csl-landing .grid button[class*='aspect-square']::before { opacity: 0.95; }
+/* Letters: 6-up grid at 1440px — keep the glyph from touching the bubble. */
+.lsl-landing .grid button[class*='aspect-square'] > :first-child { line-height: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-learn .grid button[class*='aspect-square'],
+  .cl-learn [class*='min-h-[500px]'] button,
+  .cl-learn button[class*='rounded-full'] {
+    transition-duration: 1ms;
+    transform: none !important;
+  }
+}
