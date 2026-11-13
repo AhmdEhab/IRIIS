@@ -19,6 +19,7 @@ import { Blob, DashedArc, Star } from './ui/brand/Decor';
 import { ActivityTile, InfoTile, SectionTitle, DisplayTitle, Button, StarCount, TopBar, BarButton, type IconName, type BrandTone } from './ui/brand';
 import { ChromeActions } from './ui/ChromeActions';
 import { AvatarPicker } from './ui/AvatarPicker';
+import './iris-home-landing.css';
 import { AudioControl } from './ui/AudioControl';
 import { NarrationCaption } from './ui/NarrationCaption';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -74,7 +75,7 @@ export function IrisChildHome({
   }, []);
 
   return (
-    <div data-accent="yellow" className="iris-child min-h-screen bg-ground-tint overflow-x-hidden relative flex flex-col">
+    <div data-accent="yellow" className="iris-child iris-landing-home min-h-screen bg-ground-tint overflow-x-hidden relative flex flex-col">
       <PlayfulBackground />
 
       {/* The bespoke header this screen used to draw — an avatar button, a
@@ -128,7 +129,7 @@ export function IrisChildHome({
             avatar cards use. A purple-to-indigo gradient hero is both off
             palette and the most generic shape a product like this can take.
           */}
-          <Card className="bg-surface text-ink p-6 md:p-12 rounded-brand-xl border-4 border-hairline shadow-brand-lg relative overflow-hidden">
+          <Card className="bg-surface text-ink p-6 md:p-12 rounded-brand-xl border-2 border-hairline shadow-brand-lg relative overflow-hidden">
             <Blob color="#FECA34" opacity={0.28} className="absolute -top-20 -start-16 w-56 h-56" />
             <Blob color="#F45B63" opacity={0.13} className="absolute -bottom-24 -end-16 w-52 h-52" />
             <Star color="#F45B63" className="absolute top-6 end-8 w-6 h-6 opacity-70" />
@@ -149,7 +150,7 @@ export function IrisChildHome({
                 </p>
                 <div className="pt-2">
                   <Button
-                    variant="play"
+                    variant="primary"
                     size="lg"
                     icon="play"
                     onClick={() => {
@@ -187,7 +188,7 @@ export function IrisChildHome({
                 { icon: 'star' as IconName, tone: 'yellow' as BrandTone, ar: 'نجمع نجوم', en: 'We collect stars' },
                 { icon: 'rocket' as IconName, tone: 'coral' as BrandTone, ar: 'نتعلّم حاجة جديدة', en: 'We learn something new' },
               ]).map((step, i) => (
-                <InfoTile key={i} icon={step.icon} tone={step.tone} label={ar ? step.ar : step.en} />
+                <InfoTile key={i} icon={step.icon} tone={step.tone} label={ar ? step.ar : step.en} className="ir-home-infotile" />
               ))}
             </div>
           </div>
@@ -201,7 +202,7 @@ export function IrisChildHome({
                 const goal = GOAL_BY_ID[a.goal_id];
                 return (
                   <motion.div key={a.goal_id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                    <Card className="bg-surface rounded-brand-lg p-6 border-4 border-hairline shadow-brand flex items-center gap-4 hover:border-hairline transition-colors">
+                    <Card className="bg-surface rounded-brand-lg p-6 border-2 border-hairline shadow-brand flex items-center gap-4 hover:border-hairline transition-colors">
                       <div className="w-16 h-16 bg-brand-blue-wash rounded-brand flex items-center justify-center text-3xl shrink-0">
                         {goal?.nameAr?.includes('كلمات') ? '📚' : goal?.nameAr?.includes('ذاكرة') ? '🧠' : '⭐'}
                       </div>

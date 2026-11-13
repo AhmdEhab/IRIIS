@@ -1,0 +1,44 @@
+/* ===========================================================================
+   Child Home in the landing page's language (same content, new skin).
+   The marketing page (components/landing/landing.css) sets the brand's
+   current look: cream ground, white plates with a 2px blue-tinted hairline,
+   22-28px corners, quiet layered shadows, pills of brand blue. Tailwind v4
+   ships its utilities inside cascade layers, so these unlayered rules retarget
+   the shared brand components on THIS screen only — no other child screen
+   changes, and no component file was edited.
+   ========================================================================= */
+.iris-landing-home .rounded-brand-xl { border-radius: 28px; }
+.iris-landing-home .rounded-brand-lg { border-radius: 22px; }
+.iris-landing-home .border-hairline { border-color: rgba(31, 103, 177, 0.16); }
+.iris-landing-home .shadow-brand-lg { box-shadow: 0 26px 60px -32px rgba(42, 33, 24, 0.34), 0 6px 18px -8px rgba(31, 103, 177, 0.10); }
+.iris-landing-home .shadow-brand-sm { box-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.24); }
+.iris-landing-home .shadow-brand { box-shadow: 0 16px 34px -18px rgba(42, 33, 24, 0.26); }
+
+/* InfoTiles: full pastel wash → white landing card with the pastel kept only
+   in the icon ink, like the landing's feature cards. */
+.iris-landing-home .ir-home-infotile {
+  background: #FFFDF6;
+  border: 2px solid rgba(31, 103, 177, 0.16);
+  border-radius: 22px;
+  box-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.24);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.iris-landing-home .ir-home-infotile:hover {
+  transform: translateY(-3px);
+  border-color: rgba(31, 103, 177, 0.34);
+  box-shadow: 0 20px 40px -20px rgba(42, 33, 24, 0.30);
+}
+
+/* Chrome chips (TopBar round buttons + avatar + star badge): the landing's
+   frosted-disc language. */
+.iris-landing-home header button.border-2, .iris-landing-home header span.rounded-full {
+  background: rgba(201, 229, 247, 0.52);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px -12px rgba(31, 103, 177, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px) saturate(1.6); -webkit-backdrop-filter: blur(12px) saturate(1.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iris-landing-home .ir-home-infotile { transition-duration: 1ms; }
+  .iris-landing-home .ir-home-infotile:hover { transform: none; }
+}
