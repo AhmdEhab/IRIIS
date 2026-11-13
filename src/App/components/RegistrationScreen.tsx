@@ -455,15 +455,17 @@ export function RegistrationScreen() {
 
       {/* Navigation Buttons */}
       <div className="ir-auth-nav">
-        <Button
-          onClick={handlePrevious}
-          variant="outline"
-          size="lg"
-          className={`ir-auth-ghost ${step === 1 ? 'opacity-0 pointer-events-none' : ''}`}
-        >
-          {dir === 'rtl' ? <ChevronRight className="size-6 me-2" /> : <ChevronLeft className="size-6 me-2" />}
-          {t.previous}
-        </Button>
+        {step > 1 && (
+          <Button
+            onClick={handlePrevious}
+            variant="outline"
+            size="lg"
+            className="ir-auth-ghost"
+          >
+            {dir === 'rtl' ? <ChevronRight className="size-6 me-2" /> : <ChevronLeft className="size-6 me-2" />}
+            {t.previous}
+          </Button>
+        )}
 
         <Button
           onClick={handleNext}

@@ -301,7 +301,7 @@
   transition: background-color 170ms ease, box-shadow 170ms ease, transform 170ms ease, color 170ms ease;
 }
 .ir-auth-cta--full { width: 100%; }
-.ir-auth-cta--grow { flex: 1 1 220px; }
+.ir-auth-cta--grow { flex: 1 1 0; min-width: 0; }
 .ir-auth-cta:not(:disabled):hover { background: var(--brand-blue-ink); transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(31, 103, 177, 0.55); }
 .ir-auth-cta:not(:disabled):active { transform: translateY(1px) scale(0.99); box-shadow: inset 0 2px 5px rgba(42, 33, 24, 0.15); }
 /* Step 3 is the last commit — the journey turns green, as it does on the
@@ -312,8 +312,9 @@
    pill, and the shared Button still prints its hint line under it. */
 .ir-auth-cta:disabled {
   cursor: not-allowed;
+  opacity: 1;
   background: color-mix(in srgb, var(--brand-blue) 12%, var(--surface));
-  color: color-mix(in srgb, var(--brand-blue-ink) 62%, var(--muted-text));
+  color: var(--brand-blue-ink);
   box-shadow: none;
   border: 2px solid color-mix(in srgb, var(--brand-blue) 26%, transparent);
   transform: none;
@@ -364,7 +365,8 @@
 }
 .ir-auth-link:hover { background: var(--brand-blue-wash); }
 
-.ir-auth-nav { display: flex; align-items: stretch; flex-wrap: wrap; gap: 12px; }
+.ir-auth-nav { display: flex; align-items: stretch; gap: 12px; }
+.ir-auth-nav .ir-auth-ghost { flex: 0 0 25%; min-width: 0; padding-inline: 10px; }
 
 /* Below the card (login's "not a member yet?" line). The wrapper matters: it
    keeps the sentence and its button in one container so "the button next to
