@@ -23,7 +23,7 @@
 /* stats plate: green 4px frame → landing 2px hairline + blue ink numbers */
 .mg-landing .border-4 { border-width: 2px !important; border-color: rgba(31, 103, 177, 0.16) !important; border-radius: 22px !important; box-shadow: 0 18px 40px -22px rgba(42, 33, 24, 0.28) !important; }
 .mg-landing .border-4 p { font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; }
-.mg-landing [class*="text-brand-green-ink"] { color: #18508A !important; }
+.mg-landing p[class*="text-brand-green-ink"] { color: #18508A !important; }
 .mg-landing .border-e-4 { border-width: 0 0 0 1px !important; border-color: rgba(31, 103, 177, 0.14) !important; }
 [dir="rtl"] .mg-landing .border-e-4 { border-width: 0 1px 0 0 !important; }
 /* board tiles: white plates; the face-down side wears the landing blue wash */
