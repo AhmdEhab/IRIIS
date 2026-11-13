@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import {
-  Apple, ArrowLeft, ArrowRight, Check, Compass, HeartHandshake,
+  ArrowLeft, ArrowRight, Check, Compass, HeartHandshake,
   Languages, Route, ShieldCheck, Sparkles, Star,
 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -117,11 +117,6 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
                 <Sparkle className="lp-hero-spark lp-hero-spark--a" aria-hidden="true" />
                 <Sparkle className="lp-hero-spark lp-hero-spark--b" fill="var(--brand-coral)" aria-hidden="true" />
               </div>
-              <a className="lp-activity-dock" href="#experience" data-testid="hero-preview-link">
-                <span className="lp-dock-object"><Apple aria-hidden="true" /></span>
-                <span className="lp-dock-copy"><span className="lp-small-label">{text('لمحة من تجربة التعلّم', 'A little learning preview')}</span><strong>{text('استكشف. اسمع. جرّب.', 'Explore. Listen. Try.')}</strong></span>
-                <span className="lp-dock-link">{text('جرّب بنفسك', 'Try it')}<Arrow aria-hidden="true" /></span>
-              </a>
             </div>
           </div>
         </section>

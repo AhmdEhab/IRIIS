@@ -68,8 +68,6 @@ try {
       }
       await page.locator('.lp-footer a[href="#experience"]').click();
       await page.waitForFunction(() => location.hash === '#experience');
-      await page.getByTestId('hero-preview-link').click();
-      await page.waitForFunction(() => location.hash === '#experience');
       await page.evaluate(() => window.scrollTo({ top: 500, behavior: 'instant' }));
       assert.equal(await page.locator('.lp-header').evaluate(el => Math.round(el.getBoundingClientRect().top)), 0);
       await page.addScriptTag({ path: '/home/ubuntu/iris-qa-tools/node_modules/axe-core/axe.min.js' });
