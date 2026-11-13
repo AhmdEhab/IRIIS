@@ -1,0 +1,44 @@
+/* ===========================================================================
+   Memory Game in the landing page's language (content & rules untouched).
+   ========================================================================= */
+.mg-landing {
+  background:
+    radial-gradient(rgba(31, 103, 177, 0.05) 2px, transparent 2.5px) 0 0 / 44px 44px,
+    radial-gradient(1100px 560px at 92% -8%, rgba(201, 229, 247, 0.5), transparent 60%),
+    radial-gradient(900px 520px at 3% 108%, rgba(251, 231, 184, 0.45), transparent 62%),
+    #FFF6E9 !important;
+}
+.mg-landing h1 {
+  color: #2A2118 !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-size: clamp(36px, 4.4vw, 52px) !important;
+  text-shadow: none !important;
+  position: relative; display: inline-block; width: auto;
+}
+.mg-landing h1::after {
+  content: ''; position: absolute; inset-inline-start: 10%; inset-inline-end: 10%; bottom: -14px; height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 210, 77, 0.2), #FFD24D 30%, #FFD24D 70%, rgba(255, 210, 77, 0.2));
+}
+/* stats plate: green 4px frame → landing 2px hairline + blue ink numbers */
+.mg-landing .border-4 { border-width: 2px !important; border-color: rgba(31, 103, 177, 0.16) !important; border-radius: 22px !important; box-shadow: 0 18px 40px -22px rgba(42, 33, 24, 0.28) !important; }
+.mg-landing .border-4 p { font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; }
+.mg-landing [class*="text-brand-green-ink"] { color: #18508A !important; }
+.mg-landing .border-e-4 { border-width: 0 0 0 1px !important; border-color: rgba(31, 103, 177, 0.14) !important; }
+[dir="rtl"] .mg-landing .border-e-4 { border-width: 0 1px 0 0 !important; }
+/* board tiles: white plates; the face-down side wears the landing blue wash */
+.mg-landing .rounded-brand-xl { background: #FFFDF6; border: 2px solid rgba(31, 103, 177, 0.16) !important; border-radius: 24px !important; box-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.24) !important; }
+.mg-landing .bg-brand-green-wash { background: rgba(201, 229, 247, 0.75) !important; }
+.mg-landing .bg-brand-green-wash svg { color: rgba(31, 103, 177, 0.45) !important; }
+/* win panel + its CTA */
+.mg-landing .border-8 { border-width: 2px !important; border-color: rgba(31, 103, 177, 0.22) !important; }
+.mg-landing button[class*="text-3xl"], .mg-landing [role="button"][class*="text-3xl"] {
+  background: #1F67B1 !important; color: #fff !important;
+  border: 2px solid transparent !important; border-radius: 999px !important;
+  padding: 12px 30px !important; font-size: 18px !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; font-weight: 800;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+}
+.mg-landing button[class*="text-3xl"]:hover { background: #18508A !important; transform: translateY(-2px); }
+/* emoji tiles get a soft drop shadow like the landing artwork */
+.mg-landing .rounded-brand-xl span { filter: drop-shadow(0 6px 10px rgba(42, 33, 24, 0.15)); }

@@ -7,6 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { BackButton } from './ui/BackButton';
+import './memory-game-landing.css';
 
 interface CardItem {
     id: number;
@@ -132,7 +133,7 @@ export function MemoryGameScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 overflow-hidden relative transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-ground-tint' : 'bg-transparent'}`}>
+        <div className={`mg-landing min-h-screen p-4 overflow-hidden relative transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-ground-tint' : 'bg-transparent'}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8 h-full flex flex-col relative z-10">
                 {/* Header */}
