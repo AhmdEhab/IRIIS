@@ -143,7 +143,9 @@ export function LandingChildMode() {
           <div className="lc-hero-grid">
             <div className="lc-hero-copy">
               <h1 className="lc-hero-title">
-                {ar ? `أهلاً بك يا ${childProfile?.name || 'بطلنا'}! ✨` : `Welcome back, ${childProfile?.name || 'Hero'}! ✨`}
+                {ar
+                  ? <>أهلاً بك يا <span className="lc-hero-mark">{childProfile?.name || 'بطلنا'}</span>! ✨</>
+                  : <>Welcome back, <span className="lc-hero-mark">{childProfile?.name || 'Hero'}</span>! ✨</>}
               </h1>
               <p className="lc-hero-sub">
                 {ar

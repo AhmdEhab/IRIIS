@@ -140,3 +140,69 @@
   .lc-card, .lc-pill, .lc-hero { transition-duration: 1ms; }
   .lc-card:hover, .lc-pill:hover { transform: none; }
 }
+
+/* ── Playful pass: sticker tilt, confetti, swash — still landing tokens ── */
+/* faint polka-dot ground like the landing's ambient texture */
+.lc-root { background:
+    radial-gradient(rgba(31, 103, 177, 0.05) 2px, transparent 2.5px) 0 0 / 44px 44px,
+    radial-gradient(1200px 600px at 88% -6%, rgba(201, 229, 247, 0.55), transparent 60%),
+    radial-gradient(900px 520px at 6% 108%, rgba(251, 231, 184, 0.5), transparent 62%),
+    #FFF6E9; }
+
+/* hero: yellow marker swash under the child's name, landing-style */
+.lc-hero { padding-bottom: 46px; }
+.lc-hero-mark {
+  background: linear-gradient(transparent 58%, rgba(255, 210, 77, 0.85) 58%, rgba(255, 210, 77, 0.85) 92%, transparent 92%);
+  border-radius: 6px; padding: 0 4px;
+}
+/* dotted arc like the repo hero, in landing yellow */
+.lc-hero-copy::after {
+  content: ''; width: 150px; height: 14px; margin-top: -6px;
+  background: radial-gradient(circle, rgba(222, 162, 26, 0.7) 2.5px, transparent 3px) 0 0 / 16px 16px;
+  -webkit-mask-image: radial-gradient(120px 40px at 50% 120%, transparent 62%, #000 63%);
+  mask-image: radial-gradient(120px 40px at 50% 120%, transparent 62%, #000 63%);
+}
+/* mascot overlaps the plate edge like the auth card buddy */
+.lc-hero-mascot { position: relative; }
+.lc-hero-mascot > div, .lc-hero-mascot svg { width: clamp(190px, 26vw, 270px); height: auto; transform: translateY(26px) rotate(-3deg); }
+
+/* confetti dots on the hero + cards */
+.lc-hero::before {
+  content: ''; position: absolute; top: 18px; inset-inline-end: 18px; width: 9px; height: 9px; border-radius: 50%;
+  background: #F45B63; box-shadow: 16px 6px 0 -2px #2E965C, 8px 20px 0 -3px #1F67B1, 24px 18px 0 -1px #FFD24D;
+}
+
+/* section titles: yellow swash bar under the text */
+.lc-section-head { position: relative; }
+.lc-section-title { position: relative; display: inline-block; }
+.lc-section-title::after {
+  content: ''; position: absolute; inset-inline-start: 0; inset-inline-end: 22%; bottom: -7px; height: 6px;
+  border-radius: 999px; background: linear-gradient(90deg, #FFD24D, rgba(255, 210, 77, 0.25));
+}
+.lc-bubble--head { transform: rotate(4deg); border: 2px solid var(--lc-border); box-shadow: 0 8px 18px -10px rgba(42, 33, 24, 0.28); }
+
+/* cards: alternating sticker tilt + colored bubble rings + corner dot */
+.lc-card { border-radius: 26px; padding-top: 26px; }
+.lc-grid > *:nth-child(odd) > .lc-card { transform: rotate(-1.1deg); }
+.lc-grid > *:nth-child(even) > .lc-card { transform: rotate(1.1deg); }
+.lc-card:hover { transform: translateY(-5px) rotate(0deg) !important; }
+.lc-card::after {
+  content: ''; position: absolute; top: 14px; inset-inline-start: 14px; width: 7px; height: 7px; border-radius: 50%;
+  opacity: 0.6; background: var(--lc-blue);
+}
+.lc-card > .lc-bubble { border: 2.5px solid color-mix(in srgb, currentColor 40%, transparent); }
+.lc-card .lc-bubble--blue { color: var(--lc-blue); }
+.lc-card .lc-bubble--green { color: #2E965C; }
+.lc-card .lc-bubble--yellow { color: #B07A1A; }
+.lc-card .lc-bubble--coral { color: #D2464E; }
+.lc-card .lc-bubble--purple { color: #6C4FA8; }
+.lc-card-emoji { filter: drop-shadow(0 3px 5px rgba(42, 33, 24, 0.18)); }
+.lc-card-chip { transform: rotate(-1deg); border-color: color-mix(in srgb, var(--lc-blue) 18%, white); }
+.lc-card:hover .lc-card-chip { background: var(--lc-blue); color: #fff; }
+/* CTA wiggles like the landing hero button */
+.lc-pill--primary:hover { transform: translateY(-2px) rotate(-1deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-card, .lc-grid > *:nth-child(odd) > .lc-card, .lc-grid > *:nth-child(even) > .lc-card { transform: none; }
+  .lc-hero-mascot > div, .lc-hero-mascot svg { transform: none; }
+}
