@@ -1,5 +1,6 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, MotionConfig } from 'motion/react';
+import { useReducedMotion } from './hooks/useReducedMotion';
 import { AudioProvider } from './contexts/AudioContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AppProvider, useApp, type Screen } from './contexts/AppContext';
@@ -13,6 +14,7 @@ import { AIAssessmentScreen } from './components/AIAssessmentScreen';
 import { ChildModeScreen } from './components/ChildModeScreen';
 import { ParentDashboardScreen } from './components/ParentDashboardScreen';
 import { IrisLanding } from './components/iris/IrisLanding';
+import { LandingPage } from './components/landing/LandingPage';
 import { IrisFlow, mapCondition } from './components/iris/IrisFlow';
 import { IrisParentDashboard } from './components/iris/IrisParentDashboard';
 import { IrisParentChat } from './components/iris/IrisParentChat';
@@ -200,8 +202,22 @@ function AppContent() {
     'body-parts', 'emotions', 'teaching-demo',
   ]);
 
+  /* One global gate: OS reduced-motion OR the in-app Calm preference stops
+     every framer transform loop and infinite repeat across all 40 screens —
+     the per-screen audit finding without touching 40 files. */
+  const appMotionReduced = useReducedMotion();
   const renderScreen = () => {
     switch (currentScreen) {
+      case 'marketing':
+        return (
+          <LandingPage
+            key="marketing"
+            isAuthenticated={!!readAuthToken()}
+            onLogin={() => navigateTo('login')}
+            onRegister={() => navigateTo(readAuthToken() ? 'iris-parent' : 'registration')}
+            onAppMode={() => navigateTo(readAuthToken() && childProfile ? 'iris-parent' : 'landing')}
+          />
+        );
       case 'landing':
         return (
           <IrisLanding
@@ -342,6 +358,7 @@ function AppContent() {
        PlayfulBackground paints the ground as a fixed layer behind everything;
        the root itself was pure white, so the identity depended on a purely
        decorative component continuing to exist. Now the ground is real. */
+    <MotionConfig reducedMotion={appMotionReduced ? 'always' : 'user'}>
     <div className="size-full overflow-hidden bg-ground relative">
       <PlayfulBackground />
       {/* GlobalControls used to be mounted here: a glassmorphism pill fixed at
@@ -373,6 +390,7 @@ function AppContent() {
         </motion.div>
       </AnimatePresence>
     </div>
+    </MotionConfig>
   );
 }
 

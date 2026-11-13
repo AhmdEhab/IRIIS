@@ -5,6 +5,7 @@ import { useLanguage } from './LanguageContext';
 import { AUTH_TOKEN_KEY, API_URL as SHARED_API_URL } from '../config';
 
 export type Screen =
+  | 'marketing'
   | 'landing'
   | 'splash'
   | 'login'
@@ -200,6 +201,24 @@ export interface IrisProfile {
 const TOKEN_KEY = AUTH_TOKEN_KEY;
 
 
+
+/* Public URLs (spec §16E). The app keeps its state router underneath; the
+   address bar mirrors the screens people may share or bookmark. Screens not
+   listed keep the current path — app internals are deliberately unaddressable
+   so protected routes cannot be deep-linked by guessing a URL. */
+const SCREEN_PATHS: Partial<Record<Screen, string>> = {
+  marketing: '/',
+  landing: '/start',
+  login: '/login',
+  registration: '/register',
+  'iris-parent': '/parent',
+  'child-mode': '/play',
+};
+const PATH_SCREENS: Record<string, Screen> = {
+  '/': 'marketing', '/start': 'landing', '/login': 'login',
+  '/register': 'registration', '/parent': 'iris-parent', '/play': 'child-mode',
+};
+
 /**
  * Performance-driven sensory adaptation (the repo-1 mechanism, restored).
  * Reads only the child's own observed behaviour — never a diagnosis:
@@ -228,7 +247,7 @@ function adaptFromPerformance(history: PerformanceSnapshot[]): Partial<SyndromeR
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { language } = useLanguage();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => PATH_SCREENS[typeof window !== 'undefined' ? window.location.pathname : '/'] ?? 'marketing');
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   /**
    * Bearer token for the secure backend (bcrypt + requireAuth/requireSelf/
@@ -546,6 +565,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const navigateTo = useCallback((screen: Screen) => {
     setCurrentScreen(screen);
+    try {
+      const path = SCREEN_PATHS[screen];
+      if (path && window.location.pathname !== path) window.history.pushState({ screen }, '', path);
+    } catch { /* sandboxed iframes */ }
+  }, []);
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const fromState = (e.state as { screen?: Screen } | null)?.screen;
+      const next = fromState ?? PATH_SCREENS[window.location.pathname];
+      if (next) setCurrentScreen(next);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const unlockParentMode = useCallback((password: string) => {

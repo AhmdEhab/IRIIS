@@ -26,6 +26,8 @@
 require('./loadEnv').loadEnv();
 
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
@@ -500,6 +502,23 @@ async function addPhase5Columns() {
     // Non-fatal and loud: the ladder assessment will fail to save and say so,
     // which is better than the server refusing to boot for existing users.
     console.error('PHASE5_MIGRATION_WARNING:', e.message);
+  }
+}
+
+
+/* ── Static frontend (single-origin deploy) ────────────────────────────────
+   `npm run build` drops a hashed SPA bundle in ../dist. Serving it from the
+   SAME process as /api means one URL, one systemd unit, no CORS, and deep
+   links (/login, /register, /parent) resolve to index.html like any SPA.
+   Set SERVE_STATIC=0 to run API-only (e.g. alongside a separate CDN). */
+if (process.env.SERVE_STATIC !== '0') {
+  const DIST = path.join(__dirname, '..', 'dist');
+  if (fs.existsSync(DIST)) {
+    app.use(express.static(DIST, { index: 'index.html' }));
+    app.get(/^(?!\/api\/).*/, (req, res) => res.sendFile(path.join(DIST, 'index.html')));
+    console.log('[static] serving', DIST);
+  } else {
+    console.log('[static] ../dist missing — run `npm run build` for single-origin serving');
   }
 }
 

@@ -151,13 +151,13 @@ export function RewardsScreen() {
                         </div>
                     </Card>
 
-                    <Card className="p-8 bg-brand-coral border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
+                    <Card className="p-8 bg-brand-coral-wash border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
                         <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
                             <Heart className="size-12 text-brand-coral-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-ink">{dayStreak}</p>
-                            <p className="text-lg font-bold text-ink uppercase">{t.streak}</p>
+                            <p className="text-4xl font-black text-brand-coral-ink">{dayStreak}</p>
+                            <p className="text-lg font-bold text-brand-coral-ink uppercase">{t.streak}</p>
                         </div>
                     </Card>
                 </div>
