@@ -50,7 +50,6 @@
   overflow-x: clip;
   background: var(--background);
   color: var(--text);
-  font-family: var(--iris-font-body);
   font-size: 16px;
   line-height: 1.7;
 }
@@ -150,6 +149,7 @@
 }
 .ir-auth-stack { display: flex; flex-direction: column; gap: 20px; width: 100%; align-items: center; }
 .ir-auth-card {
+  font-family: var(--iris-font-display);
   --ir-buddy-half: calc(var(--ir-buddy) / 2);
   position: relative;
   display: flex;
@@ -238,7 +238,7 @@
 .ir-auth-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ir-auth-label,
 .ir-auth-field label {
-  font-family: var(--iris-font-body);
+  font-family: var(--iris-font-display);
   font-size: 14.5px;
   font-weight: 800;
   line-height: 1.55;
@@ -256,8 +256,9 @@
   min-height: 52px;
   height: auto;
   padding: 0 16px;
-  font-family: var(--iris-font-body);
-  font-size: 16px;
+  font-family: var(--iris-font-display);
+  font-size: 16.5px;
+  font-weight: 600;
   line-height: 1.5;
   color: var(--text);
   background: color-mix(in srgb, var(--brand-blue) 5%, var(--surface));
@@ -352,7 +353,6 @@
   border: 0;
   background: transparent;
   color: var(--brand-blue-ink);
-  font-family: var(--iris-font-body);
   font-size: 16px;
   font-weight: 800;
   text-align: start;
@@ -399,10 +399,11 @@
 /* ── Registration: step meta + progress pills ──────────────────────────── */
 .ir-auth-progress { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .ir-auth-progress-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
-.ir-auth-progress-eyebrow { color: var(--brand-blue-ink); font-size: 13.5px; font-weight: 800; line-height: 1.6; min-width: 0; }
-.ir-auth-progress-count { color: var(--muted-text); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ir-auth-progress-eyebrow { font-family: var(--iris-font-display); color: var(--brand-blue-ink); font-size: 13.5px; font-weight: 800; line-height: 1.6; min-width: 0; }
+.ir-auth-progress-count { font-family: var(--iris-font-display); color: var(--muted-text); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ir-auth-steps { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
 .ir-auth-step {
+  font-family: var(--iris-font-display);
   flex: 1 1 0;
   min-width: 0;
   display: inline-flex;
@@ -457,6 +458,7 @@
 
 /* Choice buttons (gender) and condition tiles. */
 .ir-auth-choice {
+  font-family: var(--iris-font-display);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -481,6 +483,7 @@
 
 .ir-auth-tiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ir-gap); }
 .ir-auth-tile {
+  font-family: var(--iris-font-display);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -515,6 +518,7 @@
 }
 
 .ir-auth-note {
+  font-family: var(--iris-font-display);
   font-size: 14px;
   line-height: 1.8;
   color: var(--muted-text);
@@ -525,6 +529,7 @@
 }
 
 .ir-auth-consent {
+  font-family: var(--iris-font-display);
   display: flex;
   align-items: flex-start;
   gap: 14px;
