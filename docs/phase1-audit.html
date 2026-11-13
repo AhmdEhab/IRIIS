@@ -1,0 +1,815 @@
+<title>IRIS Phase 1 Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Cairo:wght@400;600&display=swap">
+
+<style>
+/* ───────────────────────────────────────────────────────────────
+   Palette is the IRIS brand pack itself (BRAND_IDENTITY.md §2),
+   used here as the document's own system — the audit's central
+   finding is that the product does not yet use it.
+   ─────────────────────────────────────────────────────────────── */
+:root {
+  --ground:        #FEF6EA;   /* brand warm white */
+  --surface:       #FFFCF6;
+  --surface-sunk:  #F7EDDC;
+  --ink:           #2A2118;   /* warm near-black, biased to the ground */
+  --ink-soft:      #6B5D4D;
+  --ink-faint:     #9A8B77;
+  --rule:          #E4D5BE;
+  --rule-soft:     #EFE3CE;
+
+  --blue:          #1F67B1;   /* brand — primary accent */
+  --blue-ink:      #17518C;
+  --blue-wash:     #E5EFF9;
+  --green:         #49B87A;   /* brand — sound */
+  --green-wash:    #E4F4EB;
+  --yellow:        #C9960A;   /* brand yellow, darkened for text contrast */
+  --yellow-mark:   #FECA34;
+  --yellow-wash:   #FBF0D2;
+  --coral:         #D8434C;   /* brand coral, darkened for text contrast */
+  --coral-wash:    #FBE7E8;
+  --purple:        #8060B4;   /* brand */
+  --purple-wash:   #EFE9F7;
+
+  --shadow: 0 1px 2px rgba(42,33,24,.05), 0 8px 24px -12px rgba(42,33,24,.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:       #17120D;
+    --surface:      #1F1913;
+    --surface-sunk: #16110C;
+    --ink:          #F4EADB;
+    --ink-soft:     #BCAA93;
+    --ink-faint:    #8B7A64;
+    --rule:         #3A2F24;
+    --rule-soft:    #2C231A;
+
+    --blue:        #74B2EC;
+    --blue-ink:    #9CCBF7;
+    --blue-wash:   #16283A;
+    --green:       #6FD59B;
+    --green-wash:  #14301F;
+    --yellow:      #F0BE45;
+    --yellow-mark: #FECA34;
+    --yellow-wash: #332705;
+    --coral:       #F58A90;
+    --coral-wash:  #3A1B1D;
+    --purple:      #B79BE0;
+    --purple-wash: #271D36;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:       #17120D;
+  --surface:      #1F1913;
+  --surface-sunk: #16110C;
+  --ink:          #F4EADB;
+  --ink-soft:     #BCAA93;
+  --ink-faint:    #8B7A64;
+  --rule:         #3A2F24;
+  --rule-soft:    #2C231A;
+
+  --blue:        #74B2EC;
+  --blue-ink:    #9CCBF7;
+  --blue-wash:   #16283A;
+  --green:       #6FD59B;
+  --green-wash:  #14301F;
+  --yellow:      #F0BE45;
+  --yellow-mark: #FECA34;
+  --yellow-wash: #332705;
+  --coral:       #F58A90;
+  --coral-wash:  #3A1B1D;
+  --purple:      #B79BE0;
+  --purple-wash: #271D36;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 16.5px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 62rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
+
+/* ── masthead ─────────────────────────────────────────────── */
+header.mast {
+  border-bottom: 2px solid var(--ink);
+  padding: 3.5rem 0 1.5rem;
+  margin-bottom: 2.5rem;
+}
+.eyebrow {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .72rem; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--blue);
+  margin: 0 0 .9rem;
+}
+h1 {
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-weight: 800; font-size: clamp(2.4rem, 6vw, 3.9rem);
+  line-height: 1.02; letter-spacing: -.025em;
+  margin: 0 0 .8rem; text-wrap: balance;
+}
+.standfirst {
+  font-size: 1.12rem; color: var(--ink-soft);
+  max-width: 46rem; margin: 0 0 1.6rem;
+}
+.mast-meta {
+  display: flex; flex-wrap: wrap; gap: .5rem 1.6rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .76rem; color: var(--ink-faint);
+}
+.mast-meta b { color: var(--ink-soft); font-weight: 500; }
+
+/* ── verdict ──────────────────────────────────────────────── */
+.verdict {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 5px solid var(--blue);
+  border-radius: 3px;
+  padding: 1.4rem 1.6rem;
+  margin-bottom: 2.5rem;
+  box-shadow: var(--shadow);
+}
+.verdict h2 { margin-top: 0; }
+.verdict p:last-child { margin-bottom: 0; }
+
+/* ── contents ─────────────────────────────────────────────── */
+nav.toc {
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 1.2rem 0; margin-bottom: 3rem;
+}
+nav.toc ol {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: .35rem 2rem;
+}
+nav.toc a {
+  color: var(--ink-soft); text-decoration: none;
+  font-size: .9rem; display: flex; gap: .7rem;
+  padding: .12rem 0;
+}
+nav.toc a:hover { color: var(--blue); }
+nav.toc .k {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  color: var(--ink-faint); font-size: .8rem; min-width: 1.1rem;
+}
+
+/* ── typography ───────────────────────────────────────────── */
+h2 {
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-weight: 700; font-size: 1.62rem; letter-spacing: -.015em;
+  line-height: 1.18; margin: 3.2rem 0 .9rem; text-wrap: balance;
+}
+h2 .sec {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .82rem; font-weight: 600; color: var(--blue);
+  display: block; letter-spacing: .1em; margin-bottom: .35rem;
+}
+h3 {
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-weight: 700; font-size: 1.06rem; letter-spacing: -.005em;
+  margin: 1.9rem 0 .5rem;
+}
+p { margin: 0 0 1rem; max-width: 64ch; }
+ul, ol { max-width: 64ch; padding-left: 1.15rem; margin: 0 0 1rem; }
+li { margin-bottom: .38rem; }
+li::marker { color: var(--ink-faint); }
+a { color: var(--blue-ink); }
+strong { font-weight: 600; }
+em.ar {
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+  font-style: normal; direction: rtl; unicode-bidi: isolate;
+}
+
+code, .mono {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .855em;
+}
+code {
+  background: var(--surface-sunk);
+  border: 1px solid var(--rule-soft);
+  border-radius: 3px;
+  padding: .08em .35em;
+  word-break: break-word;
+}
+
+/* ── findings ─────────────────────────────────────────────── */
+.finding {
+  border-left: 3px solid var(--rule);
+  padding: .1rem 0 .1rem 1.1rem;
+  margin: 1.3rem 0;
+  max-width: 64ch;
+}
+.finding.crit  { border-left-color: var(--coral); }
+.finding.warn  { border-left-color: var(--yellow-mark); }
+.finding.good  { border-left-color: var(--green); }
+.finding .lab {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .68rem; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; display: block; margin-bottom: .25rem;
+}
+.finding.crit .lab { color: var(--coral); }
+.finding.warn .lab { color: var(--yellow); }
+.finding.good .lab { color: var(--green); }
+.finding p:last-child { margin-bottom: 0; }
+
+/* ── data list ────────────────────────────────────────────── */
+dl.facts {
+  display: grid; grid-template-columns: max-content 1fr;
+  gap: .3rem 1.4rem; margin: 1.1rem 0 1.4rem;
+  font-size: .93rem; max-width: 64ch;
+}
+dl.facts dt {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .78rem; color: var(--ink-faint);
+  padding-top: .18rem; white-space: nowrap;
+}
+dl.facts dd { margin: 0; }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap {
+  overflow-x: auto; margin: 1.4rem 0 2rem;
+  border: 1px solid var(--rule); border-radius: 3px;
+  background: var(--surface);
+}
+table { border-collapse: collapse; width: 100%; font-size: .855rem; }
+th {
+  text-align: left; font-weight: 600; font-size: .7rem;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-faint);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  padding: .75rem .85rem; border-bottom: 1.5px solid var(--rule);
+  white-space: nowrap; background: var(--surface-sunk);
+}
+td {
+  padding: .8rem .85rem; border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top; line-height: 1.5;
+}
+tbody tr:last-child td { border-bottom: 0; }
+td.feat { font-weight: 600; min-width: 9rem; }
+td .mono { font-size: .78rem; color: var(--ink-soft); display: block; }
+
+.pill {
+  display: inline-block; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .66rem; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; padding: .16rem .5rem;
+  border-radius: 2px; white-space: nowrap;
+}
+.pill.low  { background: var(--green-wash);  color: var(--green); }
+.pill.med  { background: var(--yellow-wash); color: var(--yellow); }
+.pill.high { background: var(--coral-wash);  color: var(--coral); }
+.pill.none { background: var(--blue-wash);   color: var(--blue); }
+
+/* ── ordered plan ─────────────────────────────────────────── */
+ol.plan { list-style: none; padding: 0; max-width: 64ch; counter-reset: step; }
+ol.plan > li {
+  counter-increment: step;
+  display: grid; grid-template-columns: 2.2rem 1fr; gap: 0 1rem;
+  padding: 1rem 0; border-top: 1px solid var(--rule-soft);
+}
+ol.plan > li:first-child { border-top: 0; }
+ol.plan > li::before {
+  content: counter(step);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .95rem; font-weight: 600; color: var(--blue);
+  padding-top: .1rem;
+}
+ol.plan h3 { margin: 0 0 .3rem; }
+ol.plan p  { margin: 0 0 .35rem; }
+ol.plan .why {
+  font-size: .87rem; color: var(--ink-soft); margin: 0;
+}
+
+/* ── locked list ──────────────────────────────────────────── */
+ul.locked { list-style: none; padding: 0; max-width: 64ch; }
+ul.locked li {
+  display: grid; grid-template-columns: max-content 1fr; gap: 0 .9rem;
+  padding: .5rem 0; border-bottom: 1px solid var(--rule-soft);
+  font-size: .93rem;
+}
+ul.locked li:last-child { border-bottom: 0; }
+ul.locked .f {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .78rem; color: var(--coral); white-space: nowrap;
+}
+
+hr.div { border: 0; border-top: 2px solid var(--ink); margin: 3.5rem 0 0; }
+
+footer {
+  margin-top: 2rem; padding-top: 1.2rem;
+  font-size: .84rem; color: var(--ink-faint);
+  border-top: 1px solid var(--rule);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+@media (max-width: 640px) {
+  dl.facts { grid-template-columns: 1fr; gap: .05rem; }
+  dl.facts dd { margin-bottom: .55rem; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Phase 1 · Analysis only · No code changed</p>
+  <h1>IRIS Phase 1 Audit</h1>
+  <p class="standfirst">A read-only survey of the IRIS codebase against the newly supplied Brand Identity Pack and avatar references — what is strong, what is incomplete, what is fragile, and what must not be touched.</p>
+  <div class="mast-meta">
+    <span><b>Date</b> 4 September 2026</span>
+    <span><b>Repo</b> iriss-main</span>
+    <span><b>Engine</b> src/iris · 2,897 lines</span>
+    <span><b>Tests</b> 55 unit · 189 harness</span>
+  </div>
+</header>
+
+<div class="verdict">
+  <h2 style="margin:0 0 .6rem;font-size:1.15rem">The short version</h2>
+  <p>The <strong>engine is the strongest part of this product</strong> and should be left alone. It is deterministic, diagnosis-blind, specification-traceable, and covered by a build-breaking test. Everything downstream of it is weaker, and the gap that matters most is new: <strong>the Brand Identity Pack has never been applied</strong>. Not one of its six palette values appears anywhere in the source, the shipping logo is a corrupted variant, and the mascot resembles neither avatar reference.</p>
+  <p>Separately, one legacy screen contains fabricated doctors, ratings and testimonials. It is currently unreachable through the UI but is still routed and still compiled into the bundle. That is the single highest-risk item in the repository.</p>
+</div>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#a"><span class="k">A</span> Architecture</a></li>
+    <li><a href="#b"><span class="k">B</span> UI structure</a></li>
+    <li><a href="#c"><span class="k">C</span> Design system</a></li>
+    <li><a href="#d"><span class="k">D</span> Avatar</a></li>
+    <li><a href="#e"><span class="k">E</span> Chatbot</a></li>
+    <li><a href="#f"><span class="k">F</span> Assessment</a></li>
+    <li><a href="#g"><span class="k">G</span> Adaptive logic</a></li>
+    <li><a href="#h"><span class="k">H</span> Voice / TTS</a></li>
+    <li><a href="#i"><span class="k">I</span> Community &amp; specialists</a></li>
+    <li><a href="#j"><span class="k">J</span> Database</a></li>
+    <li><a href="#k"><span class="k">K</span> Tests</a></li>
+    <li><a href="#assess"><span class="k">→</span> Strong / weak / fragile</a></li>
+    <li><a href="#table"><span class="k">→</span> Feature table</a></li>
+    <li><a href="#order"><span class="k">→</span> Implementation order</a></li>
+  </ol>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════ A -->
+<h2 id="a"><span class="sec">A</span>Current architecture</h2>
+
+<p>Three layers, cleanly separated, with one deliberate seam between them.</p>
+
+<dl class="facts">
+  <dt>Frontend</dt>
+  <dd>React 18 + TypeScript, Vite 6, Tailwind v4 (CSS-first — there is no <code>tailwind.config.js</code>), Motion v12 for animation, shadcn/ui primitives.</dd>
+  <dt>Engine</dt>
+  <dd>Plain JavaScript in <code>src/iris/</code>, 2,897 lines across 15 modules. No React, no DOM, no I/O — pure functions over data.</dd>
+  <dt>Backend</dt>
+  <dd>Express 4 + Sequelize 6 + SQLite. 18 routes. Bearer tokens, SHA-256-hashed sessions in the database.</dd>
+  <dt>State</dt>
+  <dd>Four React contexts: <code>AppContext</code> (legacy), <code>IrisContext</code> (engine), <code>LanguageContext</code>, <code>AudioContext</code>.</dd>
+</dl>
+
+<p>The seam worth knowing: <strong>the React layer touches the engine through exactly one module</strong>, <code>IrisContext.tsx</code>, which imports six functions from <code>iris/journey.js</code>. Two screens bypass it — <code>BlindnessDemoScreen</code> reaches into <code>iris/demo/scenarios.js</code>, and <code>IrisParentChat</code> into <code>iris/parent/chatbot.js</code> — both read-only. Twelve components consume <code>useIris()</code>; none import an engine directly. That discipline is why the engine has survived four passes of UI churn intact.</p>
+
+<div class="finding warn">
+  <span class="lab">Incomplete</span>
+  <p>There are two generations of app living side by side. The new IRIS flow (<code>IrisFlow</code>, <code>IrisChildHome</code>, <code>IrisActivityScreen</code>) is what runs; roughly 25 legacy screens remain imported and routed. <code>ChildModeScreen</code> is imported but never rendered. The legacy island is reachable only from <code>ParentDashboardScreen</code>, which nothing now navigates to.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ B -->
+<h2 id="b"><span class="sec">B</span>Current UI structure</h2>
+
+<p>Entry is <code>IrisLanding</code> → two doors: <strong>Child Mode</strong> and <strong>Parent Mode</strong>.</p>
+
+<p><strong>Child Mode</strong> gates on a name, then <code>IrisChildHome</code> offers one primary action (“Start Adventure” → screening → activities) and five free-play tiles: Memory Game, Balloon Pop, Shadow Match, Stories, Drawing. A “Committee demo (scenarios A/B/C)” entry sits on the gate screen.</p>
+
+<p><strong>Parent Mode</strong> is authenticated — login, or a three-step registration wizard carrying the consent checkbox. Behind it, five sections: Progress &amp; Insights and Home Tips and Ask IRIS are live; Parent Community and Connect with Specialists are marked <em>Soon</em>.</p>
+
+<p><code>ChildShell</code> supplies a floating identity pill (avatar, name, star count) to the 19 legacy child screens. The four new IRIS-flow screens render their own headers instead — so two header conventions coexist.</p>
+
+<div class="finding warn">
+  <span class="lab">Improve</span>
+  <p>Five different page widths are in use (<code>max-w-6xl</code> ×18, <code>4xl</code> ×18, <code>2xl</code> ×13, <code>3xl</code> ×10, plus six others) with no shared container. Breakpoints are effectively two: <code>md:</code> ×71, <code>lg:</code> ×25, <code>sm:</code> ×15, and no <code>xl:</code> at all — the 640–768px band is barely addressed. Twenty-two <code>fixed</code> elements share a hand-rolled z-stack, three of them competing for the top strip.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ C -->
+<h2 id="c"><span class="sec">C</span>Current design system</h2>
+
+<p>There are two token sets, and the screens use neither.</p>
+
+<p><code>src/styles/iris.css</code> defines 13 IRIS tokens — <code>--iris-primary: #7c3aed</code> (violet), four accents, ink, surface, a 44px touch floor. <code>src/styles/theme.css</code> defines the full shadcn set including <code>--primary: #030213</code> (near-black) and a complete <code>.dark</code> block. The two disagree about what the brand colour is, and <code>.dark</code> is never toggled by anything.</p>
+
+<p>Searching for <code>var(--iris-…)</code> outside <code>src/styles/</code> returns <strong>no hits at all</strong>. Components hardcode Tailwind utilities instead. The actual colour distribution across <code>src/App/components</code>:</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Family</th><th>Uses</th><th>Role in practice</th></tr></thead>
+  <tbody>
+    <tr><td class="feat">slate</td><td class="mono">339</td><td>Dominant neutral</td></tr>
+    <tr><td class="feat">purple</td><td class="mono">209</td><td>De-facto brand colour</td></tr>
+    <tr><td class="feat">gray</td><td class="mono">152</td><td>Second, competing neutral ramp</td></tr>
+    <tr><td class="feat">blue</td><td class="mono">107</td><td>Accent</td></tr>
+    <tr><td class="feat">emerald / green / teal</td><td class="mono">120</td><td>Three ramps for one colour</td></tr>
+    <tr><td class="feat">amber / yellow / orange</td><td class="mono">165</td><td>Three ramps for one colour</td></tr>
+    <tr><td class="feat">indigo, pink, red, sky, rose, cyan, fuchsia, violet</td><td class="mono">265</td><td>Long tail</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="finding crit">
+  <span class="lab">Critical — brand</span>
+  <p>None of the six brand palette values appear anywhere in <code>src/</code>. Verified by direct search: <code>#FECA34</code> 0, <code>#1F67B1</code> 0, <code>#F45B63</code> 0, <code>#49B87A</code> 0, <code>#8060B4</code> 0, <code>#FEF6EA</code> 0. The product reads as a purple-and-slate SaaS app; the brand pack specifies warm white with a bright five-colour system, organic blobs and hand-drawn marks. The pack is dated today — the app simply predates it.</p>
+</div>
+
+<div class="finding crit">
+  <span class="lab">Critical — asset</span>
+  <p>The logo shipping in <code>public/images/iris-logo-static.png</code> is the <strong>degraded variant</strong>. Its tagline renders as “coaurge”, not “courage”, and “hope” / “Wisdom” are illegible squiggles. The clean master — with all three words correct — exists at <code>IRIS_Brand_Identity_Pack/assets/IRIS_logo_master.png</code> and was never copied into the repo. This is on the landing page a judge sees first.</p>
+</div>
+
+<p>Typography is the one area already aligned with the brand: Quicksand for Latin, <strong>Cairo/Tajawal for Arabic</strong> with <code>line-height: 1.75</code> and a <code>letter-spacing: 0 !important</code> override to defeat Tailwind tracking on Arabic — a real, correct detail. All three load by CSS <code>@import</code> from Google Fonts, so they fail silently offline. Nunito is named in the fallback stack but never imported.</p>
+
+<!-- ══════════════════════════════════════════════════════ D -->
+<h2 id="d"><span class="sec">D</span>Current avatar implementation</h2>
+
+<p>Two files, not two characters. <code>IrisBuddy.tsx</code> is the artwork: hand-authored SVG on a 120×120 viewBox — five petal ellipses in a <code>#A78BFA → #F0ABFC</code> violet gradient, a <code>#FFFDF8</code> face circle stroked <code>#C4B5FD</code>, <code>#FBCFE8</code> cheeks, features in <code>#3B2A5A</code>. Five moods: <code>idle</code>, <code>happy</code>, <code>celebrate</code>, <code>thinking</code>, <code>encourage</code> — and deliberately no sad or disappointed state. <code>IrisMascot.tsx</code> wraps it with Motion float/bounce, a mood glow and a speech bubble, and is the only public entry point. It renders in five places. Neither is dead code.</p>
+
+<p>The engineering is sound. The problem is that it is the wrong character.</p>
+
+<div class="finding crit">
+  <span class="lab">Critical — brand</span>
+  <p>Both avatar references are warm, plush, three-dimensional figures with cream bodies, <strong>multi-coloured petals in the brand red / blue / green / yellow</strong>, and a transparent heart window holding sparkles. The implemented mascot is a flat, single-hue violet flower. It shares no colour, no material and no silhouette with either reference. Violet is not in the brand palette at all — the closest is <code>#8060B4</code>, used for imagination, not as the identity colour.</p>
+</div>
+
+<p>The child-facing avatar picker is separate and is <strong>emoji, not drawn art</strong>: 10 fixed options (🦊 🐼 🐸 🦁 🐨 🐧 🦋 🐢 🌟 🚀) stored in React state only — the choice is lost on refresh.</p>
+
+<!-- ══════════════════════════════════════════════════════ E -->
+<h2 id="e"><span class="sec">E</span>Current chatbot behaviour</h2>
+
+<p>Rule-based, not an LLM, and honest about it. Three stages: four safety routes (medical, diagnosis, emergency, therapy plan) that always run first and always win; three live-data intents answered from the child's own session record; then keyword retrieval over a <strong>12-entry</strong> knowledge base. Every answer carries an evidence tier and a source. Unknown questions return <em>“I do not have an approved answer … and I will not invent one.”</em> It is structurally incapable of fabricating — it can only return strings already present in <code>guidance.js</code>, and <code>assertSafeText()</code> throws on any banned term.</p>
+
+<div class="finding warn">
+  <span class="lab">Improve — two regex over-triggers</span>
+  <p>Both confirmed by running the patterns. The unanchored <code>iq</code> in the diagnosis route matches inside ordinary words, so <em>“What is a unique activity for him?”</em> is refused as a diagnosis question. And the Arabic medical route matches bare <em class="ar">نوم</em> (sleep), so any bedtime question is refused — while the English side correctly matches only <code>sleep apnea|snoring</code>. The safety behaviour is right; the boundary is drawn too wide, and asymmetrically between languages.</p>
+</div>
+
+<p>Twelve entries is also thin for a free-text box. It will miss more than it hits, and the honest fallback — while correct — is what most parents will see.</p>
+
+<!-- ══════════════════════════════════════════════════════ F -->
+<h2 id="f"><span class="sec">F</span>Current assessment logic</h2>
+
+<p>Nine tasks, one per sub-measure, identical for every child — there is no adaptive item selection, by design. Seven are stepped (3–4 items per step, three steps), two continuous. Scoring is <code>DPS = 100 × (0.5·accuracy + 0.3·depth + 0.2·independence)</code>. Stop rules: advance a step at ≥2 correct, discontinue after 2 consecutive wrong within a step, minimum 3 scoreable items. Rapid responding (&lt;600ms, &gt;30% of items) and timeouts (&gt;25%) raise data-quality flags rather than altering the score.</p>
+
+<p>Crucially, the engine returns <code>dps: null</code> and <code>notDetermined: true</code> rather than a zero when it lacks evidence. There is no “untestable child” state — only undetermined data. The intro screen states plainly that this is <em>not an intelligence test</em> and <em>does not diagnose</em>.</p>
+
+<div class="finding warn">
+  <span class="lab">Fragile — spec drift</span>
+  <p>The specification allows up to 112 items; the shipped screen presents a fixed linear run of <strong>44</strong> with no early stop. Two sub-measures (<code>LANG.INSTRUCTION</code>, <code>VSP.PATTERN</code>) ship one item per step while the advance threshold is two, so <code>highestStepPassed</code> is structurally 0 and <code>depth</code> is always 0 — costing up to 30 DPS on those measures. The attention tasks are declared continuous with 20 trials but present 4 items and send no false-alarm or time-on-task rows, so <code>depth</code> silently defaults to 1. Scores are being produced from a shape the scorer was not written for.</p>
+</div>
+
+<p>Practical consequence for the demo: answering poorly, the screening ran <strong>~45 items</strong> before reaching a result in testing. That is too long to show live.</p>
+
+<!-- ══════════════════════════════════════════════════════ G -->
+<h2 id="g"><span class="sec">G</span>Current adaptive logic</h2>
+
+<p>This is the best-built part of IRIS. Eleven numbered rules in a strict cascade, every decision stamped with a rule ID, reason code, rule-pack version and a fixed bilingual parent explanation. No LLM anywhere in the decision path.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Order</th><th>Rule</th><th>Trigger</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">—</td><td class="mono">R-PATH-001</td><td>Band classification</td><td>acc &lt;.50 → LOW; acc ≥.80 &amp; indep ≥.70 → HIGH; else MODERATE</td></tr>
+    <tr><td class="mono">1</td><td class="mono">R-PATH-010</td><td>Engagement flag</td><td>Short-circuits; never changes level</td></tr>
+    <tr><td class="mono">2</td><td class="mono">R-PATH-002</td><td>LOW confidence, &lt;2 sessions</td><td><code>HOLD_LOW_CONFIDENCE</code></td></tr>
+    <tr><td class="mono">3</td><td class="mono">R-PATH-003</td><td>Mastery met</td><td><code>ADVANCE_MASTERY</code> to level+1</td></tr>
+    <tr><td class="mono">4</td><td class="mono">R-PATH-003b</td><td>HIGH, not yet mastered</td><td><code>CONSOLIDATE_HIGH</code></td></tr>
+    <tr><td class="mono">5</td><td class="mono">R-PATH-004 / 008</td><td>MODERATE, under / at repeat cap 3</td><td><code>REPEAT_VARIANT</code> → <code>SIMPLIFY_SCAFFOLD</code></td></tr>
+    <tr><td class="mono">6</td><td class="mono">R-PATH-005</td><td>First LOW</td><td><code>SIMPLIFY_SCAFFOLD</code> — load before level</td></tr>
+    <tr><td class="mono">7</td><td class="mono">R-PATH-006</td><td>Second consecutive LOW</td><td><code>MODALITY_SHIFT</code> to partner template</td></tr>
+    <tr><td class="mono">8</td><td class="mono">R-PATH-007</td><td>Third consecutive LOW</td><td><code>PREREQ_BACKSTEP</code> — level−1, then prerequisite goal, then pause</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="finding good">
+  <span class="lab">Strong — verified</span>
+  <p>Diagnosis blindness holds. Across <code>src/iris/</code>, a diagnosis value is read in exactly one functional place: <code>accommodationDefaults()</code> in <code>journey.js</code>, which returns access accommodations and declares <code>never_affects: ['scoring','item_selection','difficulty','level','goal_selection','pathway']</code>. <code>scoreAssessment</code>, <code>buildProfile</code>, <code>selectGoals</code>, <code>decideNext</code> and <code>generateActivity</code> have no <code>condition</code> parameter at all — it is structurally out of scope. The demo confirms it end to end: five diagnoses, identical performance, identical goal, level, pathway and next activity.</p>
+</div>
+
+<div class="finding crit">
+  <span class="lab">Critical — latent</span>
+  <p>Modality shift is broken for three of its four declared pairs. <code>R-PATH-006</code> checks only that <code>modality_pair_id</code> exists — it never verifies the partner template serves the current goal <em>and</em> level. <code>TPL-SEQ_VERBAL ↔ TPL-SEQ_VISUAL</code> cross different goals; <code>TPL-PICK_PICTURE</code> (L1–3) and <code>TPL-PICK_WORD</code> (L4) never overlap on level. When one of those fires, <code>servableItems()</code> returns an empty array and the validator rejects the activity. Only <code>TPL-SOUND_MATCH ↔ TPL-SOUND_MATCH_PICTURE_LED</code> is safe — and that is the pair the demo happens to exercise.</p>
+</div>
+
+<div class="finding warn">
+  <span class="lab">Fragile — content depth</span>
+  <p>The bank holds exactly 3 items per goal/level/template (87 total) while <code>item_count</code> defaults to 6, so every activity is silently 3 items and the variant seed only reshuffles the same three. A child who repeats a level sees identical content. Reduction is also applied twice — <code>journey.js</code> computes 4, then <code>generateActivity</code> reduces again to 3.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ H -->
+<h2 id="h"><span class="sec">H</span>Current voice / TTS flow</h2>
+
+<p>The path is: any of 76 <code>speak(text, lang)</code> call sites → <code>AudioContext.speak()</code> → <code>voice.ts getClip()</code> → <code>POST /api/tts</code> → <code>server/routes/tts.js</code> → ElevenLabs → MP3 blob → one reused <code>&lt;audio&gt;</code> element. The API key stays server-side and is absent from the built bundle (checked). Language selects the voice server-side; nothing in the UI picks a voice.</p>
+
+<p>Guarantees that hold under test: narration cannot overlap itself (one reused element), mute stops it immediately, leaving a screen stops it, each distinct line is fetched once per session and cached on disk server-side, and every failure mode — missing key, bad key, 429, dead network, over-long text — degrades to browser speech synthesis rather than to silence.</p>
+
+<div class="finding warn">
+  <span class="lab">Unresolved</span>
+  <p>The live ElevenLabs call has never succeeded on the target machine: <code>server/.tts-cache/</code> is empty, and the cache is written on every success. The diagnostic <code>scripts/check-voice.mjs</code> was built to name the cause and has not yet been run. Until it is, narration is running on the browser fallback voice.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ I -->
+<h2 id="i"><span class="sec">I</span>Community &amp; specialists</h2>
+
+<p>The <em>new</em> sections are exemplary. <code>IrisCommunity</code> shows four deliberately unattributed topic tiles and states <em>“Nothing here is a real post or a real parent's words.”</em> <code>IrisSpecialists</code> shows four category cards with every call-to-action <code>disabled</code>, and states <em>“There are no real practitioners, appointments, or bookings here.”</em> No names, no credentials, no ratings, no counts.</p>
+
+<div class="finding crit">
+  <span class="lab">Critical — highest risk in the repo</span>
+  <p>The legacy <code>CommunitySessionsScreen.tsx</code> does the opposite of all of it. It contains four invented doctors with names, credentials, ratings and review counts (<code>Dr. Sarah Ahmed … rating: 4.9, reviews: 127</code>), fabricated availability slots, three fabricated parent testimonials with like counts, and a <strong>live booking <code>POST</code> to <code>/api/bookings</code></strong> against a real backing table. <code>FamilyGuidanceScreen.tsx</code> adds eight uncited articles including nutrition and sleep advice, plus a non-functional “AI Parent Assistant”.</p>
+  <p>Both are unreachable by navigation today — the only route in is <code>ParentDashboardScreen</code>, which nothing links to — but both are still imported, still in the <code>Screen</code> union, still in the router <code>switch</code>, and still compiled into the shipped bundle. One stray <code>navigateTo('community-sessions')</code> puts fabricated medical credentials in front of a judge.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ J -->
+<h2 id="j"><span class="sec">J</span>Database structure</h2>
+
+<p>Seven tables: <code>Users</code>, <code>Children</code>, <code>Sessions</code>, <code>AssessmentRecords</code>, <code>ActivitySessions</code>, <code>Posts</code>, <code>Bookings</code>.</p>
+
+<dl class="facts">
+  <dt>Auth</dt>
+  <dd>Passwords bcrypt cost 12. Session tokens stored as SHA-256 hashes with a BIGINT expiry, purged hourly. <code>requireAuth</code> on every protected route, <code>requireSelf</code> on email-scoped routes, <code>requireConsent</code> on every mutating route.</dd>
+  <dt>Engine records</dt>
+  <dd><code>ActivitySessions</code> stores the full decision trail — <code>decision_rule_id</code>, <code>decision_reason_code</code>, <code>decision_payload</code>, <code>rule_pack_version</code>. Every synthetic row carries <code>is_synthetic</code>.</dd>
+  <dt>JSON columns</dt>
+  <dd><code>item_results</code>, <code>domain_scores</code>, <code>accommodations</code> are <code>TEXT</code> holding stringified JSON.</dd>
+</dl>
+
+<div class="finding warn">
+  <span class="lab">Fragile</span>
+  <p>There are <strong>no Sequelize associations anywhere</strong> — no <code>hasMany</code>, no <code>belongsTo</code>, no <code>references</code>. <code>user_id</code> and <code>child_id</code> are bare integers, so there is no referential integrity and no cascade on delete; ownership is enforced only by hand in each route (correctly, today). Deleting a parent orphans their child rows silently. Separately, <code>POST /api/posts</code> and <code>POST /api/bookings</code> spread <code>...req.body</code> straight into <code>create()</code> — a client can set <code>likes</code> to anything it likes.</p>
+</div>
+
+<p><code>condition</code> is stored on both <code>Users</code> and <code>Children</code>. Only the <code>Children</code> copy should matter; the duplicate invites drift.</p>
+
+<!-- ══════════════════════════════════════════════════════ K -->
+<h2 id="k"><span class="sec">K</span>Existing tests</h2>
+
+<p><strong>55 unit tests</strong> in one file, <code>tests/iris.test.js</code> (653 lines), run by <code>node --test</code>. Coverage is deep where it matters: 4 diagnosis-blindness tests including <code>TEST-PATH-BLIND</code>, 3 determinism tests (one runs 50 repetitions), 4 mastery tests, 8 adaptation-ordering tests, 4 DPS tests, 4 profile tests, 11 content and validator tests, 6 parent-safety tests, and 4 end-to-end scenarios.</p>
+
+<p>Alongside them, <strong>189 harness checks</strong> across nine Playwright and API suites — accessibility 16, integration 15, audio 14, stories 18, TTS route 19, voice client 19, security 29, journey 42, demo/visual 10, resilience 7.</p>
+
+<div class="finding warn">
+  <span class="lab">Gap</span>
+  <p>There is no test at any level that would catch the three defects this audit found. Nothing asserts the brand palette is used, nothing renders a React component in isolation, and nothing asserts that fabricated-content screens are absent from the bundle. The suite proves the engine is correct; it does not yet protect the product's honesty or its identity.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="assess">Assessment</h2>
+
+<h3>Already strong — protect it</h3>
+<ul>
+  <li>The adaptive engine: deterministic, traceable, diagnosis-blind, and proven so by a build-breaking test.</li>
+  <li>Auth and consent: bcrypt 12, hashed DB-backed sessions, no user enumeration, consent gate on every mutating route, the old user-dump endpoint returning 410.</li>
+  <li>Claim discipline in new code: the screening intro, landing disclaimer, parent-mode footer and chatbot refusals are the most careful part of the writing.</li>
+  <li>Accessibility: captions on every spoken line, reduced motion honoured in both CSS and JS, 44px touch floor, zero horizontal overflow at 390/820/1440.</li>
+  <li>Offline resilience: Child Mode and Stories work fully with the backend stopped.</li>
+</ul>
+
+<h3>Incomplete</h3>
+<ul>
+  <li>The brand pack is unapplied — palette, shapes, and the correct logo asset.</li>
+  <li>Community and Specialists are honest placeholders, not features.</li>
+  <li>The chatbot knowledge base is 12 entries against a free-text input.</li>
+  <li>Content depth: 3 items per goal/level means repeats show identical material.</li>
+  <li>No persistence in <code>IrisContext</code> — a refresh discards the profile, goals, stars and avatar choice.</li>
+</ul>
+
+<h3>Fragile</h3>
+<ul>
+  <li><code>AppContext.reportPerformance</code> still calls <code>CognitiveEngine.evaluateAndAdapt()</code>, which now throws, on every fifth report. Reachable only from legacy screens that nothing currently links to.</li>
+  <li>Modality shift produces invalid activities for three of four template pairs.</li>
+  <li>Assessment UI and scorer disagree about item counts and step structure.</li>
+  <li>Two heavy neutral ramps and three ramps each for green and amber — a restyle will be slower than it needs to be.</li>
+</ul>
+
+<h3>Must not be touched</h3>
+<ul class="locked">
+  <li><span class="f">src/iris/engines/*</span><span>Scoring, profile, goals, pathway, progress. The rule cascade and its ordering are the product.</span></li>
+  <li><span class="f">src/iris/journey.js</span><span>Especially <code>accommodationDefaults()</code> — the one permitted diagnosis read.</span></li>
+  <li><span class="f">tests/iris.test.js</span><span>Extend if you must; never weaken an assertion to make a change pass.</span></li>
+  <li><span class="f">server/server.js auth</span><span>Session hashing, consent gate, <code>requireSelf</code>, the 410 on <code>/api/users</code>.</span></li>
+  <li><span class="f">Claim-safety copy</span><span>Screening intro, landing disclaimer, chatbot refusals, specialist and community labelling.</span></li>
+  <li><span class="f">src/iris/content/validator.js</span><span>The banned-term and diagnosis-name gate on child-facing content.</span></li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="table">Feature table</h2>
+
+<div class="tablewrap">
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Current state</th><th>Problem</th><th>Proposed improvement</th><th>Files affected</th><th>Risk</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="feat">Brand palette</td>
+      <td>Purple + slate Tailwind utilities; tokens defined but unused</td>
+      <td>Zero brand hexes in source; product looks unrelated to the identity</td>
+      <td>Define the six brand colours as the token set, then migrate screens family by family</td>
+      <td><span class="mono">styles/iris.css, theme.css, ~37 components</span></td>
+      <td><span class="pill med">Medium</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Logo asset</td>
+      <td>Corrupted variant shipping — “coaurge”</td>
+      <td>Misspelt tagline on the first screen judges see</td>
+      <td>Copy <code>IRIS_logo_master.png</code> into <code>public/images/</code> and repoint</td>
+      <td><span class="mono">public/images/, IrisLanding.tsx</span></td>
+      <td><span class="pill low">Low</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Avatar</td>
+      <td>Flat violet SVG flower, 5 moods, well-engineered</td>
+      <td>Matches neither reference; wrong colour family and material</td>
+      <td>Redraw <code>IrisBuddy</code> to the reference — cream body, brand-coloured petals, heart window. Keep the mood API and the no-negative-state rule</td>
+      <td><span class="mono">ui/IrisBuddy.tsx</span></td>
+      <td><span class="pill med">Medium</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Fabricated specialists</td>
+      <td>4 invented doctors, ratings, testimonials, live booking POST — unreachable but bundled</td>
+      <td>Directly violates the project's own honesty rule; one navigate call from being live</td>
+      <td>Delete the screens, their routes, their <code>Screen</code> union members and the <code>Bookings</code> route</td>
+      <td><span class="mono">CommunitySessionsScreen, FamilyGuidanceScreen, App.tsx, server.js</span></td>
+      <td><span class="pill low">Low</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Legacy dead code</td>
+      <td>~25 orphaned screens; <code>CognitiveEngine</code> throw paths live behind them</td>
+      <td>Bundle weight, crash paths, two competing app generations</td>
+      <td>Remove the orphaned island wholesale once the fabricated screens go</td>
+      <td><span class="mono">App.tsx, ~25 components, AppContext.tsx</span></td>
+      <td><span class="pill med">Medium</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Modality shift</td>
+      <td><code>R-PATH-006</code> fires without checking partner eligibility</td>
+      <td>Empty activity for 3 of 4 pairs; validator rejects</td>
+      <td>Verify the partner serves the current goal+level before shifting; otherwise fall through to backstep</td>
+      <td><span class="mono">engines/pathway.js, content/templates.js</span></td>
+      <td><span class="pill high">High</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Assessment length</td>
+      <td>Fixed 44-item run, no early stop</td>
+      <td>~45 items before a result — unshowable live</td>
+      <td>Wire the existing stop rule to the screen; do not change the scoring</td>
+      <td><span class="mono">IrisAssessmentScreen.tsx</span></td>
+      <td><span class="pill high">High</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Assessment / scorer drift</td>
+      <td>1 item per step where threshold is 2; attention rows missing</td>
+      <td><code>depth</code> structurally 0 or defaulted — scores understate ability</td>
+      <td>Align item counts to the spec, emit false-alarm and time-on-task rows</td>
+      <td><span class="mono">IrisAssessmentScreen.tsx</span></td>
+      <td><span class="pill high">High</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Content depth</td>
+      <td>3 items per goal/level; <code>item_count</code> 6; double reduction</td>
+      <td>Repeats show identical items; variety is an illusion</td>
+      <td>Author more items, and fix the double reduction</td>
+      <td><span class="mono">content/contentBank.js, journey.js</span></td>
+      <td><span class="pill med">Medium</span></td>
+    </tr>
+    <tr>
+      <td class="feat">State persistence</td>
+      <td><code>IrisContext</code> is memory-only</td>
+      <td>Refresh wipes profile, goals, stars, avatar — dashboard collapses</td>
+      <td>Persist to the existing backend tables; fall back to <code>localStorage</code> offline</td>
+      <td><span class="mono">IrisContext.tsx, server.js</span></td>
+      <td><span class="pill med">Medium</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Chatbot boundaries</td>
+      <td>Rule-based, safe, but two regexes over-match</td>
+      <td>“unique” refused as a diagnosis question; all Arabic sleep questions refused</td>
+      <td>Word-boundary the <code>iq</code> pattern; narrow the Arabic sleep term to match the English scope</td>
+      <td><span class="mono">parent/chatbot.js</span></td>
+      <td><span class="pill low">Low</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Chatbot coverage</td>
+      <td>12 knowledge-base entries</td>
+      <td>Most real questions hit the fallback</td>
+      <td>Grow the KB from the research corpus, keeping the evidence-tier discipline</td>
+      <td><span class="mono">parent/guidance.js</span></td>
+      <td><span class="pill low">Low</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Narration</td>
+      <td>Full path built and tested; live call never verified</td>
+      <td>Cache empty — running on the fallback voice</td>
+      <td>Run <code>scripts/check-voice.mjs</code> and act on the step it names</td>
+      <td><span class="mono">server/.env only</span></td>
+      <td><span class="pill none">None</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Database integrity</td>
+      <td>No associations; bare integer keys; mass assignment on 2 routes</td>
+      <td>No cascade, no FK enforcement, client-settable fields</td>
+      <td>Declare associations, whitelist writable fields</td>
+      <td><span class="mono">server/models/*, server.js</span></td>
+      <td><span class="pill med">Medium</span></td>
+    </tr>
+    <tr>
+      <td class="feat">Design tokens</td>
+      <td>Two disagreeing token sets, neither consumed</td>
+      <td>Restyling means touching 37 components by hand</td>
+      <td>Collapse to one set on the brand palette; make components consume it</td>
+      <td><span class="mono">styles/*, components</span></td>
+      <td><span class="pill med">Medium</span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="order">Recommended implementation order</h2>
+
+<p>Ordered by risk removed per unit of effort, and by what unblocks what. Steps 1–3 are small and should happen before anything visual.</p>
+
+<ol class="plan">
+  <li>
+    <h3>Delete the fabricated-content screens</h3>
+    <p>Remove <code>CommunitySessionsScreen</code>, <code>FamilyGuidanceScreen</code>, their routes, their <code>Screen</code> union entries, and the <code>/api/bookings</code> route and table.</p>
+    <p class="why">Highest risk, lowest effort, no dependencies. Nothing links to them, so nothing breaks — and it removes the only thing in the repo that could seriously damage credibility.</p>
+  </li>
+  <li>
+    <h3>Swap in the correct logo</h3>
+    <p>Copy <code>IRIS_logo_master.png</code> into <code>public/images/</code> and repoint <code>IrisLanding</code>.</p>
+    <p class="why">One file. Fixes a misspelling on the first screen anyone sees.</p>
+  </li>
+  <li>
+    <h3>Run the narration diagnostic</h3>
+    <p><code>node scripts/check-voice.mjs</code>, then act on whichever step it stops at.</p>
+    <p class="why">Five seconds, and it settles whether the voice work is finished or still blocked. Cheap to do before committing to anything else.</p>
+  </li>
+  <li>
+    <h3>Retire the legacy island</h3>
+    <p>Remove the remaining orphaned screens and the dead <code>CognitiveEngine</code> call sites in <code>AppContext</code>.</p>
+    <p class="why">Do this before the restyle, not after — every screen deleted now is a screen you do not have to re-theme. It also removes the throwing code paths.</p>
+  </li>
+  <li>
+    <h3>Establish the brand token layer</h3>
+    <p>Collapse <code>iris.css</code> and <code>theme.css</code> into one set built on the six brand colours plus a chosen warm neutral ramp. Do not migrate components yet — just make the tokens correct and real.</p>
+    <p class="why">Everything visual downstream depends on this. Doing it after the deletions means fewer consumers to migrate.</p>
+  </li>
+  <li>
+    <h3>Redraw the avatar</h3>
+    <p>Rebuild <code>IrisBuddy</code>'s artwork to the references — cream body, brand-coloured petals, heart window with sparkles. Keep the five moods, the props, and the rule that there is no sad state.</p>
+    <p class="why">Self-contained: one file, one render site through <code>IrisMascot</code>. It is also the most visible single change, and it validates the new token layer on real artwork.</p>
+  </li>
+  <li>
+    <h3>Migrate screens to the tokens</h3>
+    <p>Child Mode first, then Parent Mode, then the remaining shared components. Collapse slate/gray to one neutral and emerald/green/teal and amber/yellow/orange to one each as you go.</p>
+    <p class="why">The bulk of the visual work, and the part that benefits most from steps 4 and 5 being done first.</p>
+  </li>
+  <li>
+    <h3>Fix modality shift</h3>
+    <p>Make <code>R-PATH-006</code> verify the partner template serves the current goal and level before shifting; fall through to backstep when it does not.</p>
+    <p class="why">A real correctness bug in the engine's cascade. It sits this far down only because it is currently masked — the demo path uses the one pair that works. Add a test that walks every declared pair.</p>
+  </li>
+  <li>
+    <h3>Reconcile the assessment screen with the scorer</h3>
+    <p>Wire the existing stop rule to the screen, align item counts per step, and emit the missing attention rows.</p>
+    <p class="why">Shortens the screening to something demonstrable and stops the scorer being fed a shape it was not written for. Touch the screen, not the scoring.</p>
+  </li>
+  <li>
+    <h3>Persist child state</h3>
+    <p>Write profile, goals, stars and avatar through to the existing backend tables, with <code>localStorage</code> as the offline fallback.</p>
+    <p class="why">Turns the parent dashboard from a within-session view into a real record. Depends on nothing above, but is more valuable once the rest is stable.</p>
+  </li>
+  <li>
+    <h3>Tighten the chatbot, then grow it</h3>
+    <p>Word-boundary the <code>iq</code> pattern and narrow the Arabic sleep term; then expand the knowledge base from the research corpus.</p>
+    <p class="why">The two regex fixes are minutes. Growing the KB is open-ended, so it goes last.</p>
+  </li>
+</ol>
+
+<p style="margin-top:2rem"><strong>Deliberately not in this list:</strong> the database association work and the mass-assignment whitelist. Both are real, neither is visible, and neither blocks anything else — they belong in a maintenance pass after the identity work lands.</p>
+
+<hr class="div">
+<footer>
+  <p>Read-only audit. No files were modified. Sources: the IRIS repository at <code>iriss-main</code>, the Brand Identity Pack (README_FOR_CLAUDE, BRAND_IDENTITY, SOCIAL_MEDIA_GUIDE, COPY_TONE, MASTER_PROMPT_FOR_CLAUDE, <code>IRIS_logo_master.png</code>), and three supplied avatar reference images.</p>
+</footer>
+
+</div>

@@ -29,7 +29,7 @@ export function FruitsScreen() {
             nameAr: 'تفاحة',
             nameEn: 'Apple',
             emoji: '🍎',
-            color: 'from-red-400 to-red-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1560806887-1e4cd0b60d05?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -37,7 +37,7 @@ export function FruitsScreen() {
             nameAr: 'موز',
             nameEn: 'Banana',
             emoji: '🍌',
-            color: 'from-yellow-300 to-yellow-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1571771894821-ad990241ec4a?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -45,7 +45,7 @@ export function FruitsScreen() {
             nameAr: 'برتقال',
             nameEn: 'Orange',
             emoji: '🍊',
-            color: 'from-orange-400 to-orange-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1582281298055-e25b84a30b44?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -53,7 +53,7 @@ export function FruitsScreen() {
             nameAr: 'فراولة',
             nameEn: 'Strawberry',
             emoji: '🍓',
-            color: 'from-pink-400 to-red-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1464965911861-746a04b48ca6?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -61,7 +61,7 @@ export function FruitsScreen() {
             nameAr: 'عنب',
             nameEn: 'Grapes',
             emoji: '🍇',
-            color: 'from-purple-400 to-indigo-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1537640538966-79f369b41f8f?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -69,7 +69,7 @@ export function FruitsScreen() {
             nameAr: 'بطيخ',
             nameEn: 'Watermelon',
             emoji: '🍉',
-            color: 'from-red-500 to-green-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1587049352846-4a222e783137?auto=format&fit=crop&q=80&w=1000'
         }
     ];
@@ -97,14 +97,14 @@ export function FruitsScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-gradient-to-br from-red-100 via-white to-green-100'}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-coral-wash via-white '}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-lg text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-600' : 'text-red-600'}`}>
-                        {language === 'ar' ? 'تعلم الفواكه' : 'Learn Fruits'} 🍎
-                    </h1>
+                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-coral-ink'}`}>
+ {language === 'ar' ? 'تعلم الفواكه' : 'Learn Fruits'} 
+ </h1>
                     <div className="w-24" />
                 </div>
 
@@ -127,12 +127,12 @@ export function FruitsScreen() {
                                 >
                                     <button
                                         onClick={() => handleItemSelect(food)}
-                                        className={`w-full aspect-square rounded-[3rem] shadow-xl bg-gradient-to-br ${activeRules?.sensoryProfile === 'low-arousal' ? 'from-slate-200 to-slate-300' : food.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl border-8 border-white group`}
+                                        className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : food.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
                                         <div className="text-8xl mb-4 group-hover:scale-110 transition-transform">
                                             {food.emoji}
                                         </div>
-                                        <h3 className="text-2xl font-bold text-white drop-shadow-lg">
+                                        <h3 className="text-2xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? food.nameAr : food.nameEn}
                                         </h3>
                                     </button>
@@ -164,7 +164,7 @@ export function FruitsScreen() {
                                             onClick={() => setSelectedItemId(null)}
                                             variant="outline"
                                             size="lg"
-                                            className="bg-white/80 backdrop-blur-sm text-2xl px-12 py-8 rounded-full shadow-xl border-4 border-white/50"
+                                            className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
                                             <RotateCcw className="size-8 me-3" />
                                             {language === 'ar' ? 'اختيار فاكهة أخرى' : 'Choose another fruit'}

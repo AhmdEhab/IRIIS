@@ -63,7 +63,7 @@ export function ParentSettingsScreen() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100 p-4">
+        <div className="min-h-screen bg-brand-blue-wash via-white p-4">
             <div className="max-w-4xl mx-auto py-8">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
@@ -71,21 +71,21 @@ export function ParentSettingsScreen() {
                         onClick={handleBack}
                         variant="outline"
                         size="lg"
-                        className="bg-white shadow-lg"
+                        className="bg-surface shadow-brand"
                     >
                         <ArrowLeft className="size-5 me-2" />
                         {t.back}
                     </Button>
 
-                    <h1 className="text-4xl font-bold text-slate-800">
-                        {t.settings} ⚙️
-                    </h1>
+                    <h1 className="t-title text-ink">
+ {t.settings} 
+ </h1>
 
                     <Button
                         onClick={handleSave}
                         disabled={isSaving}
                         size="lg"
-                        className="bg-green-600 hover:bg-green-700 shadow-lg"
+                        className="bg-brand-green hover:bg-brand-green shadow-brand"
                     >
                         {isSaving ? '...' : <Save className="size-5 me-2" />}
                         {t.save}
@@ -96,21 +96,21 @@ export function ParentSettingsScreen() {
                     {/* Section: Language */}
                     <Card className="p-6">
                         <div className="flex items-center gap-3 mb-6">
-                            <Globe className="size-6 text-blue-500" />
+                            <Globe className="size-6 text-brand-blue-ink" />
                             <h2 className="text-2xl font-bold">{language === 'ar' ? 'اللغة' : 'Language'}</h2>
                         </div>
                         <div className="flex gap-4">
                             <Button
                                 onClick={() => { setLanguage('ar'); playSound('tap'); }}
                                 variant={language === 'ar' ? 'default' : 'outline'}
-                                className="flex-1 h-16 text-xl rounded-2xl"
+                                className="flex-1 h-16 text-xl rounded-brand"
                             >
                                 العربية 🇪🇬
                             </Button>
                             <Button
                                 onClick={() => { setLanguage('en'); playSound('tap'); }}
                                 variant={language === 'en' ? 'default' : 'outline'}
-                                className="flex-1 h-16 text-xl rounded-2xl"
+                                className="flex-1 h-16 text-xl rounded-brand"
                             >
                                 English 🇺🇸
                             </Button>
@@ -120,7 +120,7 @@ export function ParentSettingsScreen() {
                     {/* Section: Profile */}
                     <Card className="p-6">
                         <div className="flex items-center gap-3 mb-6">
-                            <User className="size-6 text-purple-500" />
+                            <User className="size-6 text-brand-purple-ink" />
                             <h2 className="text-2xl font-bold">{t.childInfo}</h2>
                         </div>
                         <div className="grid md:grid-cols-2 gap-6">
@@ -129,7 +129,7 @@ export function ParentSettingsScreen() {
                                 <Input
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    className="bg-gray-50"
+                                    className="bg-surface-sunk"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -138,7 +138,7 @@ export function ParentSettingsScreen() {
                                     type="number"
                                     value={formData.age}
                                     onChange={e => setFormData({ ...formData, age: e.target.value })}
-                                    className="bg-gray-50"
+                                    className="bg-surface-sunk"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -146,7 +146,7 @@ export function ParentSettingsScreen() {
                                 <Input
                                     value={formData.motherName}
                                     onChange={e => setFormData({ ...formData, motherName: e.target.value })}
-                                    className="bg-gray-50"
+                                    className="bg-surface-sunk"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -154,26 +154,26 @@ export function ParentSettingsScreen() {
                                 <Input
                                     value={formData.fatherName}
                                     onChange={e => setFormData({ ...formData, fatherName: e.target.value })}
-                                    className="bg-gray-50"
+                                    className="bg-surface-sunk"
                                 />
                             </div>
                         </div>
                     </Card>
 
                     {/* Section: Security & Danger Zone */}
-                    <Card className="p-6 border-red-100 bg-red-50/30">
+                    <Card className="p-6 border-brand-coral bg-brand-coral-wash/30">
                         <div className="flex items-center gap-3 mb-6">
-                            <Shield className="size-6 text-red-500" />
-                            <h2 className="text-2xl font-bold text-red-700">
-                                {language === 'ar' ? 'إدارة البيانات' : 'Data Management'}
-                            </h2>
+                            <Shield className="size-6 text-brand-coral-ink" />
+                            <h2 className="text-2xl font-bold text-brand-coral-ink">
+ {language === 'ar' ? 'إدارة البيانات' : 'Data Management'}
+ </h2>
                         </div>
-                        <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-red-100 shadow-sm">
+                        <div className="flex items-center justify-between p-4 bg-surface rounded-brand border border-brand-coral shadow-brand-sm">
                             <div>
-                                <h3 className="font-bold text-lg text-red-900">
+                                <h3 className="font-bold text-lg text-brand-coral-ink">
                                     {language === 'ar' ? 'تصفير التقدم' : 'Reset Progress'}
                                 </h3>
-                                <p className="text-red-600 text-sm">
+                                <p className="text-brand-coral-ink text-sm">
                                     {language === 'ar' ? 'سيتم مسح جميع الإنجازات والتقدم وبدء التعلم من جديد' : 'Clear all achievements and start learning from scratch'}
                                 </p>
                             </div>
@@ -195,15 +195,15 @@ export function ParentSettingsScreen() {
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl"
+                        className="bg-surface rounded-brand-lg p-8 max-w-sm w-full text-center shadow-brand-lg"
                     >
-                        <div className="size-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <div className="size-20 bg-brand-coral-wash text-brand-coral-ink rounded-full flex items-center justify-center mx-auto mb-6">
                             <Trash2 className="size-10" />
                         </div>
                         <h2 className="text-2xl font-bold mb-4">
-                            {language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
-                        </h2>
-                        <p className="text-gray-600 mb-8">
+ {language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
+ </h2>
+                        <p className="text-ink-muted mb-8">
                             {language === 'ar'
                                 ? 'لا يمكن التراجع عن هذه الخطوة بعد تصفير التقدم.'
                                 : 'This action cannot be undone. All progress will be lost.'}
@@ -211,14 +211,14 @@ export function ParentSettingsScreen() {
                         <div className="flex gap-4">
                             <Button
                                 variant="outline"
-                                className="flex-1 h-12 rounded-xl"
+                                className="flex-1 h-12 rounded-brand-sm"
                                 onClick={() => setShowConfirmReset(false)}
                             >
                                 {t.cancel}
                             </Button>
                             <Button
                                 variant="destructive"
-                                className="flex-1 h-12 rounded-xl"
+                                className="flex-1 h-12 rounded-brand-sm"
                                 onClick={handleReset}
                             >
                                 {language === 'ar' ? 'نعم، تصفير' : 'Yes, Reset'}

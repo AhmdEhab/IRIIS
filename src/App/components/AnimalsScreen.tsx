@@ -30,7 +30,7 @@ export function AnimalsScreen() {
             nameAr: 'أسد',
             nameEn: 'Lion',
             emoji: '🦁',
-            color: 'from-orange-400 to-yellow-500',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&q=80&w=1000'
         },
@@ -39,7 +39,7 @@ export function AnimalsScreen() {
             nameAr: 'فيل',
             nameEn: 'Elephant',
             emoji: '🐘',
-            color: 'from-blue-300 to-slate-400',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?auto=format&fit=crop&q=80&w=1000'
         },
@@ -48,7 +48,7 @@ export function AnimalsScreen() {
             nameAr: 'زرافة',
             nameEn: 'Giraffe',
             emoji: '🦒',
-            color: 'from-yellow-300 to-orange-400',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1547721064-36202634a13b?auto=format&fit=crop&q=80&w=1000'
         },
@@ -57,7 +57,7 @@ export function AnimalsScreen() {
             nameAr: 'قرد',
             nameEn: 'Monkey',
             emoji: '🐒',
-            color: 'from-amber-600 to-yellow-700',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?auto=format&fit=crop&q=80&w=1000'
         },
@@ -66,7 +66,7 @@ export function AnimalsScreen() {
             nameAr: 'قطة',
             nameEn: 'Cat',
             emoji: '🐱',
-            color: 'from-gray-200 to-gray-400',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=1000'
         },
@@ -75,7 +75,7 @@ export function AnimalsScreen() {
             nameAr: 'كلب',
             nameEn: 'Dog',
             emoji: '🐶',
-            color: 'from-orange-200 to-amber-300',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&q=80&w=1000'
         },
@@ -84,7 +84,7 @@ export function AnimalsScreen() {
             nameAr: 'باندا',
             nameEn: 'Panda',
             emoji: '🐼',
-            color: 'from-slate-400 to-slate-600',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1564349683136-77e08bef1ef1?auto=format&fit=crop&q=80&w=1000'
         },
@@ -93,7 +93,7 @@ export function AnimalsScreen() {
             nameAr: 'نمر',
             nameEn: 'Tiger',
             emoji: '🐯',
-            color: 'from-orange-500 to-orange-700',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1500463959177-e0869687df26?auto=format&fit=crop&q=80&w=1000'
         },
@@ -102,7 +102,7 @@ export function AnimalsScreen() {
             nameAr: 'حمار وحشي',
             nameEn: 'Zebra',
             emoji: '🦓',
-            color: 'from-gray-100 to-gray-500',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1526081347589-7fa3cb41b4b2?auto=format&fit=crop&q=80&w=1000'
         },
@@ -111,7 +111,7 @@ export function AnimalsScreen() {
             nameAr: 'أرنب',
             nameEn: 'Rabbit',
             emoji: '🐰',
-            color: 'from-pink-100 to-rose-200',
+            color: ' ',
             soundEffect: 'success',
             contextImage: 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&q=80&w=1000'
         }
@@ -140,14 +140,14 @@ export function AnimalsScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-gradient-to-br from-orange-100 via-white to-green-100'}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-yellow-wash via-white '}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-lg text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-600' : 'text-orange-600'}`}>
-                        {language === 'ar' ? 'أصدقاؤنا الحيوانات' : 'Animal Friends'} 🦁
-                    </h1>
+                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-yellow-ink'}`}>
+ {language === 'ar' ? 'أصدقاؤنا الحيوانات' : 'Animal Friends'} 
+ </h1>
                     <div className="w-24" />
                 </div>
 
@@ -170,12 +170,12 @@ export function AnimalsScreen() {
                                 >
                                     <button
                                         onClick={() => handleAnimalSelect(animal)}
-                                        className={`w-full aspect-square rounded-[3rem] shadow-xl bg-gradient-to-br ${activeRules?.sensoryProfile === 'low-arousal' ? 'from-slate-200 to-slate-300' : animal.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl border-8 border-white group`}
+                                        className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : animal.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
                                         <div className="text-8xl mb-4 group-hover:scale-110 transition-transform">
                                             {animal.emoji}
                                         </div>
-                                        <h3 className="text-2xl font-bold text-white drop-shadow-lg">
+                                        <h3 className="text-2xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? animal.nameAr : animal.nameEn}
                                         </h3>
                                     </button>
@@ -208,7 +208,7 @@ export function AnimalsScreen() {
                                             onClick={() => setSelectedAnimalId(null)}
                                             variant="outline"
                                             size="lg"
-                                            className="bg-white/80 backdrop-blur-sm text-2xl px-12 py-8 rounded-full shadow-xl border-4 border-white/50"
+                                            className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
                                             <RotateCcw className="size-8 me-3" />
                                             {language === 'ar' ? 'اختيار حيوان آخر' : 'Choose another animal'}

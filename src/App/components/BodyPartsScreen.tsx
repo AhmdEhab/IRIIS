@@ -29,7 +29,7 @@ export function BodyPartsScreen() {
             nameAr: 'العينان',
             nameEn: 'Eyes',
             emoji: '👀',
-            color: 'from-sky-400 to-blue-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1544435253-f0ededca9617?auto=format&fit=crop&q=80&w=1000' // Eye close up
         },
         {
@@ -37,7 +37,7 @@ export function BodyPartsScreen() {
             nameAr: 'الأذنان',
             nameEn: 'Ears',
             emoji: '👂',
-            color: 'from-amber-400 to-orange-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1590650516494-0c8e4a09dd01?auto=format&fit=crop&q=80&w=1000' // Listening to music
         },
         {
@@ -45,7 +45,7 @@ export function BodyPartsScreen() {
             nameAr: 'الأنف',
             nameEn: 'Nose',
             emoji: '👃',
-            color: 'from-rose-400 to-pink-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?auto=format&fit=crop&q=80&w=1000' // Smelling flowers
         },
         {
@@ -53,7 +53,7 @@ export function BodyPartsScreen() {
             nameAr: 'الفم',
             nameEn: 'Mouth',
             emoji: '👄',
-            color: 'from-orange-500 to-red-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1519704943960-da38fe96a433?auto=format&fit=crop&q=80&w=1000' // Eating/Smiling
         },
         {
@@ -61,7 +61,7 @@ export function BodyPartsScreen() {
             nameAr: 'اليدان',
             nameEn: 'Hands',
             emoji: '🙌',
-            color: 'from-violet-400 to-purple-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1511202824364-70656041130d?auto=format&fit=crop&q=80&w=1000' // Child painting with hands
         },
         {
@@ -69,7 +69,7 @@ export function BodyPartsScreen() {
             nameAr: 'القدمان',
             nameEn: 'Feet',
             emoji: '👣',
-            color: 'from-emerald-400 to-teal-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1490650404312-a2175773bba5?auto=format&fit=crop&q=80&w=1000' // Child feet in colors
         },
         {
@@ -77,7 +77,7 @@ export function BodyPartsScreen() {
             nameAr: 'القلب',
             nameEn: 'Heart',
             emoji: '❤️',
-            color: 'from-red-500 to-rose-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1530737482833-2a07c3be137f?auto=format&fit=crop&q=80&w=1000' // Heart bokeh/light
         },
         {
@@ -85,7 +85,7 @@ export function BodyPartsScreen() {
             nameAr: 'الدماغ',
             nameEn: 'Brain',
             emoji: '🧠',
-            color: 'from-fuchsia-400 to-indigo-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80&w=1000' // Thinking child/Brain concept
         }
     ];
@@ -113,14 +113,14 @@ export function BodyPartsScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-gradient-to-br from-blue-50 via-white to-pink-50'}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-lg text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-600' : 'text-rose-600'}`}>
-                        {language === 'ar' ? 'أعضاء جسمي' : 'My Body Parts'} 🧒
-                    </h1>
+                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-coral-ink'}`}>
+ {language === 'ar' ? 'أعضاء جسمي' : 'My Body Parts'} 
+ </h1>
                     <div className="w-24" />
                 </div>
 
@@ -143,12 +143,12 @@ export function BodyPartsScreen() {
                                 >
                                     <button
                                         onClick={() => handlePartSelect(part)}
-                                        className={`w-full aspect-square rounded-[2.5rem] shadow-xl bg-gradient-to-br ${activeRules?.sensoryProfile === 'low-arousal' ? 'from-slate-200 to-slate-300' : part.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl border-4 border-white group`}
+                                        className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : part.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
                                         <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
                                             {part.emoji}
                                         </div>
-                                        <h3 className="text-xl font-bold text-white drop-shadow-md">
+                                        <h3 className="text-xl font-bold text-white drop-shadow-brand-sm">
                                             {language === 'ar' ? part.nameAr : part.nameEn}
                                         </h3>
                                     </button>
@@ -180,7 +180,7 @@ export function BodyPartsScreen() {
                                             onClick={() => setSelectedPartId(null)}
                                             variant="outline"
                                             size="lg"
-                                            className="bg-white/80 backdrop-blur-sm text-2xl px-12 py-8 rounded-full shadow-xl border-4 border-white/50"
+                                            className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
                                             <RotateCcw className="size-8 me-3" />
                                             {language === 'ar' ? 'اختيار عضو آخر' : 'Choose another part'}

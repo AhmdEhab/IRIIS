@@ -29,7 +29,7 @@ export function VehiclesScreen() {
             nameAr: 'سيارة',
             nameEn: 'Car',
             emoji: '🚗',
-            color: 'from-red-400 to-red-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -37,7 +37,7 @@ export function VehiclesScreen() {
             nameAr: 'طائرة',
             nameEn: 'Airplane',
             emoji: '✈️',
-            color: 'from-blue-400 to-blue-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1436491865332-7a61a20fb2a5?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -45,7 +45,7 @@ export function VehiclesScreen() {
             nameAr: 'قطار',
             nameEn: 'Train',
             emoji: '🚂',
-            color: 'from-gray-500 to-gray-700',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -53,7 +53,7 @@ export function VehiclesScreen() {
             nameAr: 'سفينة',
             nameEn: 'Ship',
             emoji: '🚢',
-            color: 'from-cyan-500 to-blue-700',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1544654803-b69110bb8154?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -61,7 +61,7 @@ export function VehiclesScreen() {
             nameAr: 'دراجة',
             nameEn: 'Bicycle',
             emoji: '🚲',
-            color: 'from-green-400 to-green-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=1000'
         },
         {
@@ -69,7 +69,7 @@ export function VehiclesScreen() {
             nameAr: 'صاروخ',
             nameEn: 'Rocket',
             emoji: '🚀',
-            color: 'from-orange-500 to-red-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&q=80&w=1000'
         }
     ];
@@ -97,14 +97,14 @@ export function VehiclesScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-gradient-to-br from-blue-100 via-white to-orange-100'}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-lg text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-600' : 'text-blue-600'}`}>
-                        {language === 'ar' ? 'وسائل المواصلات' : 'Vehicles'} 🚀
-                    </h1>
+                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-blue-ink'}`}>
+ {language === 'ar' ? 'وسائل المواصلات' : 'Vehicles'} 
+ </h1>
                     <div className="w-24" />
                 </div>
 
@@ -127,12 +127,12 @@ export function VehiclesScreen() {
                                 >
                                     <button
                                         onClick={() => handleVehicleSelect(vehicle)}
-                                        className={`w-full aspect-square rounded-[3rem] shadow-xl bg-gradient-to-br ${activeRules?.sensoryProfile === 'low-arousal' ? 'from-slate-200 to-slate-300' : vehicle.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl border-8 border-white group`}
+                                        className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : vehicle.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
                                         <div className="text-8xl mb-4 group-hover:scale-110 transition-transform">
                                             {vehicle.emoji}
                                         </div>
-                                        <h3 className="text-2xl font-bold text-white drop-shadow-lg">
+                                        <h3 className="text-2xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? vehicle.nameAr : vehicle.nameEn}
                                         </h3>
                                     </button>
@@ -164,7 +164,7 @@ export function VehiclesScreen() {
                                             onClick={() => setSelectedVehicleId(null)}
                                             variant="outline"
                                             size="lg"
-                                            className="bg-white/80 backdrop-blur-sm text-2xl px-12 py-8 rounded-full shadow-xl border-4 border-white/50"
+                                            className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
                                             <RotateCcw className="size-8 me-3" />
                                             {language === 'ar' ? 'اختيار وسيلة أخرى' : 'Choose another vehicle'}

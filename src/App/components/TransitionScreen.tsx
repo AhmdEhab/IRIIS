@@ -11,7 +11,7 @@ export function TransitionScreen() {
     const isSelectingIQ = transitionState.message === t.selectingIQ;
 
     return (
-        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-gradient-to-br from-blue-100 via-white to-purple-100'}`}>
+        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>
             <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -31,7 +31,7 @@ export function TransitionScreen() {
                             repeat: Infinity,
                             ease: "easeInOut"
                         }}
-                        className={`absolute inset-0 rounded-full blur-3xl ${isSelectingIQ ? 'bg-blue-300' : 'bg-purple-300'}`}
+                        className={`absolute inset-0 rounded-full blur-3xl ${isSelectingIQ ? 'bg-brand-blue' : 'bg-brand-purple'}`}
                     />
 
                     {/* Main Icon */}
@@ -45,12 +45,12 @@ export function TransitionScreen() {
                             repeat: Infinity,
                             ease: "easeInOut"
                         }}
-                        className="relative z-10 bg-white p-12 rounded-[3rem] shadow-2xl border-8 border-white"
+                        className="relative z-10 bg-surface p-12 rounded-brand-xl shadow-brand-lg border-2 border-hairline"
                     >
                         {isSelectingIQ ? (
-                            <Brain className={`size-32 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-500' : 'text-blue-500'}`} />
+                            <Brain className={`size-32 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-blue-ink'}`} />
                         ) : (
-                            <Settings className={`size-32 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-500' : 'text-purple-500'} animate-spin-slow`} />
+                            <Settings className={`size-32 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-purple-ink'} animate-spin-slow`} />
                         )}
                     </motion.div>
 
@@ -67,7 +67,7 @@ export function TransitionScreen() {
                         }}
                         className="absolute -top-4 -right-4"
                     >
-                        <Sparkles className="size-12 text-yellow-400 fill-yellow-400 drop-shadow-lg" />
+                        <Sparkles className="size-12 text-brand-yellow-ink fill-brand-yellow drop-shadow-brand" />
                     </motion.div>
                 </div>
 
@@ -77,7 +77,7 @@ export function TransitionScreen() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className={`text-4xl md:text-5xl font-black ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-700' : 'text-gray-800'}`}
+                        className={`text-4xl md:text-5xl font-black ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink' : 'text-ink'}`}
                     >
                         {transitionState.message}
                     </motion.h2>
@@ -86,14 +86,14 @@ export function TransitionScreen() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.4 }}
-                        className={`text-2xl font-bold ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-500' : 'text-gray-500'}`}
+                        className={`text-2xl font-bold ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-ink-muted'}`}
                     >
                         {t.pleaseWait}
                     </motion.p>
                 </div>
 
                 {/* Loading Bar */}
-                <div className="w-full max-w-md h-4 bg-white rounded-full overflow-hidden shadow-inner border border-gray-100">
+                <div className="w-full max-w-md h-4 bg-surface rounded-full overflow-hidden border border-hairline-soft">
                     <motion.div
                         initial={{ width: "0%" }}
                         animate={{ width: "100%" }}
@@ -101,7 +101,7 @@ export function TransitionScreen() {
                             duration: transitionState.duration / 1000,
                             ease: "linear"
                         }}
-                        className={`h-full rounded-full ${isSelectingIQ ? 'bg-gradient-to-r from-blue-400 to-cyan-400' : 'bg-gradient-to-r from-purple-400 to-pink-400'}`}
+                        className={`h-full rounded-full ${isSelectingIQ ? 'bg-brand-blue-wash' : 'bg-brand-purple-wash'}`}
                     />
                 </div>
             </motion.div>

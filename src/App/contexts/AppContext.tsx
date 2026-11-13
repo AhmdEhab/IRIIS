@@ -2,11 +2,19 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import { SYNDROME_RULES, getRulesForCondition, SyndromeRuleSet } from '../constants/syndromeRules';
 import { CognitiveEngine, LearningSession, PerformanceSnapshot } from '../logic/CognitiveEngine';
 import { useLanguage } from './LanguageContext';
+import { AUTH_TOKEN_KEY, API_URL as SHARED_API_URL } from '../config';
 
 export type Screen =
+  | 'landing'
   | 'splash'
   | 'login'
   | 'registration'
+  | 'iris-parent'
+  | 'iris-parent-chat'
+  | 'iris-progress'
+  | 'iris-tips'
+  | 'iris-community'
+  | 'iris-specialists'
   | 'mode-selection'
   | 'ai-assessment'
   | 'child-mode'
@@ -31,6 +39,9 @@ export type Screen =
   | 'games-hub'
   | 'family-guidance'
   | 'community-sessions'
+  | 'iris-snapshot'
+  | 'iris-ladder-assessment'
+  | 'iris-ladder-practice'
   | 'parent-settings'
   | 'transition'
   | 'teaching-demo';
@@ -67,7 +78,11 @@ export interface ChildProfile {
 
 export interface AssessmentResult {
   level: number;
-  iqScore?: number;
+  /**
+   * REMOVED: `iqScore`. IRIS produces no IQ-like construct (doc 10 §6).
+   * The previous build derived it as `baseLevel + accuracy*55` with a
+   * per-diagnosis baseLevel — see AIAssessmentScreen.tsx header.
+   */
   completedAt: Date;
   strengths: string[];
   areasToImprove: string[];
@@ -122,6 +137,11 @@ interface AppContextType {
   logActivity: (activity: Omit<ActivityItem, 'id' | 'timestamp'>) => void;
   loginUser: (email: string, password?: string) => Promise<any>;
   registerUser: (profile: ChildProfile & { password?: string }) => Promise<boolean>;
+  logoutUser: () => Promise<void>;
+  /** Last auth failure as a server error code; render with authMessage(). */
+  authError: string | null;
+  clearAuthError: () => void;
+  authToken: string | null;
   updateUser: (email: string, updates: Partial<ChildProfile & { moduleProgress: ModuleProgress; earnedBadges: string[]; assessmentResult: AssessmentResult; activities: ActivityItem[] }>) => Promise<boolean>;
   addTime: (minutes: number) => void;
 
@@ -149,8 +169,14 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const PARENT_PASSWORD = '1234'; // Simple password for demo
 
-const API_URL = 'http://localhost:5000/api';
-const AI_API_URL = 'http://localhost:8000';
+// Shared with the legacy community screen — see src/App/config.ts.
+const API_URL = SHARED_API_URL;
+/**
+ * The MVP has no AI service. This constant is retained only so the two
+ * remaining legacy call sites below can report honestly that the feature is
+ * unavailable instead of failing silently.
+ */
+const AI_SERVICE_AVAILABLE = false;
 
 export interface IrisProfile {
   child_id: string;
@@ -168,10 +194,39 @@ export interface IrisProfile {
 }
 
 
+/** Re-exported name kept local for readability; the key itself lives in config.ts. */
+const TOKEN_KEY = AUTH_TOKEN_KEY;
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { language } = useLanguage();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('splash');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
+  /**
+   * Bearer token for the secure backend (bcrypt + requireAuth/requireSelf/
+   * requireConsent). Persisted so a page refresh does not silently lose the
+   * session. Never sent anywhere except this app's own /api/* calls.
+   */
+  const [authToken, setAuthTokenState] = useState<string | null>(() => {
+    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  });
+  const setAuthToken = useCallback((token: string | null) => {
+    setAuthTokenState(token);
+    try {
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch { /* localStorage unavailable — session still works in-memory */ }
+  }, []);
+  const authHeaders = useCallback((): Record<string, string> => (
+    authToken ? { Authorization: `Bearer ${authToken}` } : {}
+  ), [authToken]);
+  /**
+   * Last authentication failure, as a server error code. Screens turn this
+   * into a sentence via authMessage(). Held as a code rather than a string so
+   * the message follows the user's current language even if they switch it
+   * after the error appeared.
+   */
+  const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
+  const clearAuthError = useCallback(() => setAuthErrorCode(null), []);
   const [assessmentResult, _setAssessmentResult] = useState<AssessmentResult | null>(null);
   const [isParentModeUnlocked, setIsParentModeUnlocked] = useState(false);
   const [isReturningUser, setIsReturningUser] = useState(false);
@@ -196,34 +251,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { ...baseRules, ...dynamicRuleAdaptions };
   }, [childProfile?.condition, dynamicRuleAdaptions]);
 
+  /**
+   * DISABLED. This previously POSTed to http://localhost:8000/assessment — a
+   * Python service that does not exist anywhere in this repository, so every
+   * call threw and was silently swallowed. It also fabricated an IQ value
+   * (`iqScore || 40 + level*10`) to send as input.
+   *
+   * The profile is now computed locally and deterministically by
+   * src/iris/engines/profile.js (doc 12). No network call, no IQ.
+   */
   const reconstructIrisProfile = useCallback(async () => {
-    if (!childProfile || !assessmentResult) return;
-
-    console.log("IRIS: Reconstructing session for", childProfile.name);
-    const iqToUse = assessmentResult.iqScore || (40 + (assessmentResult.level * 10));
-
-    try {
-      const res = await fetch(`${AI_API_URL}/assessment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          child_id: childProfile.name,
-          age: childProfile.age,
-          condition: childProfile.condition.replace('-', '_'),
-          iq_score: iqToUse
-        }),
-      });
-      if (res.ok) {
-        const aiData = await res.json();
-        if (aiData) {
-          console.log("IRIS: Session restored successfully");
-          setIrisProfile(aiData.profile);
-        }
-      }
-    } catch (err) {
-      console.error("IRIS Persistence error:", err);
-    }
-  }, [childProfile, assessmentResult]);
+    return;
+  }, []);
 
   // Auto-persist and reconstruct IRIS session
   React.useEffect(() => {
@@ -236,10 +275,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   const updateUser = useCallback(async (email: string, updates: Partial<ChildProfile & { moduleProgress: ModuleProgress; earnedBadges: string[]; assessmentResult: AssessmentResult; activities: ActivityItem[] }>) => {
+    if (!authToken) return false; // requireAuth on the server will reject this anyway
     try {
       const response = await fetch(`${API_URL}/users/${email}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(updates),
       });
       if (response.ok) {
@@ -271,13 +311,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [syncWithBackend]);
 
 
+  /**
+   * Registration hits the SECURE backend route (/api/register — bcrypt +
+   * consent gate). The old build posted to /api/users, an endpoint that no
+   * longer exists (it was the open, unauthenticated user dump removed as a
+   * P0 security fix — see server.js and IRIS_IMPLEMENTATION_AUDIT.md §14.3).
+   * That endpoint now returns 410 for anyone who still calls it.
+   */
   const registerUser = useCallback(async (profile: ChildProfile & { password?: string }) => {
+    setAuthErrorCode(null);
     try {
-      const response = await fetch(`${API_URL}/users`, {
+      const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...profile,
+          name: profile.name || 'Parent',
+          consent_mvp_use: true,
+          consent_at: new Date().toISOString(),
           moduleProgress: {},
           earnedBadges: ['explorer', 'beginner'],
           assessmentResult: null,
@@ -286,19 +337,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       });
       if (response.ok) {
-        const fullProfile = { ...profile, syndrome: profile.syndrome || profile.condition };
+        const data = await response.json(); // { token, user }
+        const user = data.user || {};
+        setAuthToken(data.token || null);
+        try { localStorage.setItem('iris_auth_email', user.email || profile.email || ''); } catch {}
+        const fullProfile = {
+          ...profile,
+          ...user,
+          syndrome: profile.syndrome || profile.condition || user.condition,
+        };
         setChildProfile(fullProfile as ChildProfile);
+        setModuleProgress(user.moduleProgress || {});
+        setEarnedBadges(user.earnedBadges || ['explorer', 'beginner']);
+        setActivities(user.activities || []);
         setIsReturningUser(true);
         return true;
       }
+      // Surface WHY it failed. Previously this only reached the console, so a
+      // duplicate email or a too-short password looked to the parent like the
+      // form was simply broken.
+      const errorInfo = await response.json().catch(() => ({}));
+      setAuthErrorCode(errorInfo.error || 'REGISTRATION_FAILED');
       return false;
     } catch (error) {
-      console.error('Registration failed:', error);
+      // A thrown fetch means the network/back end is unreachable, which is a
+      // different problem from a rejected registration — say so.
+      setAuthErrorCode('NETWORK');
       return false;
     }
-  }, []);
+  }, [setAuthToken]);
 
   const loginUser = useCallback(async (email: string, password?: string) => {
+    setAuthErrorCode(null);
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
@@ -306,7 +376,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
       if (response.ok) {
-        const data = await response.json();
+        const payload = await response.json(); // { token, user }
+        const data = payload.user || {};
+        setAuthToken(payload.token || null);
+        try { localStorage.setItem('iris_auth_email', data.email || email); } catch {}
         setChildProfile({
           email: data.email,
           name: data.name,
@@ -328,22 +401,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setEarnedBadges(data.earnedBadges || ['explorer', 'beginner']);
         if (data.assessmentResult) {
           setAssessmentResult(data.assessmentResult);
-          // Auto-reconstruct IRIS profile
-          const iqToUse = data.assessmentResult.iqScore || (40 + (data.assessmentResult.level * 10));
-
-          fetch(`${AI_API_URL}/assessment`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              child_id: data.name,
-              age: data.age,
-              condition: data.condition.replace('-', '_'),
-              iq_score: iqToUse
-            }),
-          }).then(res => res.ok && res.json()).then(aiData => {
-            if (aiData) setIrisProfile(aiData.profile);
-          }).catch(err => console.error("Auto-reconstruction failed", err));
-
+          // Auto-reconstruction removed: it fabricated an IQ value and called
+          // a service that does not exist. See reconstructIrisProfile above.
         } else {
           setAssessmentResult(null);
         }
@@ -351,10 +410,77 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsReturningUser(true);
         return data;
       }
+      // Wrong password / unknown email — tell the parent, don't fail silently.
+      const errorInfo = await response.json().catch(() => ({}));
+      setAuthErrorCode(errorInfo.error || 'INVALID_CREDENTIALS');
     } catch (error) {
-      console.error('Login failed:', error);
+      setAuthErrorCode('NETWORK');
     }
     return null;
+  }, [setAuthToken]);
+
+  /** Logout — invalidates the server-side session then clears local state. */
+  const logoutUser = useCallback(async () => {
+    try {
+      if (authToken) {
+        await fetch(`${API_URL}/logout`, { method: 'POST', headers: { ...authHeaders() } });
+      }
+    } catch { /* best-effort — clear local state regardless */ }
+    setAuthToken(null);
+    try { localStorage.removeItem('iris_auth_email'); } catch {}
+    setChildProfile(null);
+    setIsReturningUser(false);
+    setIsParentModeUnlocked(false);
+    setAssessmentResult(null);
+    setModuleProgress({});
+    setEarnedBadges(['explorer', 'beginner']);
+    setActivities([]);
+    // 'landing' is the app's home screen (the default currentScreen). Logout
+    // used to drop the user on the older 'splash' screen instead, which shows
+    // a different pair of entry buttons — so after logging out they landed
+    // somewhere that did not match where they had started.
+    setCurrentScreen('landing');
+  }, [authToken, authHeaders, setAuthToken]);
+
+  /** Rehydrate a session on page load if a token + email survived a refresh. */
+  useEffect(() => {
+    if (!authToken || childProfile) return;
+    let email: string | null = null;
+    try { email = localStorage.getItem('iris_auth_email'); } catch { email = null; }
+    if (!email) return;
+    (async () => {
+      try {
+        const response = await fetch(`${API_URL}/users/${encodeURIComponent(email!)}`, {
+          headers: { ...authHeaders() },
+        });
+        if (!response.ok) {
+          // The stored token is stale (expired, revoked, or issued by a
+          // database that has since been reset). Drop it and say so, rather
+          // than leaving the app in a half-logged-in state where the parent
+          // sees no profile and no explanation.
+          const info = await response.json().catch(() => ({}));
+          setAuthToken(null);
+          try { localStorage.removeItem('iris_auth_email'); } catch {}
+          if (response.status === 401) setAuthErrorCode(info.error || 'SESSION_EXPIRED');
+          return;
+        }
+        const data = await response.json();
+        setChildProfile({
+          email: data.email, name: data.name, age: data.age, condition: data.condition,
+          syndrome: data.condition, gender: data.gender || 'male',
+          motherName: data.motherName || '', fatherName: data.fatherName || '',
+          phone: data.phone || '', country: data.country || '', city: data.city || '',
+          dateOfBirth: data.dateOfBirth || '', motherJob: data.motherJob || '',
+          fatherJob: data.fatherJob || '', dailyTimeSpent: data.dailyTimeSpent || {},
+        });
+        setModuleProgress(data.moduleProgress || {});
+        setEarnedBadges(data.earnedBadges || ['explorer', 'beginner']);
+        if (data.assessmentResult) setAssessmentResult(data.assessmentResult);
+        setActivities(data.activities || []);
+        setIsReturningUser(true);
+      } catch { /* silent — user can just log in again */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -425,83 +551,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, [syncWithBackend]);
 
-  const getAiRecommendations = useCallback(async (contentType?: string) => {
-    if (!irisProfile) {
-      console.warn("IRIS: Attempted recommend without profile");
-      return [];
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
-
-    try {
-      console.log(`IRIS: Calling AI at ${AI_API_URL}/recommendations`);
-      const response = await fetch(`${AI_API_URL}/recommendations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...irisProfile, content_type: contentType || null }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`IRIS API Error (${response.status}):`, errorText);
-        return [];
-      }
-
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
-
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        console.error('IRIS: Request Timed Out (8s)');
-      } else {
-        console.error('IRIS: Failed to fetch recommendations:', error);
-      }
-      return [];
-    }
-  }, [irisProfile]);
+  /**
+   * DISABLED. There is no AI recommendation service in this repository.
+   * Returns an empty list rather than pretending to call one.
+   */
+  const getAiRecommendations = useCallback(async (_contentType?: string) => {
+    if (!AI_SERVICE_AVAILABLE) return [];
+    return [];
+  }, []);
 
 
 
+  /**
+   * DISABLED in the legacy surface. The working parent chatbot is the
+   * rule-based, knowledge-base-backed one at
+   * src/App/components/iris/IrisParentChat.tsx (src/iris/parent/chatbot.js).
+   * It cannot invent a citation, a diagnosis, or a benefit claim.
+   */
   const sendParentMessage = useCallback(async (text: string) => {
     const userMsg: ChatMessage = {
       id: Math.random().toString(36).substr(2, 9),
-      role: 'user',
-      text,
-      timestamp: new Date().toISOString()
+      role: 'user', text, timestamp: new Date().toISOString(),
     };
-
-    setParentChatHistory(prev => [...prev, userMsg]);
-
-    try {
-      const response = await fetch(`${AI_API_URL}/parent-chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          child_id: childProfile?.name || 'GUEST',
-          message: text,
-          profile: irisProfile || { name: childProfile?.name, age: childProfile?.age }
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const aiMsg: ChatMessage = {
-          id: Math.random().toString(36).substr(2, 9),
-          role: 'ai',
-          text: data.response,
-          timestamp: new Date().toISOString()
-        };
-        setParentChatHistory(prev => [...prev, aiMsg]);
-      }
-    } catch (error) {
-      console.error('Failed to send parent message:', error);
-    }
-  }, [childProfile, irisProfile]);
+    const reply: ChatMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      role: 'ai',
+      text: 'هذه الشاشة القديمة معطّلة. استخدمي «اسألي IRIS» في وضع الوالدين الجديد.',
+      timestamp: new Date().toISOString(),
+    };
+    setParentChatHistory((prev) => [...prev, userMsg, reply]);
+  }, []);
 
   const startTransition = useCallback((message: string, nextScreen: Screen, duration: number = 3000) => {
     setTransitionState({ message, nextScreen, duration });
@@ -575,6 +654,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         logActivity,
         loginUser,
         registerUser,
+        logoutUser,
+        authError: authErrorCode,
+        clearAuthError,
+        authToken,
         updateUser,
         addTime,
         irisProfile,

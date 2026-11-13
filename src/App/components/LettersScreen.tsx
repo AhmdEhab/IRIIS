@@ -48,14 +48,14 @@ export function LettersScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-gradient-to-br from-blue-100 via-white to-yellow-100'}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-lg text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-600' : 'text-blue-600'}`}>
-                        {language === 'ar' ? 'تعلم الحروف' : 'Learn Letters'} 📝
-                    </h1>
+                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-blue-ink'}`}>
+ {language === 'ar' ? 'تعلم الحروف' : 'Learn Letters'} 
+ </h1>
                     <div className="w-24" />
                 </div>
 
@@ -78,12 +78,12 @@ export function LettersScreen() {
                                 >
                                     <button
                                         onClick={() => handleLetterSelect(letter)}
-                                        className={`w-full aspect-square rounded-[2rem] shadow-xl bg-gradient-to-br ${activeRules?.sensoryProfile === 'low-arousal' ? 'from-slate-200 to-slate-300' : letter.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl border-4 border-white group`}
+                                        className={`w-full aspect-square rounded-brand-lg shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : letter.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <span className="text-6xl font-black text-white drop-shadow-md">
+                                        <span className="text-6xl font-black text-white drop-shadow-brand-sm">
                                             {letter.emoji}
                                         </span>
-                                        <h3 className="text-lg font-bold text-white/90 text-center drop-shadow-md mt-2">
+                                        <h3 className="text-lg font-bold text-white/90 text-center drop-shadow-brand-sm mt-2">
                                             {language === 'ar' ? letter.nameAr : letter.nameEn}
                                         </h3>
                                     </button>
@@ -115,7 +115,7 @@ export function LettersScreen() {
                                             onClick={() => setSelectedLetterId(null)}
                                             variant="outline"
                                             size="lg"
-                                            className="bg-white/80 backdrop-blur-sm text-2xl px-12 py-8 rounded-full shadow-xl border-4 border-white/50"
+                                            className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
                                             <RotateCcw className="size-8 me-3" />
                                             {language === 'ar' ? 'اختيار حرف آخر' : 'Choose another letter'}

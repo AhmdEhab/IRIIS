@@ -32,7 +32,7 @@ export function SyndromeTeachingDemoScreen() {
                     titleEn: 'Learning Method: Visual First',
                     descAr: '١. عرض الصورة بدون صوت (٣ ثواني)\n٢. ثم النطق مع الصورة\n٣. انتظار النقر للمتابعة\n٤. مكافأة بصرية',
                     descEn: '1. Show image silently (3 seconds)\n2. Then speak with image\n3. Wait for tap to continue\n4. Visual reward',
-                    color: 'from-blue-400 to-cyan-500',
+                    color: ' ',
                 };
             case 'williams':
                 return {
@@ -40,7 +40,7 @@ export function SyndromeTeachingDemoScreen() {
                     titleEn: 'Learning Method: Auditory & Musical First',
                     descAr: '١. أغنية ترحيبية حماسية\n٢. سؤال اجتماعي\n٣. سماع الاسم أولاً\n٤. ثم رؤية الصورة\n٥. مدح لفظي حماسي',
                     descEn: '1. Enthusiastic welcome song\n2. Social question\n3. Hear name first\n4. Then see image\n5. Enthusiastic verbal praise',
-                    color: 'from-pink-400 to-purple-500',
+                    color: ' ',
                 };
             case 'fragile-x':
                 return {
@@ -48,7 +48,7 @@ export function SyndromeTeachingDemoScreen() {
                     titleEn: 'Learning Method: Calm Context First',
                     descAr: '١. دعوة هادئة ومطمئنة\n٢. عرض المشهد الكامل (ضبابي)\n٣. تركيز بطيء على التفاصيل\n٤. وقت كافٍ للمعالجة\n٥. مكافأة هادئة',
                     descEn: '1. Calm, reassuring invitation\n2. Show whole scene (blurred)\n3. Slow focus on details\n4. Sufficient processing time\n5. Gentle reward',
-                    color: 'from-slate-100 to-slate-300',
+                    color: ' ',
                 };
             case 'autism':
                 return {
@@ -56,7 +56,7 @@ export function SyndromeTeachingDemoScreen() {
                     titleEn: 'Learning Method: Structured & Predictable',
                     descAr: '١. عرض الجدول البصري\n٢. صورة واضحة بدون تشتيت\n٣. معلومة واحدة فقط\n٤. خيارات واضحة\n٥. مكافأة متوقعة',
                     descEn: '1. Show visual schedule\n2. Clear image, no distractions\n3. One piece of information\n4. Clear choices\n5. Predictable reward',
-                    color: 'from-slate-100 to-slate-300',
+                    color: ' ',
                 };
             default:
                 return {
@@ -64,7 +64,7 @@ export function SyndromeTeachingDemoScreen() {
                     titleEn: 'Learning Method',
                     descAr: '',
                     descEn: '',
-                    color: 'from-blue-400 to-cyan-500',
+                    color: ' ',
                 };
         }
     };
@@ -72,7 +72,7 @@ export function SyndromeTeachingDemoScreen() {
     const info = getSyndromeDescription();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 p-6">
+        <div className="min-h-screen bg-brand-blue-wash via-white p-6">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
@@ -84,9 +84,9 @@ export function SyndromeTeachingDemoScreen() {
                     >
                         <ArrowLeft className="size-6" />
                     </Button>
-                    <h1 className="text-4xl font-bold text-gray-800">
-                        {language === 'ar' ? 'عرض توضيحي لطرق التدريس' : 'Teaching Methods Demo'}
-                    </h1>
+                    <h1 className="t-title text-ink">
+ {language === 'ar' ? 'عرض توضيحي لطرق التدريس' : 'Teaching Methods Demo'}
+ </h1>
                 </div>
 
                 {!showDemo ? (
@@ -96,11 +96,11 @@ export function SyndromeTeachingDemoScreen() {
                         className="space-y-6"
                     >
                         {/* Syndrome Info Card */}
-                        <div className={`bg-gradient-to-br ${info.color} rounded-3xl p-8 shadow-2xl border-4 border-white`}>
+                        <div className={`bg-surface-sunk ${info.color} rounded-brand-lg p-8 shadow-brand-lg border-2 border-hairline`}>
                             <h2 className="text-3xl font-bold text-white mb-4">
-                                {language === 'ar' ? info.titleAr : info.titleEn}
-                            </h2>
-                            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
+ {language === 'ar' ? info.titleAr : info.titleEn}
+ </h2>
+                            <div className="bg-surface rounded-brand p-6">
                                 <pre className="text-xl text-white font-medium whitespace-pre-line leading-relaxed">
                                     {language === 'ar' ? info.descAr : info.descEn}
                                 </pre>
@@ -108,11 +108,11 @@ export function SyndromeTeachingDemoScreen() {
                         </div>
 
                         {/* Scientific Basis */}
-                        <div className="bg-white rounded-3xl p-8 shadow-xl border-4 border-gray-100">
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                        <div className="bg-surface rounded-brand-lg p-8 shadow-brand border-4 border-hairline-soft">
+                            <h3 className="text-2xl font-bold text-ink mb-4">
                                 {language === 'ar' ? '🔬 الأساس العلمي' : '🔬 Scientific Basis'}
                             </h3>
-                            <div className="space-y-3 text-lg text-gray-700">
+                            <div className="space-y-3 text-lg text-ink">
                                 {syndrome === 'down-syndrome' && (
                                     <>
                                         <p className="font-semibold">
@@ -120,7 +120,7 @@ export function SyndromeTeachingDemoScreen() {
                                                 ? '• قوة في التعلم البصري، ضعف في المعالجة السمعية'
                                                 : '• Strong visual learning, weaker auditory processing'}
                                         </p>
-                                        <p className="text-gray-600">
+                                        <p className="text-ink-muted">
                                             {language === 'ar'
                                                 ? 'المرجع: Buckley & Bird (1993)'
                                                 : 'Reference: Buckley & Bird (1993)'}
@@ -139,7 +139,7 @@ export function SyndromeTeachingDemoScreen() {
                                                 ? '• تفاعل اجتماعي عالي وحب للموسيقى'
                                                 : '• Hypersocial and musical ability'}
                                         </p>
-                                        <p className="text-gray-600">
+                                        <p className="text-ink-muted">
                                             {language === 'ar'
                                                 ? 'المرجع: Mervis & John (2010)'
                                                 : 'Reference: Mervis & John (2010)'}
@@ -158,7 +158,7 @@ export function SyndromeTeachingDemoScreen() {
                                                 ? '• حاجة للسياق الكامل قبل التفاصيل'
                                                 : '• Need for whole context before details'}
                                         </p>
-                                        <p className="text-gray-600">
+                                        <p className="text-ink-muted">
                                             {language === 'ar'
                                                 ? 'المرجع: Cornish et al. (2004)'
                                                 : 'Reference: Cornish et al. (2004)'}
@@ -177,7 +177,7 @@ export function SyndromeTeachingDemoScreen() {
                                                 ? '• حاجة للتنظيم والتوقع'
                                                 : '• Need for structure and predictability'}
                                         </p>
-                                        <p className="text-gray-600">
+                                        <p className="text-ink-muted">
                                             {language === 'ar'
                                                 ? 'المرجع: Grandin (2006)'
                                                 : 'Reference: Grandin (2006)'}
@@ -191,7 +191,7 @@ export function SyndromeTeachingDemoScreen() {
                         <Button
                             onClick={() => setShowDemo(true)}
                             size="lg"
-                            className="w-full py-8 text-3xl font-bold rounded-3xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-2xl"
+                            className="w-full py-8 text-3xl font-bold rounded-brand-lg bg-brand-green-solid hover:brightness-110 text-white shadow-brand-lg"
                         >
                             {language === 'ar' ? '🎯 ابدأ العرض التوضيحي' : '🎯 Start Demo'}
                         </Button>

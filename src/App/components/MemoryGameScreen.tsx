@@ -132,24 +132,24 @@ export function MemoryGameScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 overflow-hidden relative transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-transparent'}`}>
+        <div className={`min-h-screen p-4 overflow-hidden relative transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-ground-tint' : 'bg-transparent'}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8 h-full flex flex-col relative z-10">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-6xl font-black drop-shadow-xl text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-600' : 'text-emerald-700'}`}>
-                        {t.memoryGame} 🧩
-                    </h1>
+                    <h1 className={`text-6xl font-black drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-green-ink'}`}>
+ {t.memoryGame} 
+ </h1>
 
-                    <Card className={`flex gap-6 backdrop-blur-md p-5 rounded-[2rem] shadow-2xl border-4 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-white border-slate-100' : 'bg-white/90 border-emerald-100'}`}>
-                        <div className={`text-center px-4 border-e-4 ${activeRules?.sensoryProfile === 'low-arousal' ? 'border-slate-50' : 'border-emerald-50'}`}>
-                            <p className={`text-sm font-black uppercase tracking-widest ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-500' : 'text-emerald-600'}`}>{language === 'ar' ? 'الحركات' : 'Moves'}</p>
-                            <p className={`text-4xl font-black ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-700' : 'text-emerald-700'}`}>{moves}</p>
+                    <Card className={`flex gap-6 p-5 rounded-brand-lg shadow-brand-lg border-4 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface border-hairline' : 'bg-surface border-brand-green'}`}>
+                        <div className={`text-center px-4 border-e-4 ${activeRules?.sensoryProfile === 'low-arousal' ? 'border-hairline-soft' : 'border-brand-green'}`}>
+                            <p className={`text-sm font-black uppercase tracking-widest ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-green-ink'}`}>{language === 'ar' ? 'الحركات' : 'Moves'}</p>
+                            <p className={`text-4xl font-black ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-green-ink'}`}>{moves}</p>
                         </div>
                         <div className="text-center px-4">
-                            <p className={`text-sm font-black uppercase tracking-widest ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-500' : 'text-emerald-600'}`}>{language === 'ar' ? 'الأزواج' : 'Matches'}</p>
-                            <p className={`text-4xl font-black ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-700' : 'text-emerald-700'}`}>{matches}/{difficulty}</p>
+                            <p className={`text-sm font-black uppercase tracking-widest ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-green-ink'}`}>{language === 'ar' ? 'الأزواج' : 'Matches'}</p>
+                            <p className={`text-4xl font-black ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-green-ink'}`}>{matches}/{difficulty}</p>
                         </div>
                     </Card>
                 </div>
@@ -178,12 +178,12 @@ export function MemoryGameScreen() {
                                     >
                                         {/* Front (Hidden) */}
                                         <Card className={`
-                                            absolute inset-0 backface-hidden border-8 border-white shadow-3xl
-                                            ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-200' : 'bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600'} 
-                                            flex items-center justify-center rounded-[2.5rem]
-                                            group-hover:shadow-emerald-200/50 transition-shadow
+                                            absolute inset-0 backface-hidden border-2 border-hairline shadow-brand-lg
+                                            ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-green-wash'} 
+                                            flex items-center justify-center rounded-brand-xl
+                                            group-hover:shadow-brand/50 transition-shadow
                                         `}>
-                                            <Brain className={`size-20 animate-pulse ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-400' : 'text-white/40'}`} />
+                                            <Brain className={`size-20 animate-pulse ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-white/40'}`} />
 
                                             {/* Visual Hint (Ghosting) for Syndrome Support */}
                                             {activeRules?.gameAdjustments?.memoryGameHints && !card.isMatched && (
@@ -197,19 +197,19 @@ export function MemoryGameScreen() {
 
                                         {/* Back (Emoji) */}
                                         <Card className={`
-                                            absolute inset-0 backface-hidden border-8 border-white shadow-3xl
-                                            bg-white flex items-center justify-center rounded-[2.5rem]
+                                            absolute inset-0 backface-hidden border-2 border-hairline shadow-brand-lg
+                                            bg-surface flex items-center justify-center rounded-brand-xl
                                             rotate-y-180 transition-colors
-                                            ${card.isMatched ? (activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50 border-slate-300' : 'bg-emerald-50 border-emerald-400') : ''}
+                                            ${card.isMatched ? (activeRules?.sensoryProfile === 'low-arousal' ? 'bg-ground-tint border-hairline' : 'bg-brand-green-wash border-brand-green') : ''}
                                         `}>
-                                            <span className={`text-[6rem] sm:text-[8rem] ${card.isMatched ? 'scale-110 drop-shadow-lg' : ''}`}>
+                                            <span className={`text-[6rem] sm:text-[8rem] ${card.isMatched ? 'scale-110 drop-shadow-brand' : ''}`}>
                                                 {card.emoji}
                                             </span>
                                             {card.isMatched && (
                                                 <motion.div
                                                     initial={{ scale: 0 }}
                                                     animate={{ scale: 1 }}
-                                                    className="absolute -top-4 -right-4 bg-emerald-500 text-white p-2 rounded-full shadow-lg"
+                                                    className="absolute -top-4 -right-4 bg-brand-green-solid text-white p-2 rounded-full shadow-brand"
                                                 >
                                                     <Sparkles className="size-6" />
                                                 </motion.div>
@@ -234,16 +234,16 @@ export function MemoryGameScreen() {
                                 >
                                     <span>✨</span><span>🌟</span><span>✨</span><span>🌟</span>
                                 </motion.div>
-                                <div className="text-[12rem] bg-white rounded-[4rem] p-16 shadow-3xl border-8 border-emerald-200 relative z-10">
+                                <div className="text-[12rem] bg-surface rounded-brand-xl p-16 shadow-brand-lg border-8 border-brand-green relative z-10">
                                     🏆
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <h2 className="text-7xl font-black text-emerald-800 drop-shadow-sm">
-                                    {language === 'ar' ? 'يا لك من بطل!' : 'Heroic Work!'}
-                                </h2>
-                                <p className="text-3xl text-emerald-600 font-black">
+                                <h2 className="t-title text-brand-green-ink">
+ {language === 'ar' ? 'يا لك من بطل!' : 'Heroic Work!'}
+ </h2>
+                                <p className="text-3xl text-brand-green-ink font-black">
                                     {language === 'ar' ? `أنهيت اللعبة في ${moves} تجربة` : `Completed in ${moves} moves`}
                                 </p>
                             </div>
@@ -253,7 +253,7 @@ export function MemoryGameScreen() {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={initGame}
-                                    className="bg-emerald-500 hover:bg-emerald-600 text-white text-3xl font-black px-16 py-8 rounded-[2rem] shadow-2xl flex items-center gap-4 transition-colors"
+                                    className="bg-brand-green-solid hover:bg-brand-green-solid text-white text-3xl font-black px-16 py-8 rounded-brand-lg shadow-brand-lg flex items-center gap-4 transition-colors"
                                 >
                                     <RotateCcw className="size-10" />
                                     {language === 'ar' ? 'مرة أخرى' : 'Play Again'}
@@ -263,7 +263,7 @@ export function MemoryGameScreen() {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={handleBack}
-                                    className="bg-white text-emerald-500 border-4 border-emerald-100 text-3xl font-black px-16 py-8 rounded-[2rem] shadow-2xl flex items-center gap-4 hover:bg-emerald-50 transition-colors"
+                                    className="bg-surface text-brand-green-ink border-4 border-brand-green text-3xl font-black px-16 py-8 rounded-brand-lg shadow-brand-lg flex items-center gap-4 hover:bg-brand-green-wash transition-colors"
                                 >
                                     {language === 'ar' ? 'القائمة' : 'Menu'}
                                 </motion.button>
@@ -274,16 +274,16 @@ export function MemoryGameScreen() {
 
                 {/* Footer Settings */}
                 {!isGameOver && (
-                    <Card className="mt-8 self-center bg-white/80 p-4 rounded-[2rem] border-4 border-white shadow-xl flex items-center gap-8">
-                        <p className="text-2xl font-black text-emerald-700">{language === 'ar' ? 'مستوى التحدي:' : 'Challenge:'}</p>
+                    <Card className="mt-8 self-center bg-surface/80 p-4 rounded-brand-lg border-2 border-hairline shadow-brand flex items-center gap-8">
+                        <p className="text-2xl font-black text-brand-green-ink">{language === 'ar' ? 'مستوى التحدي:' : 'Challenge:'}</p>
                         <div className="flex gap-4">
                             {[4, 6, 8].map((d) => (
                                 <button
                                     key={d}
                                     onClick={() => { playSound('tap'); setDifficulty(d as any); }}
-                                    className={`px-8 py-3 rounded-2xl font-black text-xl transition-all ${difficulty === d
-                                        ? 'bg-emerald-500 text-white shadow-lg scale-110'
-                                        : 'bg-emerald-50 text-emerald-400 hover:bg-emerald-100'}`}
+                                    className={`px-8 py-3 rounded-brand font-black text-xl transition-all ${difficulty === d
+                                        ? 'bg-brand-green-solid text-white shadow-brand scale-110'
+                                        : 'bg-brand-green-wash text-brand-green-ink hover:bg-brand-green-wash'}`}
                                 >
                                     {d} {language === 'ar' ? 'أزواج' : 'Pairs'}
                                 </button>

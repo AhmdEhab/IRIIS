@@ -197,10 +197,10 @@ export function SyndromeLearningCard({
     };
 
     const getCardStyle = () => {
-        const base = "relative rounded-[3rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-8 border-white transition-all duration-700 min-h-[500px] flex items-center justify-center overflow-hidden";
-        if (activeRules?.sensoryProfile === 'low-arousal') return `${base} bg-slate-50`;
-        if (syndrome === 'williams') return `${base} bg-gradient-to-br from-pink-400 via-purple-400 to-indigo-500`;
-        return `${base} bg-gradient-to-br from-blue-400 via-cyan-400 to-emerald-400`;
+        const base = "relative rounded-brand-xl p-10 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-2 border-hairline transition-all duration-700 min-h-[500px] flex items-center justify-center overflow-hidden";
+        if (activeRules?.sensoryProfile === 'low-arousal') return `${base} bg-surface-sunk`;
+        if (syndrome === 'williams') return `${base} bg-brand-coral-wash`;
+        return `${base} bg-brand-blue-wash`;
     };
 
     return (
@@ -220,13 +220,13 @@ export function SyndromeLearningCard({
                         className="flex flex-col items-center gap-10 z-10"
                     >
                         <div className="text-[120px] mb-2 animate-bounce">🎉</div>
-                        <h2 className="text-5xl font-black text-white drop-shadow-lg text-center">
-                            {language === 'ar' ? 'أحسنت جداً! 🌟' : 'Very well done! 🌟'}
-                        </h2>
+                        <h2 className="t-title text-white text-center">
+ {language === 'ar' ? 'أحسنت جداً! 🌟' : 'Very well done! 🌟'}
+ </h2>
                         <div className="flex flex-col md:flex-row gap-6">
                             <button
                                 onClick={startOver}
-                                className="px-12 py-6 rounded-[2rem] bg-indigo-600 hover:bg-indigo-700 text-white text-3xl font-bold shadow-2xl border-4 border-white transition-all transform hover:scale-105 flex items-center gap-4"
+                                className="px-12 py-6 rounded-brand-lg bg-brand-blue-ink hover:bg-brand-blue-ink text-white text-3xl font-bold shadow-brand-lg border-2 border-hairline transition-all transform hover:scale-105 flex items-center gap-4"
                             >
                                 <motion.span animate={{ rotate: -360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
                                     🔄
@@ -238,7 +238,7 @@ export function SyndromeLearningCard({
                                     reportPerformance(itemId, false, true); // Report as completed
                                     onComplete();
                                 }}
-                                className="px-12 py-6 rounded-[2rem] bg-emerald-500 hover:bg-emerald-600 text-white text-3xl font-bold shadow-2xl border-4 border-white transition-all transform hover:scale-105 flex items-center gap-4"
+                                className="px-12 py-6 rounded-brand-lg bg-brand-green-solid hover:bg-brand-green-solid text-white text-3xl font-bold shadow-brand-lg border-2 border-hairline transition-all transform hover:scale-105 flex items-center gap-4"
                             >
                                 ✅ {language === 'ar' ? 'إنهاء' : 'Finish'}
                             </button>
@@ -265,23 +265,23 @@ export function SyndromeLearningCard({
                                 <motion.div
                                     initial={{ x: 50, opacity: 0, rotate: 10 }}
                                     animate={{ x: 0, opacity: 1, rotate: 0 }}
-                                    className="size-56 md:size-72 rounded-[3rem] shadow-2xl overflow-hidden border-4 border-white/50 p-2 bg-white/20 backdrop-blur-xl"
+                                    className="size-56 md:size-72 rounded-brand-xl shadow-brand-lg overflow-hidden border-2 border-hairline/50 p-2 bg-surface"
                                 >
                                     <img
                                         src={contextImage || fullItem?.contextImage}
                                         alt={name}
-                                        className="w-full h-full object-cover rounded-[2.5rem]"
+                                        className="w-full h-full object-cover rounded-brand-xl"
                                     />
                                 </motion.div>
                             )}
                         </div>
 
-                        <h2 className="text-7xl font-black text-white drop-shadow-lg text-center">{name}</h2>
+                        <h2 className="t-title text-white text-center">{name}</h2>
                         {canInteract && (
                             <motion.div
                                 animate={{ y: [0, -10, 0], opacity: [0.6, 1, 0.6] }}
                                 transition={{ repeat: Infinity, duration: 1.5 }}
-                                className="text-3xl font-bold text-white bg-black/30 backdrop-blur-md px-10 py-4 rounded-[2rem] border-2 border-white/30"
+                                className="t-title text-white bg-ink/60 px-8 py-4 rounded-brand-lg border-2 border-hairline/30"
                             >
                                 {language === 'ar' ? '👆 اضغط للمتابعة' : '👆 Tap to continue'}
                             </motion.div>
@@ -329,7 +329,7 @@ export function SyndromeLearningCard({
                     {['intro', 'learning', 'feedback'].map((p) => (
                         <div
                             key={p}
-                            className={`w-6 h-6 rounded-full border-4 border-white transition-all duration-500 ${phase === p ? 'bg-green-400 scale-125 shadow-[0_0_20px_rgba(74,222,128,0.8)]' : 'bg-white/10'}`}
+                            className={`w-6 h-6 rounded-full border-2 border-hairline transition-all duration-500 ${phase === p ? 'bg-brand-green scale-125 shadow-[0_0_20px_rgba(74,222,128,0.8)]' : 'bg-surface/10'}`}
                         />
                     ))}
                 </div>

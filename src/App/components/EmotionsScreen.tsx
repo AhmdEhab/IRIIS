@@ -29,7 +29,7 @@ export function EmotionsScreen() {
             nameAr: 'سعيد',
             nameEn: 'Happy',
             emoji: '😊',
-            color: 'from-yellow-300 to-yellow-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1502781253272-4a0144b54e3f?auto=format&fit=crop&q=80&w=1000' // Happy kids playing
         },
         {
@@ -37,7 +37,7 @@ export function EmotionsScreen() {
             nameAr: 'حزين',
             nameEn: 'Sad',
             emoji: '😢',
-            color: 'from-blue-300 to-indigo-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1516585427167-9f4af9627e6c?auto=format&fit=crop&q=80&w=1000' // Child feeling sad/lonely
         },
         {
@@ -45,7 +45,7 @@ export function EmotionsScreen() {
             nameAr: 'غاضب',
             nameEn: 'Angry',
             emoji: '😠',
-            color: 'from-red-400 to-red-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1454418659174-8d4847e09968?auto=format&fit=crop&q=80&w=1000' // Angry stance/expression
         },
         {
@@ -53,7 +53,7 @@ export function EmotionsScreen() {
             nameAr: 'متحمس',
             nameEn: 'Excited',
             emoji: '🤩',
-            color: 'from-orange-400 to-pink-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&q=80&w=1000' // Excited celebration
         },
         {
@@ -61,7 +61,7 @@ export function EmotionsScreen() {
             nameAr: 'متفاجئ',
             nameEn: 'Surprised',
             emoji: '😲',
-            color: 'from-purple-400 to-fuchsia-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=1000' // Surprised expression
         },
         {
@@ -69,7 +69,7 @@ export function EmotionsScreen() {
             nameAr: 'هادئ',
             nameEn: 'Calm',
             emoji: '😌',
-            color: 'from-green-300 to-teal-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=1000' // Calm/Peaceful scene
         }
     ];
@@ -97,14 +97,14 @@ export function EmotionsScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-gradient-to-br from-pink-50 via-white to-yellow-50'}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-coral-wash via-white '}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-lg text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-600' : 'text-pink-600'}`}>
-                        {language === 'ar' ? 'مشاعري الجميلة' : 'My Emotions'} ✨
-                    </h1>
+                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-coral-ink'}`}>
+ {language === 'ar' ? 'مشاعري الجميلة' : 'My Emotions'} 
+ </h1>
                     <div className="w-24" />
                 </div>
 
@@ -127,12 +127,12 @@ export function EmotionsScreen() {
                                 >
                                     <button
                                         onClick={() => handleEmotionSelect(emotion)}
-                                        className={`w-full aspect-square rounded-full shadow-xl bg-gradient-to-br ${activeRules?.sensoryProfile === 'low-arousal' ? 'from-slate-200 to-slate-300' : emotion.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl border-8 border-white group`}
+                                        className={`w-full aspect-square rounded-full shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : emotion.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-lg">
+                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-brand">
                                             {emotion.emoji}
                                         </div>
-                                        <h3 className="text-3xl font-bold text-white drop-shadow-lg">
+                                        <h3 className="text-3xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? emotion.nameAr : emotion.nameEn}
                                         </h3>
                                     </button>
@@ -164,7 +164,7 @@ export function EmotionsScreen() {
                                             onClick={() => setSelectedEmotionId(null)}
                                             variant="outline"
                                             size="lg"
-                                            className="bg-white/80 backdrop-blur-sm text-2xl px-12 py-8 rounded-full shadow-xl border-4 border-white/50"
+                                            className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
                                             <RotateCcw className="size-8 me-3" />
                                             {language === 'ar' ? 'اختيار شعور آخر' : 'Choose another emotion'}

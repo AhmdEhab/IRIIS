@@ -73,7 +73,7 @@ export function IRISAssistant() {
                         exit={{ opacity: 0, scale: 0.8, y: 20 }}
                         className="pointer-events-auto mb-2"
                     >
-                        <div className="glass-dark p-6 rounded-[2.5rem] max-w-xs text-white shadow-3xl relative overflow-hidden">
+                        <div className="glass-dark p-6 rounded-brand-xl max-w-xs text-white shadow-brand-lg relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                                 <Volume2 className="size-16" />
                             </div>
@@ -82,7 +82,7 @@ export function IRISAssistant() {
                             </p>
                             <button
                                 onClick={nextMessage}
-                                className="w-full py-3 bg-white/20 hover:bg-white/30 rounded-2xl font-bold transition-all text-sm mb-4"
+                                className="w-full py-3 bg-surface/20 hover:bg-surface/30 rounded-brand font-bold transition-all text-sm mb-4"
                             >
                                 {language === 'ar' ? 'ماذا أيضاً؟ ✨' : 'What else? ✨'}
                             </button>
@@ -95,7 +95,7 @@ export function IRISAssistant() {
                                     </p>
                                     <div className="space-y-1">
                                         {aiRecommendations.slice(0, 2).map((rec, i) => (
-                                            <div key={i} className="text-sm bg-white/10 p-2 rounded-lg">
+                                            <div key={i} className="text-sm bg-surface/10 p-2 rounded-brand-sm">
                                                 {rec.title}
                                             </div>
                                         ))}
@@ -113,7 +113,7 @@ export function IRISAssistant() {
                     <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="bg-white px-4 py-2 rounded-full shadow-lg text-sm font-bold text-purple-600"
+                        className="bg-surface px-4 py-2 rounded-full shadow-brand text-sm font-bold text-brand-purple-ink"
                     >
                         {language === 'ar' ? 'هل تحتاج لمساعدة؟' : 'Need help?'}
                     </motion.div>
@@ -123,9 +123,9 @@ export function IRISAssistant() {
                     onClick={toggleAssistant}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="pointer-events-auto size-20 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center justify-center text-5xl relative overflow-hidden group"
+                    className="pointer-events-auto size-20 rounded-full bg-brand-purple-wash shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center justify-center text-5xl relative overflow-hidden group"
                 >
-                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-surface/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <AnimatePresence mode="wait">
                         {isOpen ? (
                             <motion.div key="close" initial={{ rotate: -90 }} animate={{ rotate: 0 }} exit={{ rotate: 90 }}>

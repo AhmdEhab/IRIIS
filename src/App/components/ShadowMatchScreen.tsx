@@ -57,7 +57,7 @@ export function ShadowMatchScreen() {
         setIsCorrect(null);
 
         // Williams Syndrome Strategy: Use auditory hook (verbally name the object as a clue)
-        if (activeRules?.auditoryHook) {
+        if (false) { /* auditoryHook removed: was a diagnosis-derived flag */
             const clue = language === 'ar'
                 ? `هيا نجد ${target.nameAr}`
                 : `Let's find the ${target.nameEn}`;
@@ -107,17 +107,17 @@ export function ShadowMatchScreen() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 p-4 overflow-hidden">
+        <div className="min-h-screen bg-brand-blue-wash via-surface p-4 overflow-hidden">
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className="text-5xl font-black text-indigo-700 drop-shadow-lg text-center flex-1">
-                        {t.shadowMatch} 👤
-                    </h1>
-                    <div className="bg-white/90 backdrop-blur-sm px-6 py-2 rounded-full shadow-lg border-2 border-indigo-100">
-                        <p className="text-xl font-black text-indigo-600">
+                    <h1 className="t-title text-brand-blue-ink text-center flex-1">
+ {t.shadowMatch} 
+ </h1>
+                    <div className="bg-surface px-6 py-2 rounded-full shadow-brand border-2 border-brand-blue">
+                        <p className="text-xl font-black text-brand-blue-ink">
                             {language === 'ar' ? 'الجولة' : 'Round'} {round}/10
                         </p>
                     </div>
@@ -126,9 +126,9 @@ export function ShadowMatchScreen() {
                 {!isGameOver ? (
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <motion.div key={round + 'shadow'} initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex flex-col items-center">
-                            <Card className="w-full aspect-square max-w-md bg-white border-8 border-white shadow-2xl rounded-[4rem] flex flex-col items-center justify-center p-12 relative overflow-hidden">
+                            <Card className="w-full aspect-square max-w-md bg-surface border-2 border-hairline shadow-brand-lg rounded-brand-xl flex flex-col items-center justify-center p-12 relative overflow-hidden">
                                 <div className="absolute top-6 left-6 opacity-10">
-                                    <HelpCircle className="size-20 text-indigo-500" />
+                                    <HelpCircle className="size-20 text-brand-blue-ink" />
                                 </div>
                                 <motion.div
                                     animate={{
@@ -140,8 +140,8 @@ export function ShadowMatchScreen() {
                                 >
                                     {currentItem?.emoji}
                                 </motion.div>
-                                <div className="mt-8 bg-indigo-50 px-8 py-3 rounded-full">
-                                    <p className="text-2xl font-bold text-indigo-600">
+                                <div className="mt-8 bg-brand-blue-wash px-8 py-3 rounded-full">
+                                    <p className="text-2xl font-bold text-brand-blue-ink">
                                         {language === 'ar' ? 'من أنا؟' : 'Who am I?'}
                                     </p>
                                 </div>
@@ -160,18 +160,18 @@ export function ShadowMatchScreen() {
                                     whileHover={{ scale: selectedId === null ? 1.05 : 1 }}
                                     whileTap={{ scale: 0.95 }}
                                     className={`
-                                        aspect-square rounded-[3rem] border-8 shadow-xl relative flex items-center justify-center text-8xl transition-all duration-300 
+                                        aspect-square rounded-brand-xl border-8 shadow-brand relative flex items-center justify-center text-8xl transition-all duration-300 
                                         ${selectedId === option.id
-                                            ? isCorrect ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'
+                                            ? isCorrect ? 'border-brand-green bg-brand-green-wash' : 'border-brand-coral bg-brand-coral-wash'
                                             : selectedId === null
-                                                ? 'border-white bg-white hover:border-indigo-200'
-                                                : option.id === currentItem?.id ? 'border-green-500 bg-green-50' : 'border-gray-100 bg-gray-50 opacity-50'
+                                                ? 'border-hairline bg-surface hover:border-brand-blue'
+                                                : option.id === currentItem?.id ? 'border-brand-green bg-brand-green-wash' : 'border-hairline bg-ground-tint opacity-50'
                                         }
-                                        ${activeRules?.auditoryHook && selectedId === null && option.id === currentItem?.id ? 'ring-8 ring-indigo-500/20 ring-offset-4 animate-pulse' : ''}
+                                        
                                     `}
                                 >
                                     <span className={selectedId !== null && option.id !== currentItem?.id ? 'filter grayscale' : ''}>{option.emoji}</span>
-                                    {selectedId === option.id && isCorrect && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute inset-0 flex items-center justify-center bg-green-500/20 rounded-[2.5rem]"><Check className="size-24 text-green-600" /></motion.div>}
+                                    {selectedId === option.id && isCorrect && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute inset-0 flex items-center justify-center bg-brand-green/20 rounded-brand-xl"><Check className="size-24 text-brand-green-ink" /></motion.div>}
                                 </motion.button>
                             ))}
                         </div>
@@ -179,19 +179,19 @@ export function ShadowMatchScreen() {
                 ) : (
                     <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center space-y-8">
                         <div className="relative inline-block">
-                            <Trophy className="size-40 text-yellow-500 mx-auto" />
+                            <Trophy className="size-40 text-brand-yellow-ink mx-auto" />
                             <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute inset-x-0 -top-4 text-4xl">✨ ✨ ✨</motion.div>
                         </div>
                         <div className="space-y-2">
-                            <h2 className="text-6xl font-black text-indigo-700">{language === 'ar' ? 'عمل رائع يا محقق!' : 'Great Job Detective!'}</h2>
-                            <p className="text-3xl font-bold text-indigo-500">{language === 'ar' ? `نتيجتك: ${score}/100` : `Your Score: ${score}/100`}</p>
+                            <h2 className="t-title text-brand-blue-ink">{language === 'ar' ? 'عمل رائع يا محقق!' : 'Great Job Detective!'}</h2>
+                            <p className="text-3xl font-bold text-brand-blue-ink">{language === 'ar' ? `نتيجتك: ${score}/100` : `Your Score: ${score}/100`}</p>
                         </div>
                         <div className="flex justify-center gap-6">
-                            <Button onClick={() => { setScore(0); setRound(1); setIsGameOver(false); playSound('celebration'); }} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-2xl px-12 py-8 rounded-full shadow-2xl">
+                            <Button onClick={() => { setScore(0); setRound(1); setIsGameOver(false); playSound('celebration'); }} size="lg" className="bg-brand-blue hover:bg-brand-blue text-2xl px-12 py-8 rounded-full shadow-brand-lg">
                                 <RotateCcw className="size-8 me-3" />
                                 {language === 'ar' ? 'العب ثانية' : 'Play Again'}
                             </Button>
-                            <Button onClick={handleBack} variant="outline" size="lg" className="bg-white text-2xl px-12 py-8 rounded-full border-4 shadow-xl">{language === 'ar' ? 'صالة الألعاب' : 'Games Hub'}</Button>
+                            <Button onClick={handleBack} variant="outline" size="lg" className="bg-surface text-2xl px-12 py-8 rounded-full border-4 shadow-brand">{language === 'ar' ? 'صالة الألعاب' : 'Games Hub'}</Button>
                         </div>
                     </motion.div>
                 )}

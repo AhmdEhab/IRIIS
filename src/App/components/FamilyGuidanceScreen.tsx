@@ -131,10 +131,10 @@ export function FamilyGuidanceScreen() {
   };
 
   const categories = [
-    { id: 'health', name: t.health, icon: Heart, color: 'text-red-500' },
-    { id: 'education', name: t.education, icon: GraduationCap, color: 'text-blue-500' },
-    { id: 'psychology', name: t.psychology, icon: Brain, color: 'text-purple-500' },
-    { id: 'behavior', name: t.behavior, icon: Activity, color: 'text-green-500' }
+    { id: 'health', name: t.health, icon: Heart, color: 'text-brand-coral-ink' },
+    { id: 'education', name: t.education, icon: GraduationCap, color: 'text-brand-blue-ink' },
+    { id: 'psychology', name: t.psychology, icon: Brain, color: 'text-brand-purple-ink' },
+    { id: 'behavior', name: t.behavior, icon: Activity, color: 'text-brand-green-ink' }
   ];
 
   if (selectedArticle) {
@@ -145,7 +145,7 @@ export function FamilyGuidanceScreen() {
     const Icon = categoryInfo?.icon || Book;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-yellow-100 p-4">
+      <div className="min-h-screen bg-brand-blue-wash via-white p-4">
         <div className="max-w-4xl mx-auto py-8">
           <Button
             onClick={() => {
@@ -166,12 +166,12 @@ export function FamilyGuidanceScreen() {
           >
             <Card className="p-8">
               <div className="flex items-start gap-4 mb-6">
-                <div className={`p-4 rounded-full bg-gradient-to-br from-purple-100 to-blue-100`}>
+                <div className={`p-4 rounded-full bg-brand-purple-wash`}>
                   <Icon className={`size-8 ${categoryInfo?.color}`} />
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-4xl font-bold mb-2">{article.title}</h1>
-                  <p className="text-gray-600">{article.summary}</p>
+                  <h1 className="t-title mb-2">{article.title}</h1>
+                  <p className="text-ink-muted">{article.summary}</p>
                 </div>
               </div>
 
@@ -182,7 +182,7 @@ export function FamilyGuidanceScreen() {
               <Button
                 onClick={() => handleReadAloud(article)}
                 size="lg"
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-brand-purple hover:bg-brand-purple"
               >
                 <Volume2 className="size-6 me-2" />
                 {language === 'ar' ? 'استماع للمقال' : 'Listen to Article'}
@@ -195,7 +195,7 @@ export function FamilyGuidanceScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-yellow-100 p-4">
+    <div className="min-h-screen bg-brand-blue-wash via-white p-4">
       <div className="max-w-7xl mx-auto py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -208,9 +208,9 @@ export function FamilyGuidanceScreen() {
             {t.back}
           </Button>
 
-          <h1 className="text-4xl font-bold text-slate-800">
-            {t.familyGuidance}
-          </h1>
+          <h1 className="t-title text-ink">
+ {t.familyGuidance}
+ </h1>
 
           <div className="w-24" />
         </div>
@@ -228,7 +228,7 @@ export function FamilyGuidanceScreen() {
               );
             })}
             <TabsTrigger value="chat" className="text-lg py-4">
-              <MessageCircle className="size-5 me-2 text-pink-500" />
+              <MessageCircle className="size-5 me-2 text-brand-coral-ink" />
               {language === 'ar' ? 'المساعد الذكي' : 'Assistant'}
             </TabsTrigger>
           </TabsList>
@@ -248,16 +248,16 @@ export function FamilyGuidanceScreen() {
                         transition={{ delay: index * 0.1 }}
                       >
                         <Card
-                          className="p-6 hover:shadow-xl transition-shadow cursor-pointer h-full"
+                          className="p-6 hover:shadow-brand transition-shadow cursor-pointer h-full"
                           onClick={() => handleArticleClick(article)}
                         >
                           <div className="flex items-start gap-4">
-                            <div className="p-3 rounded-full bg-gradient-to-br from-purple-100 to-blue-100">
+                            <div className="p-3 rounded-full bg-brand-purple-wash">
                               <Icon className={`size-6 ${category.color}`} />
                             </div>
                             <div className="flex-1">
                               <h3 className="text-xl font-bold mb-2">{article.title}</h3>
-                              <p className="text-gray-600 text-sm">{article.summary}</p>
+                              <p className="text-ink-muted text-sm">{article.summary}</p>
                             </div>
                           </div>
                         </Card>
@@ -271,14 +271,14 @@ export function FamilyGuidanceScreen() {
           <TabsContent value="chat">
             <Card className="p-6 h-[600px] flex flex-col">
               <div className="flex items-center gap-3 mb-4 pb-4 border-b">
-                <div className="p-3 rounded-full bg-purple-100">
-                  <MessageCircle className="size-6 text-purple-600" />
+                <div className="p-3 rounded-full bg-brand-purple-wash">
+                  <MessageCircle className="size-6 text-brand-purple-ink" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">
-                    {language === 'ar' ? 'المساعد الذكي للأهل' : 'AI Parent Assistant'}
-                  </h2>
-                  <p className="text-sm text-gray-500">
+ {language === 'ar' ? 'المساعد الذكي للأهل' : 'AI Parent Assistant'}
+ </h2>
+                  <p className="text-sm text-ink-muted">
                     {language === 'ar' ? 'اسأل عن أي شيء يخص طفلك' : 'Ask anything about your child'}
                   </p>
                 </div>
@@ -286,8 +286,8 @@ export function FamilyGuidanceScreen() {
 
               <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2 custom-scrollbar">
                 <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-2xl p-4 max-w-[80%]">
-                    <p className="text-gray-800">
+                  <div className="bg-surface-sunk rounded-brand p-4 max-w-[80%]">
+                    <p className="text-ink">
                       {language === 'ar'
                         ? 'مرحباً! أنا هنا لمساعدتك في رحلة تربية طفلك. يمكنك سؤالي عن نصائح، أنشطة، أو كيفية التعامل مع مواقف معينة.'
                         : 'Hello! I am here to help you on your parenting journey. You can ask me for tips, activities, or how to handle specific situations.'
@@ -302,7 +302,7 @@ export function FamilyGuidanceScreen() {
                   placeholder={language === 'ar' ? 'اكتب سؤالك هنا...' : 'Type your question here...'}
                   className="flex-1"
                 />
-                <Button className="bg-purple-600 hover:bg-purple-700">
+                <Button className="bg-brand-purple hover:bg-brand-purple">
                   {language === 'ar' ? 'إرسال' : 'Send'}
                 </Button>
               </div>

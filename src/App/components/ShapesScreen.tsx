@@ -29,7 +29,7 @@ export function ShapesScreen() {
             nameAr: 'دائرة',
             nameEn: 'Circle',
             icon: '🔴',
-            color: 'from-orange-400 to-red-500',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1559131397-f94da358f7ca?auto=format&fit=crop&q=80&w=1000' // Sun
         },
         {
@@ -37,7 +37,7 @@ export function ShapesScreen() {
             nameAr: 'مربع',
             nameEn: 'Square',
             icon: '⬛',
-            color: 'from-blue-400 to-indigo-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&q=80&w=1000' // Gift box
         },
         {
@@ -45,7 +45,7 @@ export function ShapesScreen() {
             nameAr: 'مثلث',
             nameEn: 'Triangle',
             icon: '🔺',
-            color: 'from-yellow-400 to-amber-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=1000' // Pizza
         },
         {
@@ -53,7 +53,7 @@ export function ShapesScreen() {
             nameAr: 'مستطيل',
             nameEn: 'Rectangle',
             icon: '▮',
-            color: 'from-emerald-400 to-teal-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&q=80&w=1000' // TV
         },
         {
@@ -61,7 +61,7 @@ export function ShapesScreen() {
             nameAr: 'نجمة',
             nameEn: 'Star',
             icon: '⭐',
-            color: 'from-yellow-300 to-orange-400',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&q=80&w=1000' // Stars
         },
         {
@@ -69,7 +69,7 @@ export function ShapesScreen() {
             nameAr: 'قلب',
             nameEn: 'Heart',
             icon: '❤️',
-            color: 'from-pink-400 to-rose-600',
+            color: ' ',
             contextImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=1000' // Heart cookie/shape
         }
     ];
@@ -97,14 +97,14 @@ export function ShapesScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-slate-50' : 'bg-gradient-to-br from-indigo-100 via-white to-purple-100'}`}>
+        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="w-24" />
-                    <h1 className={`text-5xl font-bold drop-shadow-lg text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-slate-600' : 'text-indigo-600'}`}>
-                        {language === 'ar' ? 'الأشكال الهندسيّة' : 'Shapes'} 🔺
-                    </h1>
+                    <h1 className={`text-5xl font-bold drop-shadow-brand text-center flex-1 ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-brand-blue-ink'}`}>
+ {language === 'ar' ? 'الأشكال الهندسيّة' : 'Shapes'} 
+ </h1>
                     <div className="w-24" />
                 </div>
 
@@ -127,12 +127,12 @@ export function ShapesScreen() {
                                 >
                                     <button
                                         onClick={() => handleShapeSelect(shape)}
-                                        className={`w-full aspect-square rounded-[3.5rem] shadow-xl bg-gradient-to-br ${activeRules?.sensoryProfile === 'low-arousal' ? 'from-slate-200 to-slate-300' : shape.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl border-8 border-white group`}
+                                        className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : shape.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-md">
+                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-brand-sm">
                                             {shape.icon}
                                         </div>
-                                        <h3 className="text-3xl font-bold text-white drop-shadow-lg">
+                                        <h3 className="text-3xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? shape.nameAr : shape.nameEn}
                                         </h3>
                                     </button>
@@ -163,7 +163,7 @@ export function ShapesScreen() {
                                             onClick={() => setSelectedShapeId(null)}
                                             variant="outline"
                                             size="lg"
-                                            className="bg-white/80 backdrop-blur-sm text-2xl px-12 py-8 rounded-full shadow-xl border-4 border-white/50"
+                                            className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
                                             <RotateCcw className="size-8 me-3" />
                                             {language === 'ar' ? 'اختيار شكل آخر' : 'Choose another shape'}

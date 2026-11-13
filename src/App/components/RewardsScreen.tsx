@@ -87,8 +87,8 @@ export function RewardsScreen() {
 
     return (
         <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
-                ? 'bg-slate-50'
-                : 'bg-gradient-to-br from-yellow-50 via-white to-blue-50'
+                ? 'bg-ground-tint'
+                : 'bg-ground'
             }`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
@@ -96,13 +96,13 @@ export function RewardsScreen() {
                 <div className="flex justify-between items-center mb-12">
                     <div className="w-24" />
                     <div className="text-center flex-1">
-                        <h1 className={`text-6xl font-black drop-shadow-lg mb-2 ${activeRules?.sensoryProfile === 'low-arousal'
-                                ? 'text-slate-600'
-                                : 'text-yellow-600'
+                        <h1 className={`text-6xl font-black drop-shadow-brand mb-2 ${activeRules?.sensoryProfile === 'low-arousal'
+                                ? 'text-ink-muted'
+                                : 'text-brand-yellow-ink'
                             }`}>
-                            {t.rewards} 🏆
-                        </h1>
-                        <p className="text-2xl text-gray-500 font-medium">
+ {t.rewards} 
+ </h1>
+                        <p className="text-2xl text-ink-muted font-medium">
                             {language === 'ar' ? `فخورون بك جداً يا ${childProfile?.name || 'بطلنا'}` : `We're so proud of you, ${childProfile?.name || 'Hero'}`}! 🌟
                         </p>
                     </div>
@@ -111,33 +111,33 @@ export function RewardsScreen() {
 
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <Card className="p-8 bg-gradient-to-br from-yellow-100 to-yellow-200 border-none flex items-center gap-6 shadow-xl rounded-3xl">
-                        <div className="size-20 rounded-full bg-white flex items-center justify-center shadow-lg">
-                            <Trophy className="size-12 text-yellow-500" />
+                    <Card className="p-8 bg-brand-yellow border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
+                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
+                            <Trophy className="size-12 text-brand-yellow-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-yellow-700">{earnedBadges.length}</p>
-                            <p className="text-lg font-bold text-yellow-600 uppercase">{t.rewards}</p>
+                            <p className="text-4xl font-black text-brand-yellow-ink">{earnedBadges.length}</p>
+                            <p className="text-lg font-bold text-brand-yellow-ink uppercase">{t.rewards}</p>
                         </div>
                     </Card>
 
-                    <Card className="p-8 bg-gradient-to-br from-blue-100 to-blue-200 border-none flex items-center gap-6 shadow-xl rounded-3xl">
-                        <div className="size-20 rounded-full bg-white flex items-center justify-center shadow-lg">
-                            <Star className="size-12 text-blue-500" />
+                    <Card className="p-8 bg-brand-blue border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
+                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
+                            <Star className="size-12 text-brand-blue-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-blue-700">1,250</p>
-                            <p className="text-lg font-bold text-blue-600 uppercase">{t.iqPoints}</p>
+                            <p className="text-4xl font-black text-brand-blue-ink">1,250</p>
+                            <p className="text-lg font-bold text-brand-blue-ink uppercase">{t.iqPoints}</p>
                         </div>
                     </Card>
 
-                    <Card className="p-8 bg-gradient-to-br from-pink-100 to-pink-200 border-none flex items-center gap-6 shadow-xl rounded-3xl">
-                        <div className="size-20 rounded-full bg-white flex items-center justify-center shadow-lg">
-                            <Heart className="size-12 text-pink-500" />
+                    <Card className="p-8 bg-brand-coral border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
+                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
+                            <Heart className="size-12 text-brand-coral-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-pink-700">5</p>
-                            <p className="text-lg font-bold text-pink-600 uppercase">{t.streak}</p>
+                            <p className="text-4xl font-black text-brand-coral-ink">5</p>
+                            <p className="text-lg font-bold text-brand-coral-ink uppercase">{t.streak}</p>
                         </div>
                     </Card>
                 </div>
@@ -159,38 +159,38 @@ export function RewardsScreen() {
                 `}
                             >
                                 <Card className={`
-                  p-10 rounded-[3rem] border-8 border-white shadow-2xl flex flex-col items-center text-center overflow-hidden
-                  ${badge.unlocked ? 'bg-white' : 'bg-gray-100'}
+                  p-10 rounded-brand-xl border-2 border-hairline shadow-brand-lg flex flex-col items-center text-center overflow-hidden
+                  ${badge.unlocked ? 'bg-surface' : 'bg-surface-sunk'}
                 `}>
                                     {/* Decorative background circle */}
                                     <div className={`
                     absolute -top-10 -right-10 size-40 rounded-full opacity-10 transition-transform group-hover:scale-150
-                    ${badge.unlocked ? 'bg-yellow-500' : 'bg-gray-500'}
+                    ${badge.unlocked ? 'bg-brand-yellow' : 'bg-hairline'}
                   `} />
 
                                     <div className={`
-                    size-40 rounded-3xl mb-6 flex items-center justify-center text-8xl shadow-inner relative
-                    ${badge.unlocked ? 'bg-yellow-50' : 'bg-gray-200'}
+                    size-40 rounded-brand-lg mb-6 flex items-center justify-center text-8xl  relative
+                    ${badge.unlocked ? 'bg-brand-yellow-wash' : 'bg-surface-sunk'}
                   `}>
                                         {badge.unlocked ? (
                                             <>
-                                                <Sparkles className="absolute -top-4 -right-4 size-10 text-yellow-400 animate-pulse" />
+                                                <Sparkles className="absolute -top-4 -right-4 size-10 text-brand-yellow-ink animate-pulse" />
                                                 {badge.emoji}
                                             </>
                                         ) : (
-                                            <Medal className="size-20 text-gray-400" />
+                                            <Medal className="size-20 text-ink-muted" />
                                         )}
                                     </div>
 
-                                    <h3 className={`text-2xl font-black mb-2 ${badge.unlocked ? 'text-gray-800' : 'text-gray-500'}`}>
+                                    <h3 className={`text-2xl font-black mb-2 ${badge.unlocked ? 'text-ink' : 'text-ink-muted'}`}>
                                         {language === 'ar' ? badge.nameAr : badge.nameEn}
                                     </h3>
-                                    <p className={`text-sm font-medium leading-tight ${badge.unlocked ? 'text-gray-500' : 'text-gray-400'}`}>
+                                    <p className={`text-sm font-medium leading-tight ${badge.unlocked ? 'text-ink-muted' : 'text-ink-muted'}`}>
                                         {language === 'ar' ? badge.descriptionAr : badge.descriptionEn}
                                     </p>
 
                                     {!badge.unlocked && (
-                                        <div className="mt-4 bg-gray-200 px-4 py-1 rounded-full text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                        <div className="mt-4 bg-surface-sunk px-4 py-1 rounded-full text-xs font-bold text-ink-muted uppercase tracking-widest">
                                             {language === 'ar' ? 'مقفل' : 'Locked'}
                                         </div>
                                     )}

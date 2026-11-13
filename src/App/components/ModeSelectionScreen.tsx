@@ -52,7 +52,7 @@ export function ModeSelectionScreen() {
         <motion.h1
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-5xl font-bold text-center mb-12 text-purple-800"
+          className="text-5xl font-bold text-center mb-12 text-brand-purple-ink"
         >
           {t.selectMode}
         </motion.h1>
@@ -68,7 +68,7 @@ export function ModeSelectionScreen() {
           >
             <Button
               onClick={handleChildMode}
-              className="w-full h-full min-h-[400px] bg-gradient-to-br from-yellow-300 via-orange-300 to-pink-400 hover:from-yellow-400 hover:via-orange-400 hover:to-pink-500 shadow-2xl rounded-3xl border-0 relative overflow-hidden"
+              className="w-full h-full min-h-[400px] bg-brand-yellow-wash hover:brightness-[0.97] shadow-brand-lg rounded-brand-lg border-0 relative overflow-hidden"
             >
               {/* Decorative Elements */}
               <div className="absolute inset-0">
@@ -110,9 +110,9 @@ export function ModeSelectionScreen() {
                 >
                   🧸
                 </motion.div>
-                <h2 className="text-4xl font-bold text-white drop-shadow-lg">
-                  {t.childMode}
-                </h2>
+                <h2 className="t-title text-white">
+ {t.childMode}
+ </h2>
                 <p className="text-2xl text-white/90">
                   {t.childModeDesc}
                 </p>
@@ -130,17 +130,17 @@ export function ModeSelectionScreen() {
           >
             <Button
               onClick={handleParentMode}
-              className="w-full h-full min-h-[400px] bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-600 shadow-2xl rounded-3xl border-0 relative overflow-hidden"
+              className="w-full h-full min-h-[400px] bg-brand-blue-wash hover:brightness-[0.97] shadow-brand-lg rounded-brand-lg border-0 relative overflow-hidden"
             >
               {/* Content */}
               <div className="relative z-10 space-y-6">
                 <div className="relative inline-block">
                   <Users className="size-24 text-white" />
-                  <Lock className="size-12 text-yellow-300 absolute -bottom-2 -right-2" />
+                  <Lock className="size-12 text-brand-yellow-ink absolute -bottom-2 -right-2" />
                 </div>
-                <h2 className="text-4xl font-bold text-white drop-shadow-lg">
-                  {t.parentMode}
-                </h2>
+                <h2 className="t-title text-white">
+ {t.parentMode}
+ </h2>
                 <p className="text-xl text-white/90">
                   {t.parentModeDesc}
                 </p>
@@ -154,7 +154,7 @@ export function ModeSelectionScreen() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="text-center mt-8 text-gray-600"
+          className="text-center mt-8 text-ink-muted"
         >
           {language === 'ar'
             ? '💡 نصيحة: كلمة المرور هي 1234'
@@ -183,7 +183,7 @@ export function ModeSelectionScreen() {
               onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
             />
             {error && (
-              <p className="text-red-500 text-center">{error}</p>
+              <p className="text-brand-coral-ink text-center">{error}</p>
             )}
             <Button
               onClick={handlePasswordSubmit}
