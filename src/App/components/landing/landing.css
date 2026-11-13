@@ -111,20 +111,19 @@
 .lp-trust li + li svg { color: var(--brand-blue-ink); }
 .lp-hero-visual { min-width: 0; max-width: 560px; width: 100%; justify-self: center; }
 
-/* The stage: rings + mascot + floating micro-cards */
-.lp-hero-stage { position: relative; display: grid; place-items: center; width: 100%; min-height: clamp(340px, 34vw, 440px); padding-block: 28px; }
-.lp-hero-ring { position: absolute; inset: 0; margin: auto; width: min(88%, 380px); aspect-ratio: 1; border: 2px dashed color-mix(in srgb, var(--brand-blue) 34%, transparent); border-radius: 50%; pointer-events: none; }
-.lp-hero-ring--2 { width: min(64%, 280px); border-color: color-mix(in srgb, var(--brand-coral) 30%, transparent); }
-.lp-hero-mascot { position: relative; z-index: 2; }
+/* The stage: glow + a big calm mascot + learning cards on a slow orbit */
+.lp-hero-stage { position: relative; display: grid; place-items: center; width: 100%; min-height: clamp(390px, 40vw, 510px); padding-block: 28px; }
+.lp-hero-glow { position: absolute; inset: 0; margin: auto; width: min(82%, 380px); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--brand-green) 28%, transparent) 0%, color-mix(in srgb, var(--brand-green) 12%, transparent) 45%, transparent 70%); }
+.lp-hero-mascot { position: relative; z-index: 2; display: grid; place-items: center; }
+.iris-landing .lp-hero-buddy { width: clamp(210px, 22vw, 262px); height: clamp(210px, 22vw, 262px); }
+
 .lp-mini-card { position: absolute; z-index: 3; display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 20px; padding: 12px 16px; box-shadow: var(--shadow); }
 .lp-mini-card strong { display: block; font-size: 15px; font-weight: 800; line-height: 1.4; }
 .lp-mini-card small { display: block; font-size: 12px; color: var(--muted-text); }
 .lp-mini-glyph { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 15px; font-family: var(--iris-font-display); font-size: 25px; font-weight: 800; }
 .lp-mini-glyph--blue { color: var(--brand-blue-ink); background: var(--brand-blue-wash); }
 .lp-mini-glyph--green { color: var(--brand-green-ink); background: var(--brand-green-wash); font-size: 19px; }
-.lp-mini-card--letters { inset-block-start: 4%; inset-inline-start: -2%; }
-.lp-mini-card--count { inset-block-end: 20%; inset-inline-end: -3%; }
-.lp-mini-card--progress { inset-block-end: -4%; inset-inline-start: 8%; flex-direction: column; align-items: stretch; gap: 8px; width: 176px; padding: 14px 16px; }
+.lp-mini-card--progress { flex-direction: column; align-items: stretch; gap: 8px; width: 176px; padding: 14px 16px; }
 .lp-mini-card--progress small { font-weight: 800; color: var(--brand-blue-ink); font-size: 11.5px; }
 .lp-mini-bars { display: flex; flex-direction: column; gap: 6px; }
 .lp-mini-bars i { height: 8px; border-radius: 999px; background: var(--brand-blue-wash); position: relative; overflow: hidden; }
@@ -138,6 +137,12 @@
 .lp-hero-spark { position: absolute; z-index: 3; width: 26px; height: 26px; }
 .lp-hero-spark--a { inset-block-start: 10%; inset-inline-end: 16%; }
 .lp-hero-spark--b { inset-block-end: 14%; inset-inline-start: 14%; width: 18px; height: 18px; }
+
+.lp-orbit { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 3; }
+.lp-orbit-ring { position: relative; width: min(86%, 410px); aspect-ratio: 1; }
+.lp-orbit-arm { position: absolute; top: 50%; left: 50%; width: 0; height: 0; --lp-orbit-r: clamp(150px, 17vw, 205px); transform: rotate(var(--a)) translateY(calc(-1 * var(--lp-orbit-r))); }
+.lp-orbit-upright { position: absolute; top: 0; left: 0; transform: rotate(calc(-1 * var(--a))); transform-origin: 0 0; }
+.lp-orbit-upright .lp-mini-card { transform: translate(-50%, -50%); width: max-content; max-width: 210px; }
 
 /* Wave between hero and the next section */
 .lp-wave { display: block; width: 100%; height: clamp(44px, 6vw, 84px); }
@@ -155,7 +160,12 @@
   .lp-hero-spark { animation: lpTwinkle 4s ease-in-out infinite; }
   .lp-hero-spark--b { animation-delay: -2s; }
   .lp-final-spark { animation: lpTwinkle 5s ease-in-out infinite; }
+  .lp-orbit-ring { animation: lpOrbitSpin 34s linear infinite; }
+  .lp-orbit-upright { animation: lpOrbitSpin 34s linear infinite reverse; }
+  .lp-hero-glow { animation: lpBreathe 7s ease-in-out infinite; }
 }
+@keyframes lpOrbitSpin { to { rotate: 360deg; } }
+@keyframes lpBreathe { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.06); opacity: 1; } }
 @keyframes lpFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 @keyframes lpTwinkle { 0%, 100% { opacity: 0.35; transform: scale(0.82) rotate(-6deg); } 50% { opacity: 0.95; transform: scale(1.06) rotate(8deg); } }
 
@@ -336,7 +346,7 @@
 .iris-landing .lp-area-sparkle { width: 18px; height: 18px; }
 .iris-landing .lp-wave { width: 100%; height: clamp(44px, 6vw, 84px); }
 .iris-landing .lp-journey-arc { width: 96%; height: 90px; }
-.iris-landing :is(.lp-hero-mascot, .lp-snapshot-avatar) svg { width: 100%; height: 100%; flex-shrink: 1; }
+.iris-landing .lp-snapshot-avatar svg { width: 100%; height: 100%; flex-shrink: 1; }
 
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 1199px) {
@@ -382,17 +392,17 @@
   .lp-cta-row { flex-direction: column; }
   .lp-cta-row .lp-button { width: 100%; }
   .iris-landing .lp-trust { gap: 8px 16px; margin-block-start: 18px; font-size: 11.5px; }
-  .lp-hero-stage { min-height: 330px; padding-block: 20px; }
+  .lp-hero-stage { min-height: 340px; padding-block: 20px; }
   .lp-mini-card--progress { display: none; }
   .lp-mini-card { padding: 9px 12px; gap: 9px; border-radius: 16px; }
   .lp-mini-card strong { font-size: 13px; }
   .lp-mini-card small { font-size: 10.5px; }
   .lp-mini-glyph { width: 38px; height: 38px; border-radius: 12px; font-size: 20px; }
   .lp-mini-glyph--green { font-size: 15px; }
-  .lp-mini-card--letters { inset-block-start: 0; inset-inline-start: -1%; }
-  .lp-mini-card--count { inset-block-end: 16%; inset-inline-end: -1%; }
-  .lp-hero-ring { width: 78%; }
-  .lp-hero-ring--2 { width: 56%; }
+  .lp-orbit-arm { --lp-orbit-r: clamp(120px, 33vw, 140px); }
+  .lp-orbit-upright { transform: rotate(calc(-1 * var(--a))) scale(0.72); }
+  .iris-landing .lp-hero-buddy { width: clamp(165px, 45vw, 205px); height: clamp(165px, 45vw, 205px); }
+  .lp-hero-glow { width: min(90%, 250px); }
   .lp-steps { grid-template-columns: 1fr; gap: 0; padding-inline-start: 8px; }
   .lp-step { border-radius: 22px; margin-block-end: 16px; }
   .lp-belief { padding: 16px 18px; }

@@ -13,6 +13,7 @@ import { LearningAreas } from './LearningAreas';
 import { FaqSection } from './FaqSection';
 import { Blob, JourneyArc, Reveal, Sparkle, WaveDivider } from './LandingDecor';
 import { IrisMascot } from '../iris/ui/IrisMascot';
+import { IrisBuddy } from '../iris/ui/IrisBuddy';
 import './landing.css';
 
 export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }: {
@@ -98,21 +99,38 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
             </div>
             <div className="lp-hero-visual">
               <div className="lp-hero-stage" role="img" aria-label={text('شخصية IRIS حوالينها كروت تعلّم صغيرة: حرف، عدّ، وتقدّم', 'The IRIS companion surrounded by little learning cards: a letter, counting and progress')}>
-                <span className="lp-hero-ring" aria-hidden="true" />
-                <span className="lp-hero-ring lp-hero-ring--2" aria-hidden="true" />
-                <div className="lp-hero-mascot lp-float"><IrisMascot mood="happy" size="lg" language={ar ? 'ar' : 'en'} /></div>
-                <div className="lp-mini-card lp-mini-card--letters lp-float--slow" aria-hidden="true">
-                  <span className="lp-mini-glyph lp-mini-glyph--blue">{ar ? 'أ' : 'A'}</span>
-                  <span><strong>{ar ? 'أرنب' : 'Rabbit'}</strong><small>{ar ? 'حرف ألف 🐰' : 'the letter A 🐰'}</small></span>
+                <span className="lp-hero-glow" aria-hidden="true" />
+                <div className="lp-hero-mascot">
+                  <IrisBuddy mood="happy" className="lp-hero-buddy" />
                 </div>
-                <div className="lp-mini-card lp-mini-card--count lp-float--fast" aria-hidden="true">
-                  <span className="lp-mini-glyph lp-mini-glyph--green">{ar ? '٣' : '3'}</span>
-                  <span><strong>{ar ? 'برتقالات' : 'Oranges'}</strong><small>{ar ? 'عدّ باللمس 🍊' : 'count by touch 🍊'}</small></span>
-                </div>
-                <div className="lp-mini-card lp-mini-card--progress lp-float" aria-hidden="true">
-                  <small>{text('تقدّم النهارده', 'Progress today')}</small>
-                  <div className="lp-mini-bars"><i style={{ width: '82%' }} /><i style={{ width: '58%' }} /><i style={{ width: '34%' }} /></div>
-                  <span className="lp-mini-check"><Check aria-hidden="true" /></span>
+                <div className="lp-orbit" aria-hidden="true">
+                  <div className="lp-orbit-ring">
+                    <div className="lp-orbit-arm" style={{ '--a': '40deg' } as React.CSSProperties}>
+                      <div className="lp-orbit-upright">
+                        <div className="lp-mini-card">
+                          <span className="lp-mini-glyph lp-mini-glyph--blue">{ar ? 'أ' : 'A'}</span>
+                          <span><strong>{ar ? 'أرنب' : 'Rabbit'}</strong><small>{ar ? 'حرف ألف 🐰' : 'the letter A 🐰'}</small></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="lp-orbit-arm" style={{ '--a': '140deg' } as React.CSSProperties}>
+                      <div className="lp-orbit-upright">
+                        <div className="lp-mini-card">
+                          <span className="lp-mini-glyph lp-mini-glyph--green">{ar ? '٣' : '3'}</span>
+                          <span><strong>{ar ? 'برتقالات' : 'Oranges'}</strong><small>{ar ? 'عدّ باللمس 🍊' : 'count by touch 🍊'}</small></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="lp-orbit-arm" style={{ '--a': '240deg' } as React.CSSProperties}>
+                      <div className="lp-orbit-upright">
+                        <div className="lp-mini-card lp-mini-card--progress">
+                          <small>{text('تقدّم النهارده', 'Progress today')}</small>
+                          <div className="lp-mini-bars"><i style={{ width: '82%' }} /><i style={{ width: '58%' }} /><i style={{ width: '34%' }} /></div>
+                          <span className="lp-mini-check"><Check aria-hidden="true" /></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <Sparkle className="lp-hero-spark lp-hero-spark--a" aria-hidden="true" />
                 <Sparkle className="lp-hero-spark lp-hero-spark--b" fill="var(--brand-coral)" aria-hidden="true" />
