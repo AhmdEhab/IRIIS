@@ -65,3 +65,24 @@ The production build succeeds and the existing **168 engine tests pass**. Target
 No remaining landing layout blocker was found in the tested Chromium configurations. Safari/Firefox and physical-device QA are not claimed. Existing registration, login, auth, assessment, activity and backend business logic is preserved, not reimplemented or newly security-audited. Signed-in continuation retains the existing parent/role routing.
 
 This change updates the running application and is saved on the feature branch. It is not a claim that permanent hosting, GitHub publication or a production deployment has occurred. IRIS continues to identify itself accurately as a research-framed supportive-learning prototype, not a diagnostic tool.
+
+## Addendum — brand-art enforcement (no AI raster images)
+
+The three commissioned JPGs (`hero-learning`, `journey-3d`, `parent-support`)
+violated the strict asset policy and were removed. Replacements, all drawn
+from the brand itself:
+
+- Hero: the original in-app mascot (`IrisMascot`, SVG, reduced-motion aware)
+  on a warm stage with four brand-colored letter/number chips (language-aware
+  glyphs) and its real speech bubble. The activity dock below now sits on the
+  surface instead of overlapping artwork.
+- Journey: an inline SVG milestone path (numbered nodes in brand colors,
+  green check at the goal) — decorative, aria-hidden, caption kept.
+- Parent Mode: a Product-truthful learning-snapshot card mock built with CSS:
+  mascot avatar, strengths rows with level scores, still-building rows with
+  bars, and a yellow "today's idea" tip.
+
+QA re-run after the swap: build green, `npm test` 168 pass / 0 fail,
+`scripts/qa-landing.mjs` overflow=0 at all 15 widths in AR and EN (h1=1 each),
+`scripts/qa-landing-interactions.mjs` passes (CTA destinations, keyboard
+navigation, axe, static 3D fallback).

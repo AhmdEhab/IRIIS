@@ -9,6 +9,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { LandingHeader, landingLinks } from './LandingHeader';
 import { LandingButton, LandingSection, SectionHeading } from './LandingPrimitives';
 import { LearningPreview } from './LearningPreview';
+import { IrisMascot } from '../iris/ui/IrisMascot';
 import './landing.css';
 
 export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }: {
@@ -64,7 +65,16 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
               </ul>
             </div>
             <div className="lp-hero-visual">
-              <img className="lp-hero-art" src="/images/landing/hero-learning.jpg" width={1400} height={1050} fetchPriority="high" alt={text('طفلان يتعلّمان باللعب مع شخصية IRIS والحروف والمكعبات', 'Two children learning through play with the IRIS companion, a book and colorful blocks')} />
+              <div className="lp-hero-art" role="img" aria-label={text('شخصية IRIS تلوّح بالتحية وسط حروف وأرقام ملوّنة', 'The IRIS companion waving hello among colourful letters and numbers')}>
+                <span className="lp-hero-chip lp-hero-chip--yellow" aria-hidden="true">{ar ? 'أ' : 'A'}</span>
+                <span className="lp-hero-chip lp-hero-chip--blue" aria-hidden="true">{ar ? 'ب' : 'B'}</span>
+                <span className="lp-hero-chip lp-hero-chip--green" aria-hidden="true">{ar ? '٣' : '3'}</span>
+                <span className="lp-hero-chip lp-hero-chip--coral" aria-hidden="true">★</span>
+                <IrisMascot mood="happy" size="lg"
+                  messageAr={ar ? 'أهلاً! يلا نكتشف مع بعض.' : undefined}
+                  messageEn={!ar ? 'Hi! Let\u2019s discover together.' : undefined}
+                  language={ar ? 'ar' : 'en'} />
+              </div>
               <a className="lp-activity-dock" href="#experience" data-testid="hero-preview-link">
                 <span className="lp-dock-object"><Apple aria-hidden="true" /></span>
                 <span className="lp-dock-copy"><span className="lp-small-label">{text('لمحة من تجربة التعلّم', 'A little learning preview')}</span><strong>{text('استكشف. اسمع. جرّب.', 'Explore. Listen. Try.')}</strong></span>
@@ -98,7 +108,20 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
         <LandingSection id="how">
           <SectionHeading id="how" centered eyebrow={text('من أول خطوة', 'From the very first step')} title={text('رحلة بسيطة. وخطوات ليها معنى.', 'A simple journey. Meaningful steps.')} description={text('من حساب الأهل لخطة يومية، كل خطوة بتبني على اللي قبلها.', 'From a parent account to an everyday plan, each step builds on the last.')} />
           <div className="lp-how-layout">
-            <div className="lp-journey-art"><img src="/images/landing/journey-3d.jpg" width={1600} height={900} loading="lazy" alt={text('رسم تعليمي يوضح رحلة الطفل من التعرّف على المهارات إلى متابعة التقدم', 'An illustration of the learning journey from skill discovery to progress follow-up')} /><p>{text('كل خطوة صغيرة تستحق التشجيع.', 'Every little step deserves encouragement.')}</p></div>
+            <div className="lp-journey-art">
+              <svg className="lp-journey-svg" viewBox="0 0 320 190" aria-hidden="true" focusable="false">
+                <path d="M26 158 C 74 158 84 118 118 112 S 176 118 202 84 S 254 52 292 40" fill="none" stroke="var(--brand-blue)" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 12" opacity="0.55" />
+                <circle cx="26" cy="158" r="13" fill="var(--brand-yellow)" /><text x="26" y="163" textAnchor="middle" fontSize="13" fontWeight="800" fill="var(--brand-yellow-ink)">{ar ? '١' : '1'}</text>
+                <circle cx="118" cy="112" r="13" fill="var(--brand-blue)" /><text x="118" y="117" textAnchor="middle" fontSize="13" fontWeight="800" fill="var(--surface)">{ar ? '٢' : '2'}</text>
+                <circle cx="202" cy="84" r="13" fill="var(--brand-purple)" /><text x="202" y="89" textAnchor="middle" fontSize="13" fontWeight="800" fill="var(--surface)">{ar ? '٣' : '3'}</text>
+                <circle cx="262" cy="56" r="13" fill="var(--brand-coral)" /><text x="262" y="61" textAnchor="middle" fontSize="13" fontWeight="800" fill="var(--surface)">{ar ? '٤' : '4'}</text>
+                <circle cx="292" cy="40" r="16" fill="var(--brand-green)" /><path d="M286 40 l4 5 8-10" fill="none" stroke="var(--surface)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="70" cy="140" r="5" fill="var(--brand-coral)" opacity="0.7" />
+                <circle cx="160" cy="106" r="5" fill="var(--brand-green)" opacity="0.7" />
+                <circle cx="240" cy="70" r="5" fill="var(--brand-yellow)" opacity="0.9" />
+              </svg>
+              <p>{text('كل خطوة صغيرة تستحق التشجيع.', 'Every little step deserves encouragement.')}</p>
+            </div>
             <ol className="lp-step-list">
               {steps.map(([title, description], index) => <li key={index}><span className="lp-step-number">{ar ? ['١', '٢', '٣', '٤', '٥'][index] : index + 1}</span><div><h3>{title}</h3><p>{description}</p></div></li>)}
             </ol>
@@ -148,7 +171,31 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
 
         <LandingSection id="parents" tone="purple">
           <div className="lp-parent-layout">
-            <div className="lp-parent-image"><img src="/images/landing/parent-support.jpg" width={1400} height={1050} loading="lazy" alt={text('أم تساعد طفلها على التعلّم في البيت باستخدام IRIS', 'A parent helping their child learn at home with IRIS')} /></div>
+            <div className="lp-parent-image">
+              <div className="lp-snapshot-card" role="img" aria-label={text('نموذج لمحة تعلّم من وضع الوالدين: نقاط قوة ومهارات قيد التطوير', 'A sample learning snapshot from Parent Mode: strengths and skills still developing')}>
+                <div className="lp-snapshot-head">
+                  <span className="lp-snapshot-avatar" aria-hidden="true">
+                    <IrisMascot mood="idle" size="sm" language={ar ? 'ar' : 'en'} />
+                  </span>
+                  <div><h4>{text('لمحة التعلّم', 'Learning snapshot')}</h4><p>{text('آخر جلسة: لعب واستكشاف', 'Last session: play and explore')}</p></div>
+                </div>
+                <div className="lp-snap-group">
+                  <span className="lp-snap-tag lp-snap-tag--strength">{text('نقاط قوة', 'Strengths')}</span>
+                  <ul>
+                    <li><span>{text('التمييز بين الأصوات', 'Sound matching')}</span><b>{ar ? '٤/٥' : '4/5'}</b></li>
+                    <li><span>{text('عدّ الأشياء الصغيرة', 'Counting small things')}</span><b>{ar ? '٣/٥' : '3/5'}</b></li>
+                  </ul>
+                </div>
+                <div className="lp-snap-group">
+                  <span className="lp-snap-tag lp-snap-tag--developing">{text('لسه بتتبني', 'Still building')}</span>
+                  <ul>
+                    <li><span>{text('ربط الحرف بالصوت', 'Letter-sound links')}</span><span className="lp-snap-bar" aria-hidden="true"><i style={{ width: '60%' }} /></span></li>
+                    <li><span>{text('أنماط بسيطة', 'Simple patterns')}</span><span className="lp-snap-bar" aria-hidden="true"><i style={{ width: '35%' }} /></span></li>
+                  </ul>
+                </div>
+                <p className="lp-snap-tip">{text('اقتراح النهارده: لعبة الحروف الصوتية.', 'Today\u2019s idea: the letter-sound game.')}</p>
+              </div>
+            </div>
             <div>
               <SectionHeading id="parents" eyebrow={text('وضع الوالدين', 'Made for parents, too')} title={text('إنت مش متفرّج. إنت شريك.', 'Not on the sidelines. Part of the journey.')} description={text('لمحة واضحة عن التعلّم، من غير مصطلحات مخوّفة. افهم نقاط القوة، تابع اللي بيتبني، وخد أفكار بسيطة تكمل بيها مع طفلك في البيت.', 'A clear learning snapshot, without intimidating jargon. Understand strengths, follow developing skills and find simple ways to support learning at home.')} />
               <ul className="lp-parent-list"><li><Check aria-hidden="true" />{text('نقاط قوة وخطوات محتاجة دعم', 'Strengths and skills needing support')}</li><li><Check aria-hidden="true" />{text('إرشاد عملي للبيت', 'Practical ideas for home')}</li><li><Check aria-hidden="true" />{text('تحكم في الصوت والحركة والحسّيات', 'Sound, motion and sensory controls')}</li><li><Check aria-hidden="true" />{text('الأسئلة الطبية لمختص', 'Medical questions go to professionals')}</li></ul>

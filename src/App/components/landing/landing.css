@@ -98,7 +98,14 @@
 .lp-trust svg { width: 17px; height: 17px; color: var(--brand-green-ink); }
 .lp-trust li + li svg { color: var(--brand-blue-ink); }
 .lp-hero-visual { min-width: 0; max-width: 550px; width: 100%; justify-self: center; }
-.lp-hero-art { width: 100%; height: auto; aspect-ratio: 4/3; border-radius: 32px; border: 1px solid var(--border-soft); box-shadow: var(--shadow); }
+.lp-hero-art { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 4/3; border-radius: 32px; border: 1px solid var(--border-soft); box-shadow: var(--shadow); overflow: hidden; background: radial-gradient(130% 92% at 50% 108%, var(--brand-yellow-wash) 0%, transparent 62%), var(--surface); }
+.lp-hero-art > :not(.lp-hero-chip) { position: relative; z-index: 1; }
+.lp-hero-chip { position: absolute; z-index: 0; display: grid; place-items: center; width: 58px; height: 58px; border-radius: 18px; border: 2px solid; font-family: var(--iris-font-display); font-size: 27px; font-weight: 800; line-height: 1; }
+.lp-hero-chip--yellow { inset-block-start: 14%; inset-inline-start: 9%; color: var(--brand-yellow-ink); border-color: var(--brand-yellow); background: var(--brand-yellow-wash); transform: rotate(-8deg); }
+.lp-hero-chip--blue { inset-block-start: 20%; inset-inline-end: 10%; color: var(--brand-blue-ink); border-color: var(--brand-blue); background: var(--brand-blue-wash); transform: rotate(7deg); }
+.lp-hero-chip--green { inset-block-end: 16%; inset-inline-start: 13%; color: var(--brand-green-ink); border-color: var(--brand-green); background: var(--brand-green-wash); transform: rotate(6deg); }
+.lp-hero-chip--coral { inset-block-end: 22%; inset-inline-end: 13%; color: var(--brand-coral-ink); border-color: var(--brand-coral); background: var(--brand-coral-wash); transform: rotate(-7deg); font-size: 21px; }
+.lp-hero-art svg, .lp-snapshot-avatar svg { width: 100%; height: 100%; flex-shrink: 1; }
 .lp-activity-dock { display: flex; align-items: center; gap: 14px; margin-block-start: 16px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 22px; box-shadow: var(--shadow-sm); }
 .lp-dock-object { display: grid; place-items: center; width: 54px; height: 54px; flex-shrink: 0; background: var(--brand-yellow-wash); border-radius: 16px; color: var(--brand-coral-ink); }
 .lp-dock-object svg { width: 32px; height: 32px; }
@@ -122,7 +129,7 @@
 .lp-problem-note > span { font-size: 16px; color: var(--muted-text); }
 .lp-how-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 64px; align-items: center; margin-block-start: 40px; }
 .lp-journey-art { background: var(--background); border: 1px solid var(--border-soft); border-radius: 28px; overflow: hidden; }
-.lp-journey-art img { width: 100%; height: auto; }
+.lp-journey-art .lp-journey-svg { display: block; width: 100%; height: auto; margin-block-start: 8px; }
 .iris-landing .lp-journey-art p { text-align: center; color: var(--brand-yellow-ink); padding: 0 20px 24px; font-size: 15px; font-weight: 700; }
 .lp-step-list { display: flex; flex-direction: column; gap: 18px; }
 .lp-step-list li { display: flex; gap: 16px; align-items: start; }
@@ -167,7 +174,23 @@
 .lp-object-picker button > span { font-size: 20px; }
 .iris-landing .lp-demo-help { padding: 12px 22px 22px; text-align: center; font-size: 12px; color: var(--muted-text); }
 .lp-parent-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px; align-items: center; }
-.lp-parent-image img { width: 100%; height: auto; aspect-ratio: 4/3; border: 1px solid var(--border-soft); border-radius: 28px; box-shadow: var(--shadow); }
+.lp-parent-image { min-width: 0; }
+.lp-snapshot-card { display: flex; flex-direction: column; gap: 16px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 28px; box-shadow: var(--shadow); padding: clamp(20px, 3vw, 28px); }
+.lp-snapshot-head { display: flex; align-items: center; gap: 14px; }
+.lp-snapshot-avatar { display: grid; place-items: center; width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px; background: var(--brand-blue-wash); }
+.iris-landing .lp-snapshot-head h4 { font-family: var(--iris-font-display); font-size: 18px; font-weight: 800; }
+.iris-landing .lp-snapshot-head p { font-size: 13px; color: var(--muted-text); }
+.lp-snap-group { background: var(--background); border: 1px solid var(--border-soft); border-radius: 18px; padding: 14px 16px; }
+.lp-snap-tag { display: inline-block; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 3px 10px; margin-block-end: 10px; }
+.lp-snap-tag--strength { color: var(--brand-green-ink); background: var(--brand-green-wash); }
+.lp-snap-tag--developing { color: var(--brand-purple-ink); background: var(--brand-purple-wash); }
+.lp-snap-group ul { display: flex; flex-direction: column; gap: 10px; }
+.lp-snap-group li { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; }
+.lp-snap-group li > span:first-child { flex: 1; min-width: 0; }
+.lp-snap-group li b { font-size: 14px; color: var(--brand-green-ink); }
+.lp-snap-bar { flex: 0 0 96px; height: 10px; border-radius: 999px; background: var(--border-soft); overflow: hidden; }
+.lp-snap-bar i { display: block; height: 100%; border-radius: 999px; background: var(--brand-purple); }
+.iris-landing .lp-snap-tip { font-size: 13px; color: var(--brand-yellow-ink); background: var(--brand-yellow-wash); border-radius: 14px; padding: 10px 14px; }
 .iris-landing .lp-parent-list { display: flex; flex-direction: column; gap: 10px; margin-block: 24px 28px; }
 .lp-parent-list li { display: flex; align-items: start; gap: 10px; font-size: 16px; }
 .lp-parent-list svg { color: var(--brand-purple-ink); width: 20px; height: 20px; margin-block-start: 4px; }
@@ -249,6 +272,9 @@
   .lp-cta-row .lp-button { width: 100%; }
   .iris-landing .lp-trust { gap: 8px 16px; margin-block-start: 18px; font-size: 11px; }
   .lp-hero-art { border-radius: 24px; }
+  .lp-hero-chip { width: 46px; height: 46px; border-radius: 15px; font-size: 21px; }
+  .lp-hero-chip--coral { font-size: 17px; }
+  .lp-snap-bar { flex-basis: 72px; }
   .lp-activity-dock { padding: 13px; gap: 10px; border-radius: 18px; }
   .lp-dock-object { width: 44px; height: 44px; border-radius: 13px; }
   .lp-dock-object svg { width: 27px; height: 27px; }
