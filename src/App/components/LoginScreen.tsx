@@ -7,7 +7,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { authMessage } from '../authMessages';
 import { Button, Field, ErrorState } from './iris/ui/brand';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ChromeActions } from './iris/ui/ChromeActions';
+import { MuteButton } from './auth/MuteButton';
 import { AuthShell } from './auth/AuthShell';
 
 /**
@@ -99,7 +99,7 @@ export function LoginScreen() {
             {ar ? <ChevronRight aria-hidden="true" /> : <ChevronLeft aria-hidden="true" />}
             <span>{ar ? 'الرئيسية' : 'Home'}</span>
           </button>
-          <ChromeActions showLanguage={false} />
+          <MuteButton />
         </div>
       }
       footer={

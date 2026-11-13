@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { authMessage } from '../authMessages';
-import { ChromeActions } from './iris/ui/ChromeActions';
+import { MuteButton } from './auth/MuteButton';
 import { AuthShell } from './auth/AuthShell';
 
 /**
@@ -152,7 +152,7 @@ export function RegistrationScreen() {
             {dir === 'rtl' ? <ChevronRight aria-hidden="true" /> : <ChevronLeft aria-hidden="true" />}
             <span>{language === 'ar' ? 'رجوع' : 'Back'}</span>
           </button>
-          <ChromeActions showLanguage={false} />
+          <MuteButton />
         </div>
       }
       head={

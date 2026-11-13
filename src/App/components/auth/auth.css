@@ -101,15 +101,27 @@
 .ir-auth-back {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; padding: 8px 20px;
-  border: 2px solid var(--border-soft); border-radius: 999px;
-  background: var(--surface); color: var(--text); cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  border: 2px solid transparent; border-radius: 999px;
+  background: var(--brand-blue); color: var(--surface); cursor: pointer;
+  box-shadow: 0 10px 24px -10px rgba(31, 103, 177, 0.55);
   font-family: var(--iris-font-display); font-size: 15px; font-weight: 800; line-height: 1.5; white-space: nowrap;
-  transition: background-color 170ms ease, border-color 170ms ease, box-shadow 170ms ease, transform 170ms ease, color 170ms ease;
+  transition: background-color 170ms ease, box-shadow 170ms ease, transform 170ms ease;
 }
-.ir-auth-back svg { width: 18px; height: 18px; }
-.ir-auth-back:hover { background: var(--brand-blue-wash); border-color: color-mix(in srgb, var(--brand-blue) 34%, var(--border-soft)); transform: translateY(-2px); box-shadow: var(--shadow); }
+.ir-auth-back:hover { background: var(--brand-blue-ink); transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(31, 103, 177, 0.55); }
 .ir-auth-back:active { transform: translateY(1px) scale(0.99); box-shadow: inset 0 2px 5px rgba(42, 33, 24, 0.15); }
+.ir-auth-back svg { width: 18px; height: 18px; }
+.ir-auth-mute {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.9); cursor: pointer; color: var(--brand-blue-ink);
+  background: rgba(201, 229, 247, 0.52);
+  backdrop-filter: blur(16px) saturate(1.8); -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  box-shadow: 0 14px 34px -12px rgba(31, 103, 177, 0.45), 0 2px 8px rgba(42, 33, 24, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: background-color 170ms ease, color 170ms ease, transform 170ms ease, box-shadow 170ms ease;
+}
+.ir-auth-mute svg { width: 20px; height: 20px; }
+.ir-auth-mute:hover { background: var(--brand-blue); color: var(--surface); transform: scale(1.06); }
+.ir-auth-mute:active { transform: scale(0.94); }
+@media (prefers-reduced-motion: reduce) { .ir-auth-back, .ir-auth-mute { transition-duration: 1ms; } .ir-auth-back:hover, .ir-auth-mute:hover { transform: none; } }
 .ir-auth-card-logo { display: block; width: min(148px, 38vw); height: auto; margin-inline: auto; margin-block-end: 4px; }
 /* The shared TopBar is opaque and ruled because on a content screen it sits
    above scrolling content. Here it floats on the cream ground, so it carries
@@ -543,6 +555,7 @@
   .ir-auth-scene { --ir-gutter: 16px; --ir-buddy: 70px; --ir-card-pad: 20px; --ir-gap: 16px; }
   .ir-auth-card { border-radius: 24px; }
   .ir-auth-back { min-height: 44px; font-size: 13px; padding-inline: 14px; }
+  .ir-auth-mute { width: 44px; height: 44px; }
   .ir-auth-card-logo { width: 112px; }
   .ir-auth-chrome { width: calc(100% - 32px); gap: 8px; padding-block: 10px; }
   .ir-auth-title { font-size: clamp(24px, 7.6vw, 29px); padding-block-end: 12px; }
