@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Trophy, Star, Heart, Sparkles, Medal } from 'lucide-react';
 import { useApp, Badge } from '../contexts/AppContext';
+import { useIris } from '../contexts/IrisContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Card } from './ui/card';
@@ -9,8 +10,27 @@ import { BackButton } from './ui/BackButton';
 
 export function RewardsScreen() {
     const { navigateTo, earnedBadges, childProfile, activeRules } = useApp();
+    const iris = useIris();
     const { playSound, speak } = useAudio();
     const { t, language } = useLanguage();
+    /* Honest stats — this screen used to print a hardcoded "1,250 IQ Points"
+       and a fake 5-day streak. Stars are what the child actually collected;
+       the streak is computed from real logged days. */
+    const dayKeys = Object.keys(childProfile?.dailyTimeSpent || {}).sort();
+    let dayStreak = 0;
+    if (dayKeys.length) {
+        const toDay = (s: string) => new Date(s + 'T00:00:00');
+        let cursor = toDay(dayKeys[dayKeys.length - 1]);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const daysSinceLast = Math.round((today.getTime() - cursor.getTime()) / 86400000);
+        if (daysSinceLast <= 1) {
+            const set = new Set(dayKeys);
+            while (set.has(cursor.toISOString().slice(0, 10))) {
+                dayStreak++;
+                cursor = new Date(cursor.getTime() - 86400000);
+            }
+        }
+    }
 
     const allBadges: Badge[] = [
         {
@@ -113,21 +133,21 @@ export function RewardsScreen() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                     <Card className="p-8 bg-brand-yellow border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
                         <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
-                            <Trophy className="size-12 text-brand-yellow-ink" />
+                            <Trophy className="size-12 text-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-brand-yellow-ink">{earnedBadges.length}</p>
-                            <p className="text-lg font-bold text-brand-yellow-ink uppercase">{t.rewards}</p>
+                            <p className="text-4xl font-black text-ink">{earnedBadges.length}</p>
+                            <p className="text-lg font-bold text-ink uppercase">{t.rewards}</p>
                         </div>
                     </Card>
 
                     <Card className="p-8 bg-brand-blue border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
                         <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
-                            <Star className="size-12 text-brand-blue-ink" />
+                            <Star className="size-12 text-brand-yellow-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-brand-blue-ink">1,250</p>
-                            <p className="text-lg font-bold text-brand-blue-ink uppercase">{t.iqPoints}</p>
+                            <p className="text-4xl font-black text-surface">{iris.stars}</p>
+                            <p className="text-lg font-bold text-surface uppercase">{t.stars}</p>
                         </div>
                     </Card>
 
@@ -136,8 +156,8 @@ export function RewardsScreen() {
                             <Heart className="size-12 text-brand-coral-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-brand-coral-ink">5</p>
-                            <p className="text-lg font-bold text-brand-coral-ink uppercase">{t.streak}</p>
+                            <p className="text-4xl font-black text-ink">{dayStreak}</p>
+                            <p className="text-lg font-bold text-ink uppercase">{t.streak}</p>
                         </div>
                     </Card>
                 </div>

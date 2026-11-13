@@ -10,6 +10,14 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    // When previewing through an HTTPS tunnel/proxy, set
+    // VITE_ALLOWED_HOSTS=".example.com,other.host" to let Vite accept
+    // those Host headers. Empty by default — no domain is baked into the repo.
+    allowedHosts: process.env.VITE_ALLOWED_HOSTS
+      ? process.env.VITE_ALLOWED_HOSTS.split(',')
+      : [],
+  },
   resolve: {
     alias: {
       // Alias @ to the src directory

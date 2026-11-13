@@ -69,9 +69,22 @@ function useIrisState() {
    *  than assumed. */
   const [childDbId, setChildDbId] = useState<number | null>(null);
   /** Live probe state while the child is mid-assessment. */
-  const [probeState, setProbeState] = useState<any>(null);
-  const [probeCalibration, setProbeCalibration] = useState<any>(null);
-  const [currentVisit, setCurrentVisit] = useState<any>(null);
+  /* The getting-to-know loop can take several minutes — longer than a five
+     year-old's session and longer than a browser tab. Persist it so a reload
+     resumes instead of restarting; the finish path nulls these and the effect
+     below clears storage with them. */
+  const savedProbe = (() => {
+    try { return JSON.parse(localStorage.getItem('iris_ladder_probe_v1') || 'null'); } catch { return null; }
+  })();
+  const [probeState, setProbeState] = useState<any>(savedProbe?.probeState ?? null);
+  const [probeCalibration, setProbeCalibration] = useState<any>(savedProbe?.probeCalibration ?? null);
+  const [currentVisit, setCurrentVisit] = useState<any>(savedProbe?.currentVisit ?? null);
+  useEffect(() => {
+    try {
+      if (!probeState && !probeCalibration && !currentVisit) localStorage.removeItem('iris_ladder_probe_v1');
+      else localStorage.setItem('iris_ladder_probe_v1', JSON.stringify({ probeState, probeCalibration, currentVisit }));
+    } catch { /* private mode */ }
+  }, [probeState, probeCalibration, currentVisit]);
 
   /** Intake — the ONLY diagnosis touchpoint, and it sets access supports only. */
   const startChild = useCallback((name: string, cond: string, ageYears: number | null = null) => {

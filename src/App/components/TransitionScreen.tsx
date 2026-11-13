@@ -8,7 +8,7 @@ export function TransitionScreen() {
     const { transitionState, activeRules } = useApp();
     const { t, language } = useLanguage();
 
-    const isSelectingIQ = transitionState.message === t.selectingIQ;
+    const isSelectingIQ = transitionState.message === t.preparingJourney;
 
     return (
         <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-blue-wash via-white '}`}>

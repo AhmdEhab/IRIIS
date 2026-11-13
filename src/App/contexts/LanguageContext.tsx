@@ -73,7 +73,7 @@ interface Translations {
   gamesHub: string;
   bodyParts: string;
   emotions: string;
-  iqPoints: string;
+  stars: string;
   streak: string;
   basics: string;
   world: string;
@@ -104,7 +104,7 @@ interface Translations {
   settings: string;
 
   // Transition Screens
-  selectingIQ: string;
+  preparingJourney: string;
   configuringJourney: string;
   pleaseWait: string;
 }
@@ -176,7 +176,7 @@ const translations: Record<Language, Translations> = {
     gamesHub: 'صالة الألعاب',
     bodyParts: 'جسمي الجميل',
     emotions: 'مشاعري',
-    iqPoints: 'نقطة ذكاء',
+    stars: 'نجوم',
     streak: 'أيام متتالية',
     basics: 'الأساسيات',
     world: 'البيئة والعالم',
@@ -204,7 +204,7 @@ const translations: Record<Language, Translations> = {
     settings: 'الإعدادات',
 
     // Transition Screens
-    selectingIQ: 'جارٍ اختيار اختبار الذكاء المناسب...',
+    preparingJourney: 'جاري تجهيز رحلتك التعليمية...',
     configuringJourney: 'جارٍ تهيئة طريقة الشرح المناسبة...',
     pleaseWait: 'لحظة من فضلك...'
   },
@@ -274,7 +274,7 @@ const translations: Record<Language, Translations> = {
     gamesHub: 'Games Hub',
     bodyParts: 'My Wonderful Body',
     emotions: 'My Feelings',
-    iqPoints: 'IQ Points',
+    stars: 'Stars',
     streak: 'Day Streak',
     basics: 'Basics',
     world: 'World & Life',
@@ -302,7 +302,7 @@ const translations: Record<Language, Translations> = {
     settings: 'Settings',
 
     // Transition Screens
-    selectingIQ: 'Selecting appropriate IQ test...',
+    preparingJourney: 'Preparing your learning journey...',
     configuringJourney: 'Configuring personalized learning path...',
     pleaseWait: 'Please wait...'
   }

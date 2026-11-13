@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, Lock, Award, Home, Play, Sparkles, ChevronRight } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useIris } from '../contexts/IrisContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
@@ -19,7 +20,8 @@ interface Level {
 }
 
 export function ChildModeScreen() {
-  const { navigateTo, childProfile, moduleProgress, activeRules, startDailySession } = useApp();
+  const { navigateTo, childProfile, moduleProgress, activeRules } = useApp();
+  const iris = useIris();
   const { speak, playSound } = useAudio();
   const { t, language, dir } = useLanguage();
 
@@ -53,17 +55,36 @@ export function ChildModeScreen() {
       { id: 'games-hub', name: t.gamesHub, icon: '🎮', color: ' ', locked: false, progress: moduleProgress['games-hub'] || 0, category: 'creative' },
     ];
 
-    if (!activeRules?.moduleOrder) return rawLevels;
+    /* Ordering priority: 1) measured ladder priorities, 2) the legacy rule
+       order, 3) the base curriculum. Each module appears exactly ONCE — the
+       previous build duplicated every card (recommended + full list). */
+    const DOMAIN_IDS: Record<string, string> = {
+      LITERACY: 'letters', NUMERACY: 'numbers',
+      LISTENING_COMPREHENSION: 'songs', LISTENING: 'songs',
+      EXPRESSIVE_LANGUAGE: 'songs', ATTENTION: 'memory-game',
+      FINE_MOTOR: 'drawing', VISUAL: 'colors', COGNITIVE: 'shapes',
+    };
+    const prioIds: string[] = (((iris.learningSnapshot as any)?.priorities) || [])
+      .map((p: any) => String(typeof p === 'string' ? p : p?.domain || '').toUpperCase())
+      .map((d: string) => DOMAIN_IDS[d])
+      .filter(Boolean);
+    const priorityLevels = prioIds
+      .map(id => rawLevels.find(l => l.id === id))
+      .filter((l): l is Level => !!l)
+      .map(l => ({ ...l, category: 'recommended' as const }));
+    const ruleLevels: Level[] = !activeRules?.moduleOrder ? [] : activeRules.moduleOrder
+      .map(id => rawLevels.find(l => l.id === id))
+      .filter((l): l is Level => !!l)
+      .map(l => ({ ...l, category: 'recommended' as const }));
+    const head = [...priorityLevels, ...ruleLevels];
+    const headIds = new Set(head.map(l => l.id));
+    const rest = rawLevels.filter(l => !headIds.has(l.id));
+    if (head.length) return [...head, ...rest];
+    return rest;
 
     // Create a specialized "Recommended" category based on the scientific order
-    const orderedIds = activeRules.moduleOrder;
-    const recommendedLevels = orderedIds
-      .map(id => rawLevels.find(l => l.id === id))
-      .filter((l): l is Level => l !== undefined)
-      .map(l => ({ ...l, category: 'recommended' }));
-
-    return [...recommendedLevels, ...rawLevels];
-  }, [moduleProgress, t, activeRules, language]);
+    return rawLevels;
+  }, [moduleProgress, t, activeRules, language, iris.learningSnapshot]);
 
   const handleLevelClick = (level: Level) => {
     if (level.locked) {
@@ -143,7 +164,7 @@ export function ChildModeScreen() {
                   className="bg-surface text-brand-purple-ink hover:bg-brand-purple-wash rounded-brand px-10 py-8 text-2xl font-black shadow-brand-lg flex items-center gap-4 transition-all hover:scale-110 active:scale-95 h-20"
                   onClick={() => {
                     playSound('celebration');
-                    startDailySession();
+                    navigateTo(iris.ladder ? 'iris-ladder-practice' : 'iris-ladder-assessment');
                   }}
                 >
                   <Sparkles className="size-8 text-brand-yellow-ink group-hover:rotate-12 transition-transform" />

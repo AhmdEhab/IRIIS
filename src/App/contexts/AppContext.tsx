@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { SYNDROME_RULES, getRulesForCondition, SyndromeRuleSet } from '../constants/syndromeRules';
-import { CognitiveEngine, LearningSession, PerformanceSnapshot } from '../logic/CognitiveEngine';
+import type { LearningSession, PerformanceSnapshot } from '../logic/CognitiveEngine';
 import { useLanguage } from './LanguageContext';
 import { AUTH_TOKEN_KEY, API_URL as SHARED_API_URL } from '../config';
 
@@ -136,6 +136,8 @@ interface AppContextType {
   activities: ActivityItem[];
   logActivity: (activity: Omit<ActivityItem, 'id' | 'timestamp'>) => void;
   loginUser: (email: string, password?: string) => Promise<any>;
+  motionPreference: 'auto' | 'calm' | 'lively';
+  setMotionPreference: (v: 'auto' | 'calm' | 'lively') => void;
   registerUser: (profile: ChildProfile & { password?: string }) => Promise<boolean>;
   logoutUser: () => Promise<void>;
   /** Last auth failure as a server error code; render with authMessage(). */
@@ -197,6 +199,33 @@ export interface IrisProfile {
 /** Re-exported name kept local for readability; the key itself lives in config.ts. */
 const TOKEN_KEY = AUTH_TOKEN_KEY;
 
+
+/**
+ * Performance-driven sensory adaptation (the repo-1 mechanism, restored).
+ * Reads only the child's own observed behaviour — never a diagnosis:
+ *  - repeating a lot (>40% of the last 20 actions) => calm the animation down;
+ *  - racing through items (>2 completions/second)  => a little more energy;
+ *  - comfortable flow                               => medium.
+ * Parent settings override this loop entirely (see motionPreference).
+ */
+function adaptFromPerformance(history: PerformanceSnapshot[]): Partial<SyndromeRuleSet> {
+  const recent = history.slice(-20);
+  if (recent.length < 5) return {};
+  const repeatRate = recent.filter(h => h.repeated).length / recent.length;
+  const rates: number[] = [];
+  for (let i = 1; i < recent.length; i++) {
+    if (recent[i].completed && !recent[i - 1].completed) {
+      const dt = (recent[i].timestamp - recent[i - 1].timestamp) / 1000;
+      if (dt > 0) rates.push(1 / dt);
+    }
+  }
+  const rate = rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
+  if (repeatRate > 0.4) return { animationIntensity: 'low' };
+  if (rate > 2) return { animationIntensity: 'high' };
+  if (repeatRate < 0.15) return { animationIntensity: 'medium' };
+  return {};
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { language } = useLanguage();
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
@@ -245,6 +274,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentSession, setCurrentSession] = useState<LearningSession | null>(null);
   const [performanceHistory, setPerformanceHistory] = useState<PerformanceSnapshot[]>([]);
   const [dynamicRuleAdaptions, setDynamicRuleAdaptions] = useState<Partial<SyndromeRuleSet>>({});
+  /* Parent-level sensory access control. 'auto' lets the observed-performance
+     loop run; 'calm'/'lively' are the parent's explicit lock and beat it. */
+  const [motionPreference, setMotionPreferenceRaw] = useState<'auto' | 'calm' | 'lively'>(() => {
+    try { const v = localStorage.getItem('iris_motion_pref'); return v === 'calm' || v === 'lively' ? v : 'auto'; } catch { return 'auto'; }
+  });
+  const setMotionPreference = useCallback((v: 'auto' | 'calm' | 'lively') => {
+    setMotionPreferenceRaw(v);
+    try { localStorage.setItem('iris_motion_pref', v); } catch { /* private mode */ }
+  }, []);
+  const effectiveMotionIntensity: 'low' | 'medium' | 'high' =
+    motionPreference === 'calm' ? 'low'
+    : motionPreference === 'lively' ? 'high'
+    : (dynamicRuleAdaptions.animationIntensity ?? 'medium');
+  useEffect(() => {
+    // Single global knob that useReducedMotion() and iris.css both honour.
+    document.documentElement.dataset.motion = effectiveMotionIntensity;
+    window.dispatchEvent(new CustomEvent('iris-motion', { detail: effectiveMotionIntensity }));
+  }, [effectiveMotionIntensity]);
 
   const activeRules = useMemo(() => {
     const baseRules = getRulesForCondition(childProfile?.condition);
@@ -592,15 +639,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const startDailySession = useCallback(() => {
     if (!childProfile) return;
-    const session = CognitiveEngine.generateSession(
-      childProfile.condition,
-      moduleProgress,
-      performanceHistory
-    );
-    setCurrentSession(session);
+    const session: LearningSession | null = null;
+    void session;
     startTransition(
       language === 'ar' ? 'نحن نجهز لك مغامرة مخصصة...' : 'Preparing your custom adventure...',
-      'animals', // Transition to first module in the session (simplified)
+      (assessmentResult ? 'iris-ladder-practice' : 'iris-ladder-assessment') /* the ladder engine is the router now */,
       2500
     );
   }, [childProfile, moduleProgress, performanceHistory, startTransition, language]);
@@ -618,7 +661,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Evaluate and adapt rules if enough data exists
       if (newHistory.length % 5 === 0) {
-        const adaptions = CognitiveEngine.evaluateAndAdapt(activeRules, newHistory);
+        const adaptions: Partial<SyndromeRuleSet> = motionPreference === 'auto' ? adaptFromPerformance(newHistory) : {};
         if (Object.keys(adaptions).length > 0) {
           console.log("Pedagogical Engine: Adapting rules", adaptions);
           setDynamicRuleAdaptions(prev => ({ ...prev, ...adaptions }));
@@ -630,11 +673,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (completed) {
       incrementProgress(itemId); // Use internal ID for granular tracking
     }
-  }, [activeRules, incrementProgress]);
+  }, [activeRules, incrementProgress, motionPreference]);
 
   return (
     <AppContext.Provider
       value={{
+        motionPreference, setMotionPreference,
         currentScreen,
         navigateTo,
         childProfile,

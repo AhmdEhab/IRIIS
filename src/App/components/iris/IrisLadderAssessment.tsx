@@ -57,6 +57,15 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
     setVisitCorrect(0);
   }, []);
 
+  const hasSavedProbe = !!iris.probeState && !!iris.currentVisit;
+  const startOrResume = () => {
+    if (hasSavedProbe && iris.currentVisit) {
+      loadVisit(iris.currentVisit);
+      setPhase('PROBE');
+      return;
+    }
+    startCalibration();
+  };
   const startCalibration = () => {
     setPhase('CALIBRATION');
     setCalIndex(0);
@@ -125,8 +134,8 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
               ? 'هنلعب شوية ألعاب قصيرة عشان نعرف نبدأ منين. مفيش صح وغلط — كل حاجة تعملها بتساعدنا.'
               : "We'll play a few short games so we know where to start. There is no right or wrong — everything you do helps."}
           </p>
-          <Button variant="play" size="lg" icon="play" onClick={startCalibration}>
-            {ar ? 'يلا نبدأ' : "Let's start"}
+          <Button variant="play" size="lg" icon="play" onClick={startOrResume}>
+            {ar ? (hasSavedProbe ? 'يلا نكمّل' : 'يلا نبدأ') : (hasSavedProbe ? "Let's continue" : "Let's start")}
           </Button>
         </div>
       </Shell>

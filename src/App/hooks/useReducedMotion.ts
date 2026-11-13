@@ -16,23 +16,27 @@ import { useEffect, useState } from 'react';
  * to remove content or feedback.
  */
 export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return false;
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  });
-
+  const mqMatches = () =>
+    typeof window !== 'undefined' && !!window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const calmMode = () =>
+    typeof document !== 'undefined' && document.documentElement.dataset.motion === 'low';
+  const [reduced, setReduced] = useState(() => mqMatches() || calmMode());
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
-    // Safari < 14 only supports the deprecated addListener signature.
+    const sync = () => setReduced(mq.matches || calmMode());
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches || calmMode());
+    // The app-level calm setting (parent lock or observed performance) also
+    // flows through this hook, so every consumer adapts live.
+    window.addEventListener('iris-motion', sync);
     if (mq.addEventListener) mq.addEventListener('change', onChange);
     else mq.addListener(onChange);
     return () => {
+      window.removeEventListener('iris-motion', sync);
       if (mq.removeEventListener) mq.removeEventListener('change', onChange);
       else mq.removeListener(onChange);
     };
   }, []);
-
   return reduced;
 }

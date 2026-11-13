@@ -42,7 +42,7 @@ import {
  * the default stays true until real verified profiles exist.
  */
 export const USE_DEMO_DIRECTORY: boolean =
-  ((import.meta as any)?.env?.VITE_USE_DEMO_DIRECTORY ?? 'true') !== 'false';
+  ((import.meta as any).env.VITE_USE_DEMO_DIRECTORY ?? 'true') !== 'false';
 
 export const isDemoDirectory = () => USE_DEMO_DIRECTORY;
 

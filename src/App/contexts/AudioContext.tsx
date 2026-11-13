@@ -124,7 +124,12 @@ const TONES: Record<SoundName, number[]> = {
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [isEnabled, setIsEnabled] = useState(true);
-  const [volume, setVolumeState] = useState(0.7);
+  const [volume, setVolumeState] = useState(() => {
+    try { const v = parseFloat(localStorage.getItem('iris_volume') || ''); return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.7; } catch { return 0.7; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('iris_volume', String(volume)); } catch { /* private mode */ }
+  }, [volume]);
   const [musicEnabled, setMusicEnabled] = useState(false); // opt-in, never autoplay
   const [caption, setCaption] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);

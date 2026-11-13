@@ -10,7 +10,7 @@
  * the localhost default is what `npm run dev` + `npm run server` expect.
  */
 export const API_URL: string =
-  (import.meta as any)?.env?.VITE_API_URL || 'http://localhost:5000/api';
+  (import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
  * Single source of truth for where the session's bearer token is kept.
