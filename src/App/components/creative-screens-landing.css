@@ -1,0 +1,498 @@
+/* ===========================================================================
+   Drawing / Emotions / Songs — the three "creative" activity screens dressed
+   in the marketing landing's design language, continued from
+   learning-screens-landing.css.
+
+   Markup, state, sound, speech, routing and data are NOT touched. Each screen
+   adds one scope class (`crd-landing`) plus the shared `cl-learn` to its root
+   div; these unlayered rules retarget the Tailwind utilities the screens
+   actually carry (Tailwind ships utilities inside cascade layers, so an
+   unlayered !important rule wins without editing ui/*). Same trick as the
+   world sheet; all values are the landing tokens already defined on
+   `.cl-learn` (blue #1F67B1, ink #2A2118, surface #FFFDF6, hairline
+   rgba(31,103,177,.16), pastel washes).
+
+   What is unique here:
+
+     1. DrawingScreen — a canvas studio: the two <Card>s become landing
+        plates, the colour palette keeps every swatch's own hue (the hues ARE
+        the content — only the frame is retargeted), selected swatch gets a
+        blue ring, the eraser / brush-size chips / trash / Done become the
+        landing's pill+pastel chrome;
+     2. EmotionsScreen — its browse tiles carry BOTH `aspect-square` and
+        `rounded-full`, so the shared sheet's tile rule and its secondary-pill
+        rule both fire. The pill rule is neutralised and the tiles are read as
+        plates with one pastel tone per emotion (happy=yellow, sad=purple
+        pastel, angry=coral, calm=blue); the lesson plate is already handled
+        by `cl-learn`;
+     3. SongsScreen — aspect-video song plates with a pastel bubble, the
+        player Card with a blue-wash header band, intro overlay and countdown
+        chips, video frame, and Play = primary blue pill / now-playing =
+        blue-wash fill / Done = soft green pill.
+
+   Every rule is scoped `.crd-landing` (`.cl-learn.crd-landing` wherever it
+   must out-specify a shared `.cl-learn` rule), hovers are gated by
+   prefers-reduced-motion, and touch targets stay ≥48px.
+   ========================================================================= */
+
+/* ── 0 · Shared creative tokens ───────────────────────────────────────────
+   One addition to the cl-learn palette: the landing's purple pastel, used by
+   the "sad" emotion tone and nowhere else (purple stays allowed only here). */
+.cl-learn.crd-landing {
+  --cl-wash-purple: rgba(230, 222, 246, 0.75);
+  --cl-purple-ink: #6C4FA8;
+  --cl-ground-tint: #FBF0DE;
+}
+
+/* DrawingScreen keeps `bg-ground-tint` in low-arousal mode (the other two
+   screens use bg-surface-sunk, which the shared sheet already excludes). The
+   calm flat tint is the screen's own low-arousal promise, so the polka-dot
+   ground stands down for it too. */
+.cl-learn.crd-landing[class*='bg-ground-tint'] {
+  background: var(--cl-ground-tint) !important;
+}
+
+/* ── 1 · The <Card> primitive as a landing plate ───────────────────────────
+   Both Cards in DrawingScreen and the player Card in SongsScreen render this
+   primitive; one rule dresses all three the same way. bg-surface-sunk on the
+   low-arousal song player stays a touch warmer than pure cream. */
+.crd-landing [data-slot='card'] {
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: var(--cl-plate-shadow) !important;
+  color: var(--cl-ink);
+}
+.crd-landing [data-slot='card'][class*='bg-surface-sunk'] {
+  background: #FFFBF1 !important;
+}
+
+/* ── 2 · Drawing — palette swatches ────────────────────────────────────────
+   The swatch's backgroundColor is an inline style (data, untouched). A
+   stylesheet !important beats a normal inline style, so the swatch had to
+   stop carrying `rounded-full` — otherwise the shared sheet's secondary-pill
+   rule would paint every hue white. The circle now comes from this sheet
+   instead; the hue is once again the only background declaration that
+   applies. Only the frame changes: the 4px hairline ring becomes a clean
+   white sticker border on the plate. */
+.cl-learn.crd-landing [data-slot='card'] button[class*='size-12'] {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  border: 3px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 8px 16px -8px rgba(42, 33, 24, 0.3), inset 0 0 0 1px var(--cl-hair) !important;
+  transition: box-shadow 170ms ease;
+}
+/* selected swatch = the landing's blue ring (markup flags it with scale-110) */
+.cl-learn.crd-landing [data-slot='card'] button[class*='size-12'][class*='scale-110'] {
+  box-shadow: 0 0 0 2px var(--cl-blue), 0 10px 20px -10px rgba(31, 103, 177, 0.5), inset 0 0 0 1px var(--cl-hair) !important;
+}
+
+/* ── 2b · Drawing — eraser and brush-size chips ────────────────────────────
+   Chrome, not content: both take the landing's selected/unselected pair. */
+.cl-learn.crd-landing [data-slot='card'] button[class*='size-16'] {
+  width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  padding: 0 !important;
+  border-radius: 20px !important;
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair-hover) !important;
+  box-shadow: 0 10px 22px -14px rgba(42, 33, 24, 0.26) !important;
+  transition: background-color 170ms ease, border-color 170ms ease, transform 170ms ease;
+}
+.cl-learn.crd-landing [data-slot='card'] button[class*='size-16'] svg {
+  color: var(--cl-blue-ink) !important;
+}
+/* eraser engaged = primary blue */
+.cl-learn.crd-landing [data-slot='card'] button[class*='size-16'][class*='bg-brand-coral'] {
+  background: var(--cl-blue) !important;
+  border-color: transparent !important;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+}
+.cl-learn.crd-landing [data-slot='card'] button[class*='size-16'][class*='bg-brand-coral'] svg {
+  color: #fff !important;
+}
+
+/* brush-size dots: the shared pill rule flattens padding/sizing that these
+   inline-sized circles do not want; the dot itself wears the landing blue
+   (the sheet's "sliders" case), the selected chip gets blue edge + wash. */
+.cl-learn.crd-landing [data-slot='card'] button[class*='border-hairline'][class*='border-2'] {
+  padding: 0 !important;
+  min-height: 0 !important;
+  font-size: inherit !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  box-shadow: 0 6px 14px -10px rgba(42, 33, 24, 0.22) !important;
+  transition: background-color 170ms ease, border-color 170ms ease;
+}
+.cl-learn.crd-landing [data-slot='card'] button[class*='border-hairline'][class*='border-2'] > div {
+  background: rgba(31, 103, 177, 0.45) !important;
+}
+.cl-learn.crd-landing [data-slot='card'] button[class*='border-hairline'][class*='bg-ink'] {
+  background: var(--cl-wash-blue) !important;
+  border-color: var(--cl-blue) !important;
+  box-shadow: 0 0 0 2px var(--cl-blue), 0 8px 18px -10px rgba(31, 103, 177, 0.45) !important;
+}
+.cl-learn.crd-landing [data-slot='card'] button[class*='border-hairline'][class*='bg-ink'] > div {
+  background: var(--cl-blue) !important;
+}
+
+/* palette divider: the sunk beige seam becomes a hairline */
+.crd-landing [data-slot='card'] > div[class*='w-px'],
+.crd-landing [data-slot='card'] > div[class*='h-px'] {
+  background: var(--cl-hair) !important;
+}
+
+/* ── 2c · Drawing — canvas surface, clear button, Done ────────────────────
+   The canvas paints itself white (behaviour, untouched); the frame around it
+   is the landing's white plate + hairline, so the sheet's Card rule above
+   already covers the outer plate. Inside it the canvas keeps its own 20px
+   radius and a whisper of an inner edge. */
+.crd-landing canvas {
+  border-radius: 20px !important;
+  box-shadow: inset 0 0 0 1px var(--cl-hair);
+}
+/* the pencil watermark hint stays a hint */
+.crd-landing [class*='pointer-events-none'] p {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  color: var(--cl-muted) !important;
+}
+
+/* clear-canvas trash: the destructive action, softened to the landing's
+   coral pastel — never a saturated slab, never white-on-white. */
+.cl-learn.crd-landing button[class*='bg-destructive'] {
+  padding: 0 22px !important;
+  min-width: 52px;
+  background: var(--cl-wash-coral) !important;
+  color: #D2464E !important;
+  border: 2px solid rgba(210, 70, 78, 0.35) !important;
+  box-shadow: 0 10px 22px -12px rgba(210, 70, 78, 0.4) !important;
+}
+.cl-learn.crd-landing button[class*='bg-destructive'] svg {
+  color: #D2464E !important;
+}
+
+/* "انتهيت!" Done under the canvas: landing primary pill (it carries
+   rounded-brand, so the shared rounded-full rules never reach it). */
+.crd-landing button[class*='px-10'][class*='bg-brand-green']:not([class*='bg-brand-green-solid']) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 34px !important;
+  border-radius: 999px !important;
+  background: var(--cl-blue) !important;
+  color: #fff !important;
+  border: 2px solid transparent !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(17px, 1.8vw, 21px) !important;
+  font-weight: 800;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+  transition: background-color 170ms ease, transform 170ms ease, box-shadow 170ms ease;
+}
+.crd-landing button[class*='px-10'][class*='bg-brand-green'] svg {
+  color: #fff !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cl-learn.crd-landing [data-slot='card'] button[class*='size-12']:hover {
+    box-shadow: 0 12px 22px -10px rgba(42, 33, 24, 0.35), inset 0 0 0 1px var(--cl-hair-hover) !important;
+  }
+  .cl-learn.crd-landing [data-slot='card'] button[class*='size-16']:hover {
+    border-color: var(--cl-blue) !important;
+  }
+  .crd-landing button[class*='px-10'][class*='bg-brand-green']:hover {
+    background: var(--cl-blue-ink) !important;
+  }
+  .cl-learn.crd-landing button[class*='bg-destructive']:hover {
+    background: rgba(252, 217, 219, 0.95) !important;
+    border-color: rgba(210, 70, 78, 0.55) !important;
+  }
+}
+
+/* ── 3 · Emotions — face cards ─────────────────────────────────────────────
+   These tiles carry `aspect-square` AND `rounded-full`, so the shared sheet's
+   secondary-pill rule (display:inline-flex, big padding, 18px font) fires on
+   them as well as the tile plate rule. Neutralise the pill parts here; the
+   tile rule keeps ownership of the plate surface, radius and bubble. */
+.cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full'] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px !important;
+  min-height: 0 !important;
+  font-size: inherit !important;
+  white-space: normal !important;
+}
+/* the emoji is the face: it sits above its pastel tone with the landing's
+   gentle drop shadow, and the name reads as a label, not a shout */
+.cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full'] > [class*='text-9xl'] {
+  z-index: 1;
+  text-shadow: none !important;
+  filter: var(--cl-emoji-shadow) !important;
+}
+.cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full'] h3 {
+  text-shadow: none !important;
+}
+
+/* One pastel tone per emotion (the grid's DOM order is the emotions array:
+   happy, sad, angry, excited, surprised, calm). Purple appears only as the
+   sad pastel, exactly as the landing allows. The shared 4n-cycle bubble rules
+   are out-specified here — same bubble geometry, semantic colour. */
+.cl-learn.crd-landing .grid > :nth-child(1) > button[class*='aspect-square'][class*='rounded-full']::before { background: var(--cl-wash-yellow) !important; } /* happy */
+.cl-learn.crd-landing .grid > :nth-child(2) > button[class*='aspect-square'][class*='rounded-full']::before { background: var(--cl-wash-purple) !important; } /* sad */
+.cl-learn.crd-landing .grid > :nth-child(3) > button[class*='aspect-square'][class*='rounded-full']::before { background: var(--cl-wash-coral) !important; } /* angry */
+.cl-learn.crd-landing .grid > :nth-child(4) > button[class*='aspect-square'][class*='rounded-full']::before { background: var(--cl-wash-yellow) !important; } /* excited */
+.cl-learn.crd-landing .grid > :nth-child(5) > button[class*='aspect-square'][class*='rounded-full']::before { background: var(--cl-wash-green) !important; } /* surprised */
+.cl-learn.crd-landing .grid > :nth-child(6) > button[class*='aspect-square'][class*='rounded-full']::before { background: var(--cl-wash-blue) !important; } /* calm */
+
+/* the shared hover rule for rounded-full buttons paints these faces with the
+   blue selected-wash; the faces keep their own tone and just lift */
+@media (prefers-reduced-motion: no-preference) {
+  .cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full']:hover {
+    background: var(--cl-surface) !important;
+    border-color: var(--cl-hair-hover) !important;
+  }
+}
+/* pressed / selected = the landing's blue edge, kept for all faces */
+.cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full']:active,
+.cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full'][aria-pressed='true'] {
+  border-color: var(--cl-blue) !important;
+}
+
+/* A 2-up grid at 390px makes each face roughly 150px wide: a 128px emoji
+   inside a 54%-tall box then touches the name underneath. On phones the face
+   scales to the tile and the label steps down a size. */
+@media (max-width: 640px) {
+  .cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full'] {
+    padding: 8px !important;
+  }
+  .cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full'] > [class*='text-9xl'] {
+    font-size: clamp(44px, 13vw, 64px) !important;
+    margin-bottom: 6px !important;
+    max-height: 48%;
+  }
+  .cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full'] h3 {
+    font-size: clamp(16px, 4.5vw, 22px) !important;
+  }
+}
+
+/* Lesson-plate photo frame: as on the world screens, several contextImage
+   URLs 404 upstream (data, untouched), and over the shared sheet's white
+   frame a dead image reads as a white hole. A soft landing-blue backing
+   turns the same failure into an intentional pastel tile with blue alt
+   text; loaded photos cover it unchanged. */
+.cl-learn.crd-landing [class*='size-56'] {
+  background: var(--cl-wash-blue) !important;
+  color: var(--cl-blue-ink) !important;
+}
+/* ── 4 · Songs — browse cards ───────────────────────────────────────────────
+   aspect-video tiles the shared sheet never touches (no aspect-square).
+   They become the landing's level cards: white plate, blue hairline, one
+   pastel bubble behind the emoji, title in blue ink. */
+.cl-learn.crd-landing .grid button[class*='aspect-video'] {
+  position: relative;
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--cl-plate-shadow) !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.cl-learn.crd-landing .grid button[class*='aspect-video']::before {
+  content: '';
+  position: absolute;
+  inset-inline: 26%;
+  inset-block-start: 12%;
+  inset-block-end: 26%;
+  border-radius: 999px;
+  background: var(--cl-wash-blue);
+  z-index: 0;
+}
+.cl-learn.crd-landing .grid > *:nth-child(4n+2) > button[class*='aspect-video']::before { background: var(--cl-wash-yellow); }
+.cl-learn.crd-landing .grid > *:nth-child(4n+3) > button[class*='aspect-video']::before { background: var(--cl-wash-green); }
+.cl-learn.crd-landing .grid > *:nth-child(4n+4) > button[class*='aspect-video']::before { background: var(--cl-wash-coral); }
+/* never white-on-white: the song name moves to blue ink like a card label */
+.cl-learn.crd-landing .grid button[class*='aspect-video'] > [class*='text-white'] {
+  color: var(--cl-blue-ink) !important;
+  text-shadow: none !important;
+  filter: none !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-weight: 800;
+}
+.cl-learn.crd-landing .grid button[class*='aspect-video'] > .text-8xl {
+  position: relative;
+  z-index: 1;
+  filter: var(--cl-emoji-shadow);
+}
+.cl-learn.crd-landing .grid button[class*='aspect-video'] > h3 { z-index: 1; }
+/* the group-hover sheen: a breath of blue, not grey film */
+.cl-learn.crd-landing .grid button[class*='aspect-video'] > div[class*='bg-surface/10'] {
+  background: var(--cl-wash-blue) !important;
+  opacity: 0 !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cl-learn.crd-landing .grid button[class*='aspect-video']:hover {
+    transform: translateY(-4px);
+    border-color: var(--cl-hair-hover) !important;
+    box-shadow: 0 22px 44px -22px rgba(42, 33, 24, 0.32) !important;
+  }
+  .cl-learn.crd-landing .grid button[class*='aspect-video']:hover > div[class*='bg-surface/10'] {
+    opacity: 0.35 !important;
+  }
+}
+
+/* ── 5 · Songs — the player plate ────────────────────────────────────────────
+   The Card itself is already a plate (rule 1). Its parts: header band, intro
+   overlay, video frame, info strip. */
+.cl-learn.crd-landing [data-slot='card'] > div[class*='p-12'] {
+  background: var(--cl-wash-blue) !important;
+  border-bottom: 2px solid var(--cl-hair) !important;
+  color: var(--cl-ink) !important;
+}
+.cl-learn.crd-landing [data-slot='card'] > div[class*='p-12'] h2 {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(26px, 3.2vw, 38px) !important;
+  line-height: 1.3 !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+.cl-learn.crd-landing [data-slot='card'] [class*='text-[10rem]'] {
+  filter: var(--cl-emoji-shadow) !important;
+}
+
+/* intro overlay (the "getting ready" stage): a plate laid over the plate,
+   with the landing hairline instead of a bare white sheet */
+.cl-learn.crd-landing [data-slot='card'] > div[class*='inset-0'][class*='z-30'] {
+  background: var(--cl-surface) !important;
+  border-radius: 24px !important;
+  box-shadow: inset 0 0 0 2px var(--cl-hair) !important;
+}
+.cl-learn.crd-landing [data-slot='card'] [class*='z-30'] .size-32 {
+  color: var(--cl-blue) !important;
+}
+.cl-learn.crd-landing [data-slot='card'] [class*='z-30'] [class*='size-24'] {
+  color: var(--cl-blue-ink) !important;
+}
+/* countdown chips 3·2·1: landing blue pucks, white numerals */
+.cl-learn.crd-landing [class*='z-30'] div[class*='size-20'][class*='bg-brand-green-solid'] {
+  background: var(--cl-blue) !important;
+  color: #fff !important;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 22px -10px rgba(31, 103, 177, 0.55);
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+}
+
+/* the video well: letterboxing stays black (the player's own surface), the
+   frame around it turns into a landing plate edge */
+.crd-landing div[class*='bg-black'][class*='aspect-video'] {
+  border: 2px solid var(--cl-hair-hover) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 16px 34px -18px rgba(42, 33, 24, 0.3) !important;
+}
+/* YouTube tag chip above the player: primary blue, quiet */
+.crd-landing div[class*='bg-brand-coral-solid'] {
+  background: rgba(31, 103, 177, 0.92) !important;
+  border-radius: 999px !important;
+}
+/* the hover "restart from start" capsule keeps its blue but takes the pill */
+.crd-landing div[class*='bg-brand-blue-ink/80'] {
+  background: var(--cl-blue) !important;
+  box-shadow: 0 10px 22px -12px rgba(31, 103, 177, 0.55);
+}
+/* description strip: the hard 4px blue frame becomes the wash + hairline */
+.crd-landing div[class*='border-brand-blue'] {
+  background: var(--cl-wash-blue) !important;
+  border: 2px solid var(--cl-hair-hover) !important;
+  border-radius: 20px !important;
+}
+
+/* ── 6 · Songs — action pills ────────────────────────────────────────────────
+   The shared sheet flattens every rounded-full button to one white
+   secondary; inside the player the roles come back, exactly as the world
+   sheet restored LifeSkills: Play = primary blue, now-playing = blue-wash
+   fill, Done = soft green. `.cl-learn.crd-landing` out-specifies the shared
+   `.cl-learn button[class*='rounded-full']` rule. */
+.cl-learn.crd-landing button[class*='bg-brand-green']:not([class*='bg-brand-green-solid']),
+.cl-learn.crd-landing button[class*='bg-brand-coral'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 34px !important;
+  border-radius: 999px !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(17px, 1.8vw, 21px) !important;
+  font-weight: 800;
+  white-space: normal;
+}
+/* Play (idle) = landing primary */
+.cl-learn.crd-landing button[class*='bg-brand-green']:not([class*='bg-brand-green-solid']) {
+  background: var(--cl-blue) !important;
+  color: #fff !important;
+  border: 2px solid transparent !important;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+}
+.cl-learn.crd-landing button[class*='bg-brand-green']:not([class*='bg-brand-green-solid']) svg {
+  color: #fff !important;
+}
+/* Pause (now playing) = blue-wash fill with a blue edge */
+.cl-learn.crd-landing button[class*='bg-brand-coral'] {
+  background: var(--cl-wash-blue) !important;
+  color: var(--cl-blue-ink) !important;
+  border: 2px solid var(--cl-blue) !important;
+  box-shadow: 0 10px 22px -12px rgba(31, 103, 177, 0.4) !important;
+}
+.cl-learn.crd-landing button[class*='bg-brand-coral'] svg {
+  color: var(--cl-blue-ink) !important;
+}
+/* Done = the landing's soft green, same treatment LifeSkills gave it */
+.cl-learn.crd-landing button[class*='bg-brand-green-solid'] {
+  background: var(--cl-wash-green) !important;
+  color: #2E965C !important;
+  border: 2px solid rgba(46, 150, 92, 0.35) !important;
+  box-shadow: 0 10px 22px -12px rgba(46, 150, 92, 0.45) !important;
+}
+.cl-learn.crd-landing button[class*='bg-brand-green-solid'] svg {
+  color: #2E965C !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cl-learn.crd-landing button[class*='bg-brand-green']:not([class*='bg-brand-green-solid']):hover {
+    background: var(--cl-blue-ink) !important;
+    color: #fff !important;
+  }
+  .cl-learn.crd-landing button[class*='bg-brand-coral']:hover {
+    background: rgba(201, 229, 247, 0.75) !important;
+  }
+  .cl-learn.crd-landing button[class*='bg-brand-green-solid']:hover {
+    background: rgba(206, 238, 214, 0.95) !important;
+    color: #237A47 !important;
+  }
+}
+
+/* ── Reduced motion: land all transforms like the shared sheet ────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .crd-landing [data-slot='card'],
+  .crd-landing canvas,
+  .cl-learn.crd-landing [data-slot='card'] button,
+  .cl-learn.crd-landing .grid button[class*='aspect-square'][class*='rounded-full'],
+  .cl-learn.crd-landing .grid button[class*='aspect-video'],
+  .crd-landing button[class*='px-10'][class*='bg-brand-green'],
+  .cl-learn.crd-landing button[class*='bg-brand-green'],
+  .cl-learn.crd-landing button[class*='bg-brand-coral'],
+  .cl-learn.crd-landing button[class*='bg-destructive'] {
+    transition-duration: 1ms;
+    transform: none !important;
+  }
+}

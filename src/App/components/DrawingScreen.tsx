@@ -98,7 +98,7 @@ export function DrawingScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 overflow-hidden transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
+        <div className={`crd-landing cl-learn min-h-screen p-4 overflow-hidden transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
                 ? 'bg-ground-tint'
                 : 'bg-brand-blue-wash'
             }`}>
@@ -121,7 +121,7 @@ export function DrawingScreen() {
                     <Card className="lg:col-span-2 p-4 flex lg:flex-col gap-4 overflow-auto lg:overflow-visible shadow-brand-lg rounded-brand-xl">
                         <div className="flex lg:flex-col gap-3 flex-1 overflow-auto p-1">
                             {colors.map((c) => (
-                                <motion.button key={c.hex} aria-label={language === 'ar' ? c.nameAr : c.name} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setColor(c.hex); setIsEraser(false); playSound('tap'); speak(language === 'ar' ? c.nameAr : c.name, language); }} className={`size-12 rounded-full border-4 flex-shrink-0 ${color === c.hex && !isEraser ? 'border-hairline scale-110 shadow-brand' : 'border-hairline shadow-brand-sm'}`} style={{ backgroundColor: c.hex }} />
+                                <motion.button key={c.hex} aria-label={language === 'ar' ? c.nameAr : c.name} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setColor(c.hex); setIsEraser(false); playSound('tap'); speak(language === 'ar' ? c.nameAr : c.name, language); }} className={`size-12 border-4 flex-shrink-0 ${color === c.hex && !isEraser ? 'border-hairline scale-110 shadow-brand' : 'border-hairline shadow-brand-sm'}`} style={{ backgroundColor: c.hex }} />
                             ))}
                         </div>
                         <div className="lg:h-px lg:w-full w-px h-12 bg-surface-sunk" />
@@ -157,3 +157,5 @@ export function DrawingScreen() {
         </div>
     );
 }
+import './learning-screens-landing.css';
+import './creative-screens-landing.css';

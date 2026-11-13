@@ -97,7 +97,7 @@ export function EmotionsScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-coral-wash'}`}>
+        <div className={`crd-landing cl-learn min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-brand-coral-wash'}`}>
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 <div className="flex justify-between items-center mb-8">
@@ -179,3 +179,5 @@ export function EmotionsScreen() {
         </div>
     );
 }
+import './learning-screens-landing.css';
+import './creative-screens-landing.css';
