@@ -45,6 +45,7 @@ export function IrisParentHome({
   onSpecialists,
   onSnapshot,
   onEnterChildMode,
+  onSettings,
   onBack,
 }: {
   onProgress: () => void;
@@ -54,6 +55,7 @@ export function IrisParentHome({
   onSpecialists: () => void;
   onSnapshot: () => void;
   onEnterChildMode: () => void;
+  onSettings: () => void;
   onBack: () => void;
 }) {
   const { logoutUser, childProfile } = useApp();
@@ -161,6 +163,7 @@ export function IrisParentHome({
               <StarCount count={stars} />
               <ChromeActions />
               {/* Was ink-faint under a floating overlay; now a real control. */}
+              <BarAction onClick={onSettings}>{ar ? 'الإعدادات' : 'Settings'}</BarAction>
               <BarAction onClick={logoutUser}>{ar ? 'خروج' : 'Log out'}</BarAction>
             </>
           }

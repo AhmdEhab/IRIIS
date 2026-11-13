@@ -12,8 +12,8 @@ import { Switch } from './ui/switch';
 import { Separator } from './ui/separator';
 
 export function ParentSettingsScreen() {
-    const { navigateTo, childProfile, setChildProfile, resetProgress, updateUser } = useApp();
-    const { playSound, speak } = useAudio();
+    const { navigateTo, childProfile, setChildProfile, resetProgress, updateUser, motionPreference, setMotionPreference } = useApp();
+    const { playSound, speak, volume, setVolume } = useAudio();
     const { t, language, setLanguage } = useLanguage();
 
     const [isSaving, setIsSaving] = useState(false);
@@ -115,6 +115,54 @@ export function ParentSettingsScreen() {
                                 English 🇺🇸
                             </Button>
                         </div>
+                    </Card>
+
+                    {/* Section: Access & Comfort (parent-level, reversible,
+                        never chosen from a diagnosis — it is the parent's view
+                        of what helps their child; locks override the automatic
+                        performance loop in AppContext). */}
+                    <Card className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <CheckCircle2 className="size-6 text-brand-blue-ink" />
+                            <h2 className="text-2xl font-bold">{language === 'ar' ? 'الراحة والحساسية' : 'Comfort & Sensory'}</h2>
+                        </div>
+                        <p className="text-sm text-ink-muted mb-6">
+                            {language === 'ar'
+                                ? 'بتتحكم في الحركة والصوت في التطبيق كله. اختيارك هنا بيلغي أي تعديل تلقائي.'
+                                : 'Controls motion and sound across the app. Your choice here overrides any automatic adjustment.'}
+                        </p>
+                        <Label className="block mb-3 text-lg font-bold">{language === 'ar' ? 'مستوى الحركة' : 'Animation level'}</Label>
+                        <div className="flex gap-3 mb-6">
+                            {([
+                                ['auto', language === 'ar' ? 'تلقائي' : 'Automatic'],
+                                ['calm', language === 'ar' ? 'هادئ' : 'Calm'],
+                                ['lively', language === 'ar' ? 'نشط' : 'Lively'],
+                            ] as const).map(([val, label]) => (
+                                <Button
+                                    key={val}
+                                    onClick={() => { setMotionPreference(val); playSound('tap'); }}
+                                    variant={motionPreference === val ? 'default' : 'outline'}
+                                    className="flex-1 h-14 text-lg rounded-brand"
+                                >
+                                    {label}
+                                </Button>
+                            ))}
+                        </div>
+                        <Label className="block mb-2 text-lg font-bold">{language === 'ar' ? `مستوى الصوت (${Math.round(volume * 100)}%)` : `Sound volume (${Math.round(volume * 100)}%)`}</Label>
+                        <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={Math.round(volume * 100)}
+                            onChange={(e) => setVolume(Number(e.target.value) / 100)}
+                            className="w-full h-3 accent-brand-blue cursor-pointer"
+                            aria-label={language === 'ar' ? 'مستوى الصوت' : 'Sound volume'}
+                        />
+                        <p className="text-xs text-ink-muted mt-3">
+                            {language === 'ar'
+                                ? '"تلقائي" يعني التطبيق بيبصّ على علامات الإرهاق (إعادة نفس النشاط كتير) ويهدّى الحركة لوحده.'
+                                : '"Automatic" means the app watches for fatigue signs (repeating the same activity a lot) and calms animation on its own.'}
+                        </p>
                     </Card>
 
                     {/* Section: Profile */}

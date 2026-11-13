@@ -229,6 +229,7 @@ function AppContent() {
             onCommunity={() => navigateTo('iris-community')}
             onSpecialists={() => navigateTo('iris-specialists')}
             onEnterChildMode={() => navigateTo('child-mode')}
+            onSettings={() => navigateTo('parent-settings')}
             onBack={() => navigateTo('landing')}
           />
         );
