@@ -1,0 +1,90 @@
+/* ===========================================================================
+   GamesHubScreen in the landing page's language. Markup and behaviour are
+   untouched; these unlayered rules retarget the Tailwind utilities on this
+   screen only (Tailwind ships its utilities inside cascade layers).
+   ========================================================================= */
+.gh-landing {
+  --gh-blue: #1F67B1;
+  --gh-ink: #2A2118;
+  --gh-muted: #6B655D;
+  --gh-surface: #FFFDF6;
+  --gh-hair: rgba(31, 103, 177, 0.16);
+  background:
+    radial-gradient(rgba(31, 103, 177, 0.05) 2px, transparent 2.5px) 0 0 / 44px 44px,
+    radial-gradient(1100px 560px at 90% -8%, rgba(201, 229, 247, 0.55), transparent 60%),
+    radial-gradient(900px 520px at 4% 108%, rgba(251, 231, 184, 0.5), transparent 62%),
+    #FFF6E9 !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), var(--iris-font-body, 'Cairo'), cursive;
+}
+/* big display font for headings everywhere on this screen */
+.gh-landing p, .gh-landing h3 { font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; }
+
+/* Title: ink Baloo with the landing's yellow swash underneath */
+.gh-landing h1 {
+  color: var(--gh-ink) !important;
+  font-size: clamp(36px, 4.4vw, 52px) !important;
+  text-shadow: none !important;
+  position: relative;
+  display: inline-block;
+  width: auto !important;
+}
+.gh-landing h1::after {
+  content: ''; position: absolute; inset-inline-start: 12%; inset-inline-end: 12%; bottom: -12px; height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 210, 77, 0.2), #FFD24D 30%, #FFD24D 70%, rgba(255, 210, 77, 0.2));
+}
+
+/* Cards: white landing plates */
+.gh-landing .rounded-brand-xl {
+  background: var(--gh-surface);
+  border: 2px solid var(--gh-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 22px 48px -26px rgba(42, 33, 24, 0.30), 0 6px 16px -8px rgba(31, 103, 177, 0.10) !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.gh-landing button:hover .rounded-brand-xl {
+  transform: translateY(-5px);
+  border-color: rgba(31, 103, 177, 0.34) !important;
+  box-shadow: 0 30px 60px -30px rgba(42, 33, 24, 0.35), 0 8px 20px -10px rgba(31, 103, 177, 0.16) !important;
+}
+.gh-landing button:hover { transform: none !important; }
+
+/* Art panel: pastel brand wash instead of the sunk beige, rotating by tone */
+.gh-landing .h-48 { border-bottom: 1px solid var(--gh-hair); }
+.gh-landing .grid > *:nth-child(3n+1) .h-48 { background: rgba(201, 229, 247, 0.55) !important; }
+.gh-landing .grid > *:nth-child(3n+2) .h-48 { background: rgba(252, 217, 219, 0.55) !important; }
+.gh-landing .grid > *:nth-child(3n+3) .h-48 { background: rgba(206, 238, 214, 0.6) !important; }
+.gh-landing .h-48 .drop-shadow-brand-lg { filter: drop-shadow(0 10px 14px rgba(42, 33, 24, 0.18)) !important; }
+.gh-landing .h-48 svg { color: rgba(255, 255, 255, 0.85) !important; }
+
+/* Badge chip: frosted glass pill in brand blue ink */
+.gh-landing .h-48 [class*="rounded-full"] {
+  background: rgba(255, 253, 246, 0.85) !important;
+  color: #18508A !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 10px 22px -12px rgba(31, 103, 177, 0.45);
+  letter-spacing: 0.06em;
+}
+
+/* Title + zap chip + description */
+.gh-landing h3 { color: var(--gh-ink) !important; font-weight: 800; }
+.gh-landing .p-8 { background: var(--gh-surface) !important; }
+.gh-landing [class*="rounded-brand-sm"] {
+  background: rgba(201, 229, 247, 0.52) !important;
+  color: #18508A !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.gh-landing [class*="rounded-brand-sm"] svg { color: var(--gh-blue) !important; }
+.gh-landing p { color: var(--gh-muted) !important; font-weight: 600; }
+
+/* Coming-soon overlay chip */
+.gh-landing .bg-ink {
+  background: var(--gh-blue) !important; color: #fff !important;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-landing .rounded-brand-xl, .gh-landing button:hover .rounded-brand-xl { transition-duration: 1ms; transform: none; }
+}

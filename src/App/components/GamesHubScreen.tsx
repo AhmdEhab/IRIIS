@@ -6,6 +6,7 @@ import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Card } from './ui/card';
 import { BackButton } from './ui/BackButton';
+import './games-hub-landing.css';
 
 export function GamesHubScreen() {
     const { navigateTo, activeRules } = useApp();
@@ -64,7 +65,7 @@ export function GamesHubScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
+        <div className={`gh-landing min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
                 ? 'bg-ground-tint'
                 : 'bg-brand-purple-wash'
             }`}>
