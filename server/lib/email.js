@@ -7,14 +7,15 @@
  *   none    nothing configured                    — sendEmail throws
  *           EMAIL_NOT_CONFIGURED so callers can tell the user honestly.
  *
- * Documented in docs/AUTH_FLOW_REPORT.md. On Vercel set the vars as secrets:
- *   vercel env add RESEND_API_KEY production   (or SMTP_HOST/PORT/USER/PASS)
- * Optional: EMAIL_FROM, PUBLIC_APP_ORIGIN (link target /verify?code=…).
- *
- * Design language (v2, after the owner rejected the confetti version):
- * one accent (brand blue), generous whitespace, serif display headline with
- * a single soft-yellow swash — the same calm-premium mood as the landing
- * page. The mascot appears ONCE, small, as the signature. No rainbows.
+ * Template follows the owner's "Premium Playful Email" spec (P54):
+ * real IRIS logo up top, the code as the visual centerpiece — each digit
+ * in its own rounded box cycling the exact brand palette (blue/coral/
+ * yellow/green/purple, washes and ink values from src/styles/iris.css) —
+ * soft geometric confetti placed with intent (not random), warm off-white
+ * paper, table layout, inline CSS only, safe fonts, no JS, no webfonts,
+ * plain-text fallback, and the code selectable for copying.
+ * The English copy is primary per the spec; an Arabic variant of the SAME
+ * layout exists because the app itself is bilingual.
  */
 let nodemailer = null;
 try { nodemailer = require('nodemailer'); } catch { /* only needed in smtp mode */ }
@@ -22,131 +23,184 @@ try { nodemailer = require('nodemailer'); } catch { /* only needed in smtp mode 
 const APP_ORIGIN = process.env.PUBLIC_APP_ORIGIN || 'https://iris-kohl-seven.vercel.app';
 const FROM = process.env.EMAIL_FROM || 'IRIS <verify@iris-app.local>';
 
-// Mirrors src/styles/iris.css tokens, pared back to a calm two-tone palette.
+// Exact tokens mirrored from src/styles/iris.css — nothing invented.
+const P = {
+  blue:   { solid: '#1f67b1', wash: '#e5eff9', ink: '#18508a' },
+  coral:  { solid: '#c84b51', wash: '#fde9ea', ink: '#863236' },
+  yellow: { solid: '#feca34', wash: '#fdf3d8', ink: '#614d14' },
+  green:  { solid: '#358458', wash: '#e6f5ed', ink: '#23583b' },
+  purple: { solid: '#8060b4', wash: '#f0eaf8', ink: '#5a437e' },
+};
+const ORDER = ['blue', 'coral', 'yellow', 'green', 'purple', 'blue'];
 const C = {
-  paper: '#FBF7EF', card: '#FFFFFF', ink: '#2A2118', inkSoft: '#5A4E3F',
-  inkFaint: '#9A8B76', blue: '#1F67B1', blueDeep: '#16456F', blueTint: '#EAF3FB',
-  yellow: '#FECA34', line: '#EDE3D3',
+  paper: '#FBF6EC', card: '#FFFFFF', ink: '#2A2118', inkSoft: '#57493A',
+  inkFaint: '#9A8B76', line: '#EDE3D3',
 };
 
+const SANS = "Arial,Helvetica,sans-serif";
+const SERIF = "Georgia,'Times New Roman',serif";
+
 function brandAssets() {
-  // Absolute HTTPS so Gmail can fetch them; both shipped under public/images.
+  // Absolute HTTPS so Gmail/Outlook fetch them; shipped under public/images.
   return {
     logo: `${APP_ORIGIN}/images/iris-logo-static.png`,
     mascot: `${APP_ORIGIN}/images/iris-mascot-email.png`,
   };
 }
 
-const SERIF = "Georgia,'Times New Roman',serif";
-const SANS = "Arial,Helvetica,sans-serif";
+// One rounded box per digit, cycling the brand palette. Digit ink is the
+// brand-dark variant for contrast on the brand wash — readable in every
+// client, playful but never noisy. dir=ltr keeps digit order safe in RTL.
+function codeBoxes(code) {
+  return String(code).split('').map((d, i) => {
+    const p = P[ORDER[i % ORDER.length]];
+    return `<td align="center" style="padding:0 4px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td align="center" width="52" height="62" bgcolor="${p.wash}" style="width:52px;height:62px;background:${p.wash};border:2px solid ${p.solid};border-radius:16px;">
+          <span style="font-family:${SANS};font-size:28px;font-weight:bold;color:${p.ink};line-height:62px;">${d}</span>
+        </td>
+      </tr></table>
+    </td>`;
+  }).join('');
+}
 
-function buildVerificationEmail(code, lang) {
+function copy(lang) {
+  const ar = lang !== 'en';
+  return ar
+    ? {
+        subject: 'IRIS — كود تأكيد بريدك الإلكتروني',
+        pre: 'خطوة واحدة تفصل طفلك عن أول مغامرة تعليمية.',
+        headline: 'يلا نبدأ!',
+        msg: 'أهلاً بيك في IRIS! سعيدون إننا هنكون جزء من رحلة تعلّم طفلك. لتأكيد بريدك وتفعيل حسابك، أدخل كود التحقق ده:',
+        codeLbl: 'كود التحقق الخاص بيك',
+        valid: 'الكود صالح لمدة %M% دقيقة.',
+        closing: 'خطوة صغيرة في طريق تعلّم أجمل ✨',
+        sign1: 'بكل عناية،',
+        sign2: 'فريق IRIS',
+        ignore: 'لو مش انت اللي عملت الحساب، تقدر تتجاهل الرسالة بأمان — لن يتغير أي شيء.',
+        btn: 'تأكيد البريد الإلكتروني',
+      }
+    : {
+        subject: 'IRIS — your email verification code',
+        pre: 'One little step before the adventure begins.',
+        headline: "Let's Get Started!",
+        msg: "Welcome to IRIS! We're excited to be part of your child's learning journey. To verify your email address and activate your account, simply enter the code below.",
+        codeLbl: 'YOUR VERIFICATION CODE',
+        valid: 'This code is valid for %M% minutes.',
+        closing: 'One little step towards a brighter learning journey!',
+        sign1: 'With care,',
+        sign2: 'The IRIS Team',
+        ignore: "Didn't create this account? You can safely ignore this email — nothing will change.",
+        btn: 'Verify my email',
+      };
+}
+
+function buildVerificationEmail(code, lang, ttlMinutes) {
   const { logo, mascot } = brandAssets();
   const link = `${APP_ORIGIN}/verify?code=${code}`;
   const ar = lang !== 'en';
-  // Per-language copy — the account holder picked a UI language on the site.
-  const T = ar
-    ? {
-        title: 'كود تأكيد البريد',
-        sub: 'خطوة أخيرة قبل أن تبدأ المغامرة. أدخل الكود على شاشة الموقع، أو اضغط الزر للتأكيد السريع.',
-        codeLbl: 'كود التحقق',
-        expires: 'صالح لمدة ١٥ دقيقة',
-        btn: 'تأكيد البريد الآن',
-        alt: 'أو أدخل الكود يدويًا: ',
-        ignore: 'إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذا البريد بأمان — لن يتغير أي شيء.',
-        team: 'فريق IRIS',
-        pre: 'خطوة واحدة تفصل طفلك عن أول مغامرة تعليمية.',
-      }
-    : {
-        title: 'Confirm your email',
-        sub: 'One last step before the adventure begins. Enter the code on the website, or verify instantly with the button.',
-        codeLbl: 'Verification code',
-        expires: 'Valid for 15 minutes',
-        btn: 'Verify my email',
-        alt: 'Or enter the code manually: ',
-        ignore: "Didn't create this account? You can safely ignore this email — nothing will change.",
-        team: 'The IRIS team',
-        pre: 'One step away from your child’s first learning adventure.',
-      };
+  const T = copy(lang);
+  // The email must state the REAL lifetime — never a fixed sample number.
+  const minutes = Number.isFinite(ttlMinutes) && ttlMinutes > 0 ? ttlMinutes : 15;
+  const valid = T.valid.replace('%M%', String(ar ? minutes : minutes));
 
-  // The code itself: one ticket, big spaced digits, LTR no matter the page
-  // direction so digits never reorder in RTL clients.
-  const ticket = `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-           style="background:${C.blueTint};border:1.5px solid ${C.blue};border-radius:16px;">
-      <tr><td align="center" dir="ltr" style="padding:20px 16px 16px;">
-        <span style="font-family:${SANS};font-size:11px;letter-spacing:2.5px;color:${C.blueDeep};text-transform:uppercase;font-weight:bold;">${T.codeLbl}</span>
-      </td></tr>
-      <tr><td align="center" dir="ltr" style="padding:0 16px 16px;">
-        <span style="font-family:${SERIF};font-size:34px;font-weight:bold;color:${C.ink};letter-spacing:10px;text-indent:10px;display:block;">${code}</span>
-      </td></tr>
-      <tr><td align="center" dir="ltr" style="padding:0 16px 16px;">
-        <span style="font-family:${SANS};font-size:12px;color:${C.inkFaint};">${T.expires}</span>
-      </td></tr>
+  // Gentle geometric background: a circle, a ring, a star and a dot at the
+  // hero corners — brand colours, generous spacing, nothing random.
+  const decor = (align) => `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="height:14px;">
+      <tr>
+        <td width="25%" align="${align === 'right' ? 'left' : 'right'}" valign="bottom">
+          <div style="width:14px;height:14px;border-radius:14px;background:${P.yellow.wash};border:2px solid ${P.yellow.solid};"></div>
+        </td>
+        <td width="50%"></td>
+        <td width="25%" align="${align === 'right' ? 'right' : 'left'}" valign="bottom">
+          <div style="width:10px;height:10px;border-radius:10px;background:${P.blue.solid};"></div>
+        </td>
+      </tr>
     </table>`;
 
   return {
-    subject: ar ? 'IRIS — كود تأكيد بريدك الإلكتروني' : 'IRIS — your email verification code',
-    text: `${T.title}\n\n${T.codeLbl}: ${code}\n${T.expires}\n${link}\n\n${T.ignore}`,
+    subject: T.subject,
+    text: `${T.headline}
+
+${T.msg}
+
+${T.codeLbl}: ${code}
+${valid}
+${link}
+
+${T.ignore}`,
     html: `<!DOCTYPE html>
 <html lang="${ar ? 'ar' : 'en'}" dir="${ar ? 'rtl' : 'ltr'}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>IRIS</title></head>
 <body style="margin:0;padding:0;background:${C.paper};">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${T.pre}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.paper};">
-    <tr><td align="center" style="padding:40px 16px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+    <tr><td align="center" style="padding:36px 14px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:540px;">
 
-        <!-- logo, quietly centered — the only brand mark up top -->
-        <tr><td align="center" style="padding:0 0 34px;">
-          <img src="${logo}" width="86" height="86" alt="IRIS" style="display:block;width:86px;height:86px;border:0;">
+        <!-- the real logo, unmodified, clearly visible near the top -->
+        <tr><td align="center" style="padding:6px 0 20px;">
+          <img src="${logo}" width="110" height="110" alt="IRIS" style="display:block;width:110px;height:110px;border:0;">
         </td></tr>
 
-        <!-- card -->
-        <tr><td style="background:${C.card};border:1px solid ${C.line};border-radius:20px;padding:34px 32px 26px;" bgcolor="${C.card}">
+        <!-- soft card -->
+        <tr><td style="background:${C.card};border:1px solid ${C.line};border-radius:22px;padding:34px 30px 26px;" bgcolor="${C.card}">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 
-            <!-- headline + single brand swash (like the landing mark) -->
-            <tr><td style="padding-bottom:4px;">
-              <h1 style="margin:0;font-family:${SERIF};font-size:23px;font-weight:bold;color:${C.ink};">${T.title}</h1>
-            </td></tr>
-            <tr><td style="padding:8px 0 14px;">
-              <div style="width:56px;height:5px;border-radius:5px;background:${C.yellow};${ar ? 'margin-left:auto;' : ''}"></div>
+            <tr><td>${decor(ar ? 'right' : 'left')}</td></tr>
+
+            <!-- headline -->
+            <tr><td align="${ar ? 'right' : 'center'}" style="padding:6px 0 10px;">
+              <h1 style="margin:0;font-family:${SERIF};font-size:24px;color:${C.ink};">${T.headline}</h1>
             </td></tr>
 
-            <tr><td style="padding-bottom:24px;">
-              <p style="margin:0;font-family:${SANS};font-size:14.5px;line-height:1.7;color:${C.inkSoft};">${T.sub}</p>
+            <!-- welcome message -->
+            <tr><td align="${ar ? 'right' : 'center'}" style="padding-bottom:26px;">
+              <p style="margin:0;font-family:${SANS};font-size:14.5px;line-height:1.7;color:${C.inkSoft};">${T.msg}</p>
             </td></tr>
 
-            <!-- code ticket -->
-            <tr><td>${ticket}</td></tr>
-
-            <!-- one clear action -->
-            <tr><td align="center" style="padding:26px 0 4px;">
-              <a href="${link}" target="_blank" style="display:inline-block;background:${C.blue};color:#FFFFFF;font-family:${SANS};font-size:15px;font-weight:bold;text-decoration:none;padding:13px 36px;border-radius:9999px;">${T.btn}</a>
+            <!-- THE CENTERPIECE: multicolored code -->
+            <tr><td align="center" style="padding-bottom:12px;">
+              <span dir="ltr" style="font-family:${SANS};font-size:11px;letter-spacing:2px;color:${C.inkFaint};font-weight:bold;">${T.codeLbl}</span>
             </td></tr>
-            <tr><td align="center" style="padding:8px 0 24px;">
-              <span style="font-family:${SANS};font-size:12px;color:${C.inkFaint};">${T.alt}<b dir="ltr" style="letter-spacing:2px;color:${C.blueDeep};font-size:13px;">${code}</b></span>
+            <tr><td align="center" dir="ltr" style="padding-bottom:14px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${codeBoxes(code)}</tr></table>
+            </td></tr>
+            <tr><td align="center" style="padding-bottom:26px;">
+              <span style="font-family:${SANS};font-size:12.5px;color:${C.inkFaint};">${valid}</span>
             </td></tr>
 
-            <!-- signature: the mascot joins once, small, beside the team name -->
+            <!-- one calm action -->
+            <tr><td align="center" style="padding-bottom:8px;">
+              <a href="${link}" target="_blank" style="display:inline-block;background:${P.blue.solid};color:#FFFFFF;font-family:${SANS};font-size:15px;font-weight:bold;text-decoration:none;padding:13px 34px;border-radius:9999px;">${T.btn}</a>
+            </td></tr>
+            <tr><td align="center" style="padding-bottom:24px;">
+              <span style="font-family:${SANS};font-size:12px;color:${C.inkFaint};"><span dir="ltr" style="letter-spacing:3px;color:${P.blue.ink};font-weight:bold;font-size:13px;">${code}</span></span>
+            </td></tr>
+
+            <!-- closing line + signature with small mascot -->
+            <tr><td align="${ar ? 'right' : 'center'}" style="padding-bottom:18px;">
+              <p style="margin:0;font-family:${SERIF};font-size:14.5px;color:${P.purple.ink};">${T.closing}</p>
+            </td></tr>
             <tr><td style="border-top:1px solid ${C.line};padding-top:18px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="${ar ? 'float:right;' : 'float:left;'}">
-                <tr>
-                  <td valign="middle" style="padding-${ar ? 'left' : 'right'}:10px;">
-                    <img src="${mascot}" width="38" height="38" alt="" style="display:block;width:38px;height:38px;border:0;border-radius:50%;">
-                  </td>
-                  <td valign="middle" style="font-family:${SERIF};font-size:14px;color:${C.ink};">${T.team}</td>
-                </tr>
-              </table>
-              <div style="clear:both;"></div>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+                <td align="${ar ? 'right' : 'left'}">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+                    <td valign="middle" style="padding-${ar ? 'left' : 'right'}:10px;">
+                      <img src="${mascot}" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border:0;border-radius:50%;">
+                    </td>
+                    <td valign="middle" style="font-family:${SERIF};font-size:13.5px;color:${C.ink};line-height:1.5;">${T.sign1}<br>${T.sign2}</td>
+                  </tr></table>
+                </td>
+              </tr></table>
             </td></tr>
           </table>
         </td></tr>
 
-        <!-- fine print, outside the card -->
-        <tr><td align="center" style="padding:18px 12px 0;">
-          <p style="margin:0 0 10px;font-family:${SANS};font-size:11.5px;line-height:1.6;color:${C.inkFaint};">${T.ignore}</p>
+        <!-- fine print -->
+        <tr><td align="center" style="padding:16px 10px 0;">
+          <p style="margin:0 0 8px;font-family:${SANS};font-size:11.5px;line-height:1.6;color:${C.inkFaint};">${T.ignore}</p>
           <a href="${APP_ORIGIN}" style="font-family:${SANS};font-size:11.5px;color:${C.inkFaint};text-decoration:none;letter-spacing:1px;">iris · ${APP_ORIGIN.replace(/^https?:\/\//, '')}</a>
         </td></tr>
       </table>
@@ -163,14 +217,14 @@ function mode() {
   return 'none';
 }
 
-async function sendVerificationEmail(email, code, lang) {
+async function sendVerificationEmail(email, code, lang, ttlMinutes) {
   const m = mode();
   if (m === 'none') {
     const err = new Error('EMAIL_NOT_CONFIGURED');
     err.code = 'EMAIL_NOT_CONFIGURED';
     throw err;
   }
-  const mail = buildVerificationEmail(code, lang);
+  const mail = buildVerificationEmail(code, lang, ttlMinutes);
   if (m === 'resend') {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
