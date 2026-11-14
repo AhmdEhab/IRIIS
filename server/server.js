@@ -205,7 +205,7 @@ app.use('/api/ai', (req, res, next) => (
 app.get('/api/health', async (req, res) => {
   try {
     await sequelize.authenticate();
-    res.json({ status: 'ok', database: 'ok', blobsync: { active: blobsync.active, vercel: process.env.VERCEL || null, hasToken: !!process.env.BLOB_READ_WRITE_TOKEN, restored: global.__blobsyncRestore || null } });
+    res.json({ status: 'ok', database: 'ok', blobsync: blobsync.diagnostics(), restored: global.__blobsyncRestore || null });
   } catch (e) {
     res.status(503).json({ status: 'degraded', database: 'unreachable' });
   }

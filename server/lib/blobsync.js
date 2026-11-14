@@ -154,10 +154,24 @@ function middleware(req, res, next) {
  *  cannot rely on post-response timers). Safe to call anywhere. */
 async function flushNow() {
   if (!active) return;
-  try { await uploadNow(); } catch (e) {
+  try { await uploadNow(); global.__blobsyncLastErr = null; } catch (e) {
     console.error('[blobsync] flushNow failed:', e.message);
-    try { await uploadNow(); } catch (e2) { console.error('[blobsync] flushNow retry failed:', e2.message); }
+    try { await uploadNow(); global.__blobsyncLastErr = null; }
+    catch (e2) { global.__blobsyncLastErr = String(e2 && e2.message || e2); console.error('[blobsync] flushNow retry failed:', e2.message); }
   }
 }
 
-module.exports = { active, restore, flushPending, scheduleFlush, flushNow, middleware };
+function diagnostics() {
+  return {
+    active,
+    dbPath,
+    dbExists: dbPath ? fs.existsSync(dbPath) : false,
+    dbSize: dbPath && fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
+    hasUploaded: !!lastHash,
+    dirty,
+    lastErr: global.__blobsyncLastErr || null,
+    token: process.env.BLOB_READ_WRITE_TOKEN ? 'set' : 'unset',
+  };
+}
+
+module.exports = { active, restore, flushPending, scheduleFlush, flushNow, middleware, diagnostics };
