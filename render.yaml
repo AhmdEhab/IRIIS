@@ -1,0 +1,23 @@
+# https://render.com/ blueprints — deploy IRIS as a single service.
+# The server builds the Vite SPA into dist/ and serves it, plus /api, on one
+# origin; the SQLite file lives on a mounted persistent disk.
+services:
+  - type: web
+    name: iris
+    runtime: node
+    plan: starter # $7/mo: persistent disk + no sleep. free tier wipes DB on restart.
+    region: singapore
+    buildCommand: npm install && npm --prefix server install && npm run build
+    startCommand: node server/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DB_PATH
+        value: /data/iris.sqlite
+      - key: SERVE_STATIC
+        value: "1"
+    disk:
+      name: iris-data
+      mountPath: /data
+      sizeGB: 1
