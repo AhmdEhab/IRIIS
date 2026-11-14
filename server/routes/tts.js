@@ -35,7 +35,23 @@ const router = express.Router();
 /** Overridable so the route can be pointed at a corporate proxy, a self-hosted
  *  gateway, or a mock during testing. Defaults to ElevenLabs itself. */
 const API_ROOT = process.env.ELEVENLABS_API_ROOT || 'https://api.elevenlabs.io/v1';
-const CACHE_DIR = path.join(__dirname, '..', '.tts-cache');
+/**
+ * The cache lives next to the server normally, but serverless filesystems
+ * (Vercel) are read-only outside /tmp — fall back to the OS temp dir there.
+ * ensureCache() is called wherever we are about to write; if even temp is
+ * read-only, narration still works, it just skips caching.
+ */
+let CACHE_DIR = process.env.TTS_CACHE_DIR || path.join(__dirname, '..', '.tts-cache');
+const ensureCache = () => {
+  try {
+    ensureCache();
+    return true;
+  } catch {
+    CACHE_DIR = path.join(require('os').tmpdir(), 'iris-tts-cache');
+    try { fs.mkdirSync(CACHE_DIR, { recursive: true }); return true; } catch { return false; }
+  }
+};
+ensureCache();
 
 /**
  * Multilingual v2 handles both Egyptian Arabic and English from one voice
@@ -54,7 +70,7 @@ const voiceFor = (lang) =>
 
 const apiKey = () => process.env.ELEVENLABS_API_KEY || '';
 
-if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+ensureCache();
 
 /**
  * The last upstream problem, so /api/tts/status can say WHY narration is
@@ -343,7 +359,7 @@ router.post('/', async (req, res) => {
      * and never prevents the response.
      */
     try {
-      if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+      ensureCache();
       // Temp name then rename, so a killed process cannot leave a truncated
       // mp3 in the cache that would replay as a clipped line forever.
       const tmp = `${writePath}.${process.pid}.part`;

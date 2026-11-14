@@ -1,5 +1,7 @@
 /**
- * Vercel serverless entry.
+ * Vercel serverless entry (.cjs because the root package.json is type:module;
+ *
+ * the Express server itself is CommonJS.)
  *
  * The whole Express app — routes, auth, static SPA fallback included — is
  * imported from server/server.js, which exports the app without binding a
