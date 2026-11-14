@@ -31,6 +31,7 @@ const A = regPayload('alpha');
 const r1 = await J('POST', `${api}/api/register`, A);
 ok('1 register 201 + token + child', r1.status === 201 && !!r1.data.token && !!r1.data.child, JSON.stringify(r1.data).slice(0, 120));
 ok('1 new account NOT verified', r1.data.user?.emailVerified === false);
+ok('1 register auto-delivered OTP (spec: mandatory)', r1.data.verification?.sent === true && /^\d{6}$/.test(r1.data.verification?.devCode || ''), JSON.stringify(r1.data.verification || {}).slice(0, 90));
 const tokA = r1.data.token, kidA = r1.data.child?.id;
 
 // 2. duplicate email rejected
@@ -73,7 +74,13 @@ const l2 = await J('POST', `${api}/api/login`, { email: A.email, password: 'Pass
 const tokA2 = l2.data.token;
 ok('7 re-login yields working token', (await J('GET', `${api}/api/verify/status`, null, tokA2)).status === 200);
 
-// 8. verification: send (test mode) → wrong → expired → right
+// 8. verification: register's code is protected by cooldown → resend →
+//      wrong → expired → right
+{
+  const throttled = await J('POST', `${api}/api/verify/send`, {}, tokA2);
+  ok('8 resend immediately after register 429 RESEND_COOLDOWN', throttled.status === 429 && throttled.data.error === 'RESEND_COOLDOWN' && throttled.data.retryAfterMs > 0, `${throttled.status} ${JSON.stringify(throttled.data).slice(0, 90)}`);
+  await new Promise((r) => setTimeout(r, (throttled.data.retryAfterMs || 31000) + 800));
+}
 const send = await J('POST', `${api}/api/verify/send`, {}, tokA2);
 const honestEither = send.data.sent === true || send.data.reason === 'EMAIL_NOT_CONFIGURED';
 ok('8 send 200 + honest result + devCode', send.status === 200 && honestEither && !!send.data.devCode, JSON.stringify(send.data).slice(0, 100));
@@ -90,7 +97,12 @@ await new Promise((resolve) => {
 });
 const expired = await J('POST', `${api}/api/verify/confirm`, { code: dev }, tokA2);
 ok('8 expired code rejected', expired.status >= 400 && expired.data.error === 'CODE_EXPIRED', JSON.stringify(expired.data).slice(0, 80));
-const resend = await J('POST', `${api}/api/verify/send`, {}, tokA2);
+let resend = await J('POST', `${api}/api/verify/send`, {}, tokA2);
+if (resend.status === 429) {
+  // The forced-expiry UPDATE keeps createdAt fresh; honour the cooldown.
+  await new Promise((r) => setTimeout(r, (resend.data.retryAfterMs || 31000) + 800));
+  resend = await J('POST', `${api}/api/verify/send`, {}, tokA2);
+}
 const dev2 = resend.data.devCode;
 ok('8 resend after expiry works', resend.status === 200 && !!dev2, `${resend.status}`);
 const good = await J('POST', `${api}/api/verify/confirm`, { code: dev2 }, tokA2);
@@ -125,8 +137,8 @@ const rc = await J('POST', `${api}/api/register`, CC);
 const tokC = rc.data.token, kidC = rc.data.child?.id;
 const denied = await J('POST', `${api}/api/sessions`, { childId: kidC, goal_id: 'letters-a1', level: 1, accuracy: 0.8 }, tokC);
 ok('12 unverified /api/sessions 403', denied.status === 403 && denied.data.error === 'EMAIL_NOT_VERIFIED', JSON.stringify(denied.data).slice(0, 80));
-const s2 = await J('POST', `${api}/api/verify/send`, {}, tokC);
-const c2 = await J('POST', `${api}/api/verify/confirm`, { code: s2.data.devCode }, tokC);
+ok('12 charlie register delivered code', !!rc.data.verification?.devCode, JSON.stringify(rc.data.verification || {}).slice(0, 80));
+const c2 = await J('POST', `${api}/api/verify/confirm`, { code: rc.data.verification?.devCode }, tokC);
 ok('12 charlie verified', c2.status === 200);
 const allowed = await J('POST', `${api}/api/sessions`, { childId: kidC, goal_id: 'letters-a1', level: 1, accuracy: 0.8 }, tokC);
 ok('12 verified /api/sessions allowed', allowed.status === 200 || allowed.status === 201, `${allowed.status}`);
@@ -159,6 +171,10 @@ ok('13 delta registered unverified', rd.status === 201 && rd.data.user.emailVeri
 await J('POST', `${api}/api/assessments`, { childId: kidB, assessment_kind: 'LADDER', status: 'COMPLETE', domain_scores: { letter: 0.4 }, skill_estimates: { letter: 0.4 }, item_results: {}, accommodations_used: [], data_quality_flags: [], interruption_count: 0 }, tokB);
 // 14. assessment done + unverified → login lands on /verify; wrong code errors;
 //     dev code verifies → /parent; refresh persists; back never re-enters auth.
+// The register auto-send for BB is still inside its 30s resend cooldown
+// at this point of the battery; let it lapse so the mount-time resend in
+// the browser flow succeeds instead of 429-ing.
+await new Promise((r) => setTimeout(r, 31500));
 {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();

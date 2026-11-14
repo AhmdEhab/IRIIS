@@ -24,7 +24,7 @@ import { ChevronLeft, ChevronRight, Mail, RefreshCw } from 'lucide-react';
  * hand back the code as devCode — shown as a hint, never auto-accepted).
  */
 export function EmailVerificationScreen() {
-  const { navigateTo, childProfile, setEmailVerified } = useApp();
+  const { navigateTo, childProfile, setEmailVerified, registerEmailSent } = useApp();
   const { language } = useLanguage();
   const ar = language === 'ar';
   const { playSound, speak } = useAudio();
@@ -114,6 +114,24 @@ export function EmailVerificationScreen() {
       setDigits(fromLink.split(''));
       setPhase('waiting');
       setNote(ar ? 'فتحنا لك هذا من رابط التحقق — أكمل بإدخال الكود.' : 'Opened from your verification link — confirm the code to continue.');
+      return;
+    }
+    if (registerEmailSent === true) {
+      // Spec: registration itself already generated AND emailed the first
+      // code. Re-sending here would only hit the resend cooldown, so we
+      // simply wait for the parent to type it in.
+      setPhase('sent');
+      setNote(ar
+        ? 'أرسلنا لك كودًا مكونًا من ٦ أرقام لحظة التسجيل — افتح بريدك وأدخله.'
+        : 'We emailed a 6-digit code the moment you registered — open your inbox and enter it.');
+      return;
+    }
+    if (registerEmailSent === false) {
+      // Honest failure: the code exists but the email did not go out.
+      setPhase('waiting');
+      setError(ar
+        ? 'تعذر إرسال البريد لحظة التسجيل — اضغط إعادة الإرسال.'
+        : 'The registration email could not be sent — use resend below.');
       return;
     }
     void requestSend();
@@ -214,8 +232,8 @@ export function EmailVerificationScreen() {
       tone="blue"
       title={ar ? 'تأكيد البريد الإلكتروني' : 'Verify your email'}
       tagline={ar
-        ? 'خطوة أخيرة قبل دخول IRIS — الكود وصل لبريدك بعد تقييم طفلك.'
-        : 'One last step before IRIS — the code was sent after your child\u2019s assessment.'}
+        ? 'خطوة إلزامية قبل دخول IRIS — أرسلنا كود تحقق إلى بريدك.'
+        : 'A required step before entering IRIS — we emailed you a verification code.'}
       topBar={
         <div className="ir-auth-bar">
           <button type="button" className="ir-auth-back" onClick={handleBack}>

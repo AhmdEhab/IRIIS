@@ -43,8 +43,14 @@ const ActivitySession = require('./models/ActivitySession');
 const Session = require('./models/Session');
 const VerificationCode = require('./models/VerificationCode');
 const { mode: emailMode, sendVerificationEmail } = require('./lib/email');
+const blobsync = require('./lib/blobsync');
 
 const app = express();
+
+/* ── durable snapshots on ephemeral hosts (docs/AUTH_FLOW_REPORT.md §9) ──
+ * Mutating /api calls schedule a snapshot of the SQLite file into Vercel
+ * Blob; every request first awaits any pending snapshot. */
+app.use(blobsync.middleware);
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
@@ -273,7 +279,21 @@ app.post('/api/register', async (req, res) => {
       });
     }
     const token = await issueToken(user.email);
-    res.status(201).json({ token, user: serializeUser(user), child });
+    // Spec: OTP is NOT optional — the very first code is generated and
+    // emailed as part of registration itself. Failure to deliver does not
+    // undo the account (the code is stored either way and /verify offers
+    // resend); the response says honestly whether the email went out.
+    const v = await issueVerificationCode(user, req.body && req.body.lang);
+    const dev = process.env.VERIFY_DEV_CODES === 'true' ? { devCode: v.code } : {};
+    // Serverless cannot trust post-response timers: the account + its first
+    // OTP must be durable BEFORE the 201 leaves.
+    await blobsync.flushNow();
+    res.status(201).json({
+      token,
+      user: serializeUser(user),
+      child,
+      verification: { sent: v.sent, via: v.via || null, ...dev },
+    });
   } catch (error) {
     // Sequelize's own unique/validation failures are reported in the same
     // shape as the explicit checks above, so the client can show one clear
@@ -342,10 +362,19 @@ app.post('/api/logout', requireAuth, async (req, res) => {
  * reason — never a fake success. Outside production builds the response also
  * carries devCode so the flow stays testable without an email provider.
  */
-const CODE_TTL_MS = 15 * 60 * 1000;
+const CODE_TTL_MS = 5 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 30 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
-async function issueVerificationCode(user) {
+/**
+ * Generate + store + DELIVER one OTP. Shared by /api/register (mandatory
+ * first send) and /api/verify/send (resend) so the two paths can never
+ * drift. Returns { code, sent, via, error } — `sent` only true when the
+ * provider actually accepted the message, or in dev mode where the code
+ * is echoed instead (VERIFY_DEV_CODES is a local flag, never set on
+ * Vercel, and emailMode()==='none' keeps the echo honest by only ever
+ * existing alongside sent:false).
+ */
+async function issueVerificationCode(user, lang) {
   const code = String(require('crypto').randomInt(100000, 1000000));
   await VerificationCode.destroy({ where: { userId: user.id, used_at: null } });
   await VerificationCode.create({
@@ -353,7 +382,15 @@ async function issueVerificationCode(user) {
     code_hash: hashToken(code),
     expires_at: Date.now() + CODE_TTL_MS,
   });
-  return code;
+  console.log(`[verify] code issued for ${user.email}`);
+  if (emailMode() === 'none') return { code, sent: false, via: null, error: 'EMAIL_NOT_CONFIGURED' };
+  if (process.env.VERIFY_DEV_CODES === 'true') return { code, sent: true, via: 'dev' };
+  try {
+    const via = await sendVerificationEmail(user.email, code, lang, CODE_TTL_MS / 60000);
+    return { code, sent: true, via };
+  } catch (e) {
+    return { code, sent: false, via: null, error: String(e.code || e.message).slice(0, 120) };
+  }
 }
 app.post('/api/verify/send', requireAuth, async (req, res) => {
   try {
@@ -368,35 +405,24 @@ app.post('/api/verify/send', requireAuth, async (req, res) => {
       const retryAfterMs = RESEND_COOLDOWN_MS - (Date.now() - new Date(pending.createdAt).getTime());
       return res.status(429).json({ error: 'RESEND_COOLDOWN', retryAfterMs });
     }
-    const code = await issueVerificationCode(user);
-    if (emailMode() === 'none') {
-      // devCode is an opt-in LOCAL convenience, never a deployment
-      // behavior: it is only echoed when VERIFY_DEV_CODES=true is set
-      // explicitly. A production build with NODE_ENV unset still keeps
-      // codes private — the code itself is always written to the server
-      // log for local debugging.
-      const dev = process.env.VERIFY_DEV_CODES === 'true' ? { devCode: code } : {};
-      console.log(`[verify] email service not configured — code for ${user.email}: ${code} (dev fallback)`);
+    const r = await issueVerificationCode(user, req.body && req.body.lang);
+    // devCode stays an opt-in LOCAL convenience (VERIFY_DEV_CODES=true is
+    // never set on Vercel), so the QA battery keeps working while
+    // production codes travel only inside the email.
+    const dev = process.env.VERIFY_DEV_CODES === 'true' ? { devCode: r.code } : {};
+    if (r.error === 'EMAIL_NOT_CONFIGURED') {
       return res.json({ ok: true, sent: false, reason: 'EMAIL_NOT_CONFIGURED', ...dev });
     }
-    try {
-      // ttlMinutes comes from the SAME constant that governs expiry, so the
-      // email can never advertise a lifetime the backend does not enforce.
-      const via = await sendVerificationEmail(user.email, code, req.body && req.body.lang, CODE_TTL_MS / 60000);
-      // VERIFY_DEV_CODES is an explicit LOCAL flag (never set on Vercel),
-      // so the QA battery and the on-screen test chip keep working even
-      // when a real provider is wired up. Without it the code only ever
-      // travels inside the email — exactly like production.
-      const dev = process.env.VERIFY_DEV_CODES === 'true' ? { devCode: code } : {};
-      res.json({ ok: true, sent: true, via, ...dev });
-    } catch (e) {
-      // The code stays valid; the user can retry with the resend button.
-      res.status(502).json({
+    if (!r.sent) {
+      // The code is stored and valid; the parent can press resend.
+      return res.status(502).json({
         error: 'EMAIL_SEND_FAILED',
         detail: 'The verification email could not be delivered. Please try again.',
-        cause: String(e.message).slice(0, 200),
+        cause: r.error,
+        ...dev,
       });
     }
+    res.json({ ok: true, sent: true, via: r.via, ...dev });
   } catch (error) {
     res.status(500).json({ error: 'VERIFY_SEND_FAILED' });
   }
@@ -437,6 +463,9 @@ app.post('/api/verify/confirm', requireAuth, async (req, res) => {
     row.used_at = Date.now();
     await row.save();
     user.emailVerified = true;
+    // same durability reasoning as /api/register — a verified flag that
+    // dies with the instance forces the parent to redo the whole flow.
+    await blobsync.flushNow();
     await user.save();
     await VerificationCode.destroy({ where: { userId: user.id, used_at: null } });
     res.json({ ok: true, emailVerified: true, user: serializeUser(user) });
@@ -731,7 +760,12 @@ async function addAuthSpecColumns() {
     console.error('AUTHSPEC_MIGRATION_WARNING:', e.message);
   }
 }
-sequelize.sync(syncOptions).then(async () => {
+(blobsync.active
+  ? blobsync.restore(sequelize.config.storage && String(sequelize.config.storage)).then((r) => {
+      console.log(`[blobsync] boot restore: ${r}`);
+    })
+  : Promise.resolve()
+).then(() => sequelize.sync(syncOptions)).then(async () => {
   console.log(`Database synced${process.env.DB_ALTER === 'true' ? ' (ALTER MODE)' : ''}`);
   await addPhase5Columns();
   await addAuthSpecColumns();

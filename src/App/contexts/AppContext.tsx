@@ -149,6 +149,8 @@ interface AppContextType {
    */
   emailVerified: boolean | null;
   setEmailVerified: (v: boolean | null) => void;
+  /** True only when the backend reported the registration OTP email sent. */
+  registerEmailSent: boolean | null;
   refreshVerifyStatus: () => Promise<void>;
   /** Last auth failure as a server error code; render with authMessage(). */
   authError: string | null;
@@ -413,9 +415,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       });
       if (response.ok) {
-        const data = await response.json(); // { token, user }
+        const data = await response.json(); // { token, user, verification }
         const user = data.user || {};
         setAuthToken(data.token || null);
+        setRegisterEmailSent(data.verification ? data.verification.sent === true : null);
         try { localStorage.setItem('iris_auth_email', user.email || profile.email || ''); } catch {}
         const fullProfile = {
           ...profile,
@@ -490,6 +493,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Auth spec §4.5/§5: verification state travels WITH the login
         // response, so a returning unverified account resumes at /verify.
         setEmailVerified(data.emailVerified === true);
+        // A login is not a fresh registration: the verify screen must go
+        // back to requesting a code normally.
+        setRegisterEmailSent(null);
         return data;
       }
       // Wrong password / unknown email — tell the parent, don't fail silently.
@@ -588,6 +594,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ── Email verification state (auth spec §3) — server is the source ──
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  /**
+   * Whether the registration OTP email actually went out (spec: honest
+   * delivery state — null = unknown/not from a fresh registration).
+   */
+  const [registerEmailSent, setRegisterEmailSent] = useState<boolean | null>(null);
   const refreshVerifyStatus = useCallback(async () => {
     if (!authToken) { setEmailVerified(null); return; }
     try {
@@ -767,6 +778,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         registerUser,
         logoutUser,
         emailVerified,
+        registerEmailSent,
         setEmailVerified,
         refreshVerifyStatus,
         authError: authErrorCode,

@@ -120,7 +120,10 @@ export function RegistrationScreen() {
         const settingUp = language === 'ar'
           ? `جاري تجهيز رحلة ${formData.name || 'طفلك'} التعليمية...`
           : `Setting up ${formData.name || "your child"}'s learning journey...`;
-        startTransition(settingUp, 'iris-parent', 2000);
+        // Spec: registration never skips verification — the transition
+        // lands on the OTP screen; the hub is only reached after the
+        // code is confirmed (and the assessment gate afterwards).
+        startTransition(settingUp, 'verify-email', 2000);
       } else {
         speak(language === 'ar' ? 'حدث خطأ في التسجيل. يرجى التأكد من البيانات.' : 'Registration error. Please check your data.', language);
         playSound('error');
