@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { phraseFor, allPhrases, PHRASE_KINDS, type PhraseKind, type Lang } from '../audio/phrases';
 import { SOUND_FILES, MUSIC_FILE, type SoundEvent } from '../audio/soundMap';
 import { getClip, voiceUsable, releaseClips, warmClips } from '../audio/voice';
+import { fileClipFor } from '../audio/fileClips';
 
 /**
  * IRIS audio system.
@@ -175,6 +176,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!narrationElRef.current) {
       const el = new Audio();
       el.preload = 'auto';
+      // A DOM-visible handle: instrumented QA (and curious parents in devtools)
+      // can read exactly what narration is playing without React internals.
+      el.setAttribute('data-iris-narration', '');
+      document.head.appendChild(el);
       narrationElRef.current = el;
     }
     return narrationElRef.current;
@@ -530,6 +535,24 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
    * has moved on is discarded rather than played. That is what stops a line
    * fetched on one screen from starting after the child has navigated away.
    */
+  /**
+   * Plays a shipped recording (public/audio/tts) through the same narration
+   * element the ElevenLabs clips use — volume, ducking, captions and the
+   * sequence guard behave identically. If the file 404s on an old install, we
+   * degrade to the browser voice rather than to silence.
+   */
+  const playFileClip = (url: string, clean: string, language: Lang, seq: number) => {
+    const el = getNarrationEl();
+    el.src = url;
+    el.volume = Math.max(0, Math.min(1, volumeRef.current));
+    el.onplay = () => { setIsSpeaking(true); duckMusic(true); };
+    const done = () => { if (seq !== speakSeqRef.current) return; setIsSpeaking(false); duckMusic(false); };
+    el.onended = done;
+    el.onstop = done;
+    el.onerror = () => { done(); if (seq === speakSeqRef.current && isEnabledRef.current) browserSpeak(clean, language); };
+    el.play().catch(() => { if (seq === speakSeqRef.current && isEnabledRef.current) browserSpeak(clean, language); });
+  };
+
   const speak = useCallback(
     (text: string, language: Lang = 'ar') => {
       if (!text) return;
@@ -548,6 +571,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       stopNarrationEl();
       if (audioRef.current) audioRef.current.pause();
 
+      // Shipped recording first: deterministic, voice-independent, works
+      // offline. The ladder's word/sentence audio lives in public/audio/tts.
+      const clip = fileClipFor(clean);
+      if (clip) {
+        playFileClip(clip, clean, language, seq);
+        return;
+      }
       if (!voiceUsable()) {
         browserSpeak(clean, language);
         return;

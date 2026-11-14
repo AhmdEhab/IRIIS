@@ -202,7 +202,7 @@ export function IrisLadderPractice({ onFinish }: { onFinish: () => void }) {
             ar={ar}
             item={item}
             onAnswer={answer}
-            onSpeak={(t) => speak?.(t)}
+            onSpeak={(t, lang) => speak?.(t, lang ?? language)}
             disabled={busy}
             hintMode={noHint ? 'none' : showHintAlways ? 'always' : hintOnRequest ? 'request' : 'request'}
           />

@@ -173,7 +173,7 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
             item={item}
             fallbackPrompt={ar ? probe.labelAr : probe.labelEn}
             onAnswer={answerCalibration}
-            onSpeak={(t) => speak?.(t)}
+            onSpeak={(t, lang) => speak?.(t, lang ?? language)}
           />
         </div>
       </Shell>
@@ -199,7 +199,7 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
             ar={ar}
             item={item}
             onAnswer={answerItem}
-            onSpeak={(t) => speak?.(t)}
+            onSpeak={(t, lang) => speak?.(t, lang ?? language)}
             disabled={busy}
           />
         </div>

@@ -95,8 +95,9 @@ READINESS_PICS.forEach((pic, i) => {
 });
 
 // ── LIT.LETTER_AWARE — letter vs non-letter, and matching letters ───────────
-const NON_LETTERS = ['★', '◆', '●', '▲', '✚', '❖'];
-ARABIC_LETTERS.slice(0, 8).forEach((L, i) => {
+const NON_LETTERS = ['🔴', '⭐', '🔷', '🟩', '🔶', '➕']; // emoji shapes: unmistakably NOT letters
+const AMBIGUOUS_LETTERS = ['أ', 'إ', 'آ', 'ا', 'ل']; // bare vertical strokes read as a cursor, not a letter
+ARABIC_LETTERS.filter((L) => !AMBIGUOUS_LETTERS.includes(L.letter)).slice(0, 8).forEach((L, i) => {
   const tier = i < 3 ? 'FOUNDATION' : 'PRACTICE';
   const d = distractors(NON_LETTERS, null, OPTIONS_PER_TIER[tier] - 1, i);
   const { options, correct_index } = withOptions(L.letter, d, i);

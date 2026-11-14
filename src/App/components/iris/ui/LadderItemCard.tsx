@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Surface, ProgressTrack } from './brand';
 
 /**
@@ -86,7 +86,7 @@ export function LadderItemCard({
   item: any;
   fallbackPrompt?: string;
   onAnswer: (correct: boolean) => void;
-  onSpeak?: (t: string) => void;
+  onSpeak?: (t: string, lang?: 'ar' | 'en') => void;
   disabled?: boolean;
   /**
    * Comes from the plan's scaffold flags, never chosen here:
@@ -143,6 +143,18 @@ export function LadderItemCard({
     }
   };
 
+  const audioText = typeof item?.audio_ar === 'string' && item.audio_ar.trim() ? item.audio_ar.trim() : null;
+
+  // Listen items are blind unless the WORD itself is spoken — not the instruction.
+  // Autoplay it when the item appears (after a gesture has unlocked audio) and
+  // let the speaker replay the word rather than the prompt text.
+  useEffect(() => {
+    if (!audioText || !onSpeak) return;
+    const t = setTimeout(() => onSpeak(audioText, 'ar'), 650);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item?.item_id]);
+
   const header = (
     <>
       {prompt && (
@@ -150,13 +162,19 @@ export function LadderItemCard({
           <h2 className="text-xl font-black text-ink flex-1 leading-relaxed">{prompt}</h2>
           {onSpeak && (
             <button
-              onClick={() => onSpeak(prompt)}
-              aria-label={ar ? 'اسمع السؤال' : 'Hear the question'}
+              onClick={() => onSpeak(audioText ?? prompt, audioText ? 'ar' : undefined)}
+              aria-label={audioText ? (ar ? 'اسمع الكلمة' : 'Hear the word') : (ar ? 'اسمع السؤال' : 'Hear the question')}
               className="rounded-full bg-surface-sunk border border-hairline w-11 h-11 text-lg shrink-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue"
             >
               🔊
             </button>
           )}
+        </div>
+      )}
+      {audioText && !item?.stimulus && (
+        <div className="text-center py-4 rounded-brand-sm bg-surface-sunk">
+          <span className="text-5xl" role="img" aria-label={ar ? 'اسمع' : 'Listen'}>🔊</span>
+          <p className="mt-2 text-lg font-black text-ink" dir="auto">{ar ? 'اسمع كويس' : 'Listen closely'}</p>
         </div>
       )}
       {item?.stimulus && (
