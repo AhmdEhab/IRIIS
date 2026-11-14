@@ -2,7 +2,9 @@ import React from 'react';
 import { useIris } from '../../../contexts/IrisContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useApp } from '../../../contexts/AppContext';
-import { TopBar, StarCount, type Accent } from './brand';
+import { type Accent } from './brand';
+import { Home, Award } from 'lucide-react';
+import '../../landing-child.css';
 import { ChromeActions } from './ChromeActions';
 
 /**
@@ -105,30 +107,36 @@ export function ChildShell({
 
   return (
     <BackSlotContext.Provider value={slot}>
-      <div data-accent={accent} className="iris-child relative min-h-screen bg-ground flex flex-col">
-        <TopBar
-          ar={ar}
-          onBack={onBack ?? undefined}
-          backLabel={ar ? 'رجوع' : 'Back'}
-          title={
-            showIdentity && childName ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="text-xl leading-none" aria-hidden="true">
-                  {avatar}
+      <div data-accent={accent} className="lc-root relative min-h-screen flex flex-col" dir={ar ? 'rtl' : 'ltr'}>
+        <header className="lc-header">
+          <div className="lc-header-inner">
+            <div className="lc-header-side">
+              {onBack && (
+                <button type="button" className="lc-pill lc-pill--blue" onClick={onBack}>
+                  <Home aria-hidden="true" />
+                  <span>{ar ? 'العودة' : 'Back'}</span>
+                </button>
+              )}
+              {showIdentity && childName && (
+                <span className="lc-name-chip">
+                  {childName}
+                  <span aria-hidden="true">{avatar}</span>
                 </span>
-                <span className="truncate">{childName}</span>
-              </span>
-            ) : undefined
-          }
-          actions={
-            <>
-              {showIdentity && <StarCount count={stars} />}
+              )}
+            </div>
+            <div className="lc-header-side">
+              {showIdentity && (
+                <span className="lc-pill lc-pill--yellow" role="status">
+                  <Award aria-hidden="true" />
+                  <span dir="ltr">{stars}</span>
+                </span>
+              )}
               {/* Child activity screens carry their own mute/repeat/music
                   cluster in a few cases; the language toggle is always here. */}
               <ChromeActions showMute={false} />
-            </>
-          }
-        />
+            </div>
+          </div>
+        </header>
         <div className="relative z-0 flex-1">{children}</div>
       </div>
     </BackSlotContext.Provider>
