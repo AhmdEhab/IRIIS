@@ -111,6 +111,54 @@ sample values ever appear. Verified live end-to-end: send → wrong code
 rejected (`CODE_WRONG`) → correct code verifies → `emailVerified` true, with
 OTP generation/hashing/expiry logic untouched.
 
+---
+
+## Durable data on serverless (added 2026-11-14)
+
+**Problem.** Vercel's free instances keep the SQLite file only in `/tmp`,
+which is wiped whenever an instance is recycled. Accounts, OTP rows and
+assessments disappeared between cold starts — the root cause of "I can't
+find the verification email" complaints: the resend on the verify screen
+targeted an email the (empty) database no longer had an account for.
+
+**Design — one authoritative snapshot in Vercel Blob (`server/lib/blobsync.js`).**
+
+- Private store `iris-db`; the static RW token lives ONLY in the project
+  environment (`BLOB_READ_WRITE_TOKEN`, Sensitive, production). It never
+  appears in code, git, or this file.
+- Activation: `VERCEL=1` (or an explicit `BLOB_SYNC=1`). Plain local dev
+  keeps using its local file untouched, so QA sandboxes cannot poison the
+  production snapshot.
+- `boot` → `restore()` downloads `iris-db/snapshot.sqlite` (head() then a
+  bearer fetch of the signed URL — @vercel/blob v2 has no `download()`)
+  and writes it over the SQLite path BEFORE `sequelize.sync()` runs.
+- `mutation` → every successful non-GET `/api` call marks the file dirty;
+  uploads are debounced (400 ms) and always awaited before the next
+  request starts. Critical routes (register, confirm) additionally
+  `await flushNow()` BEFORE responding, because serverless functions may
+  freeze the moment a response is sent.
+- `identical bytes never re-upload` (md5 compare).
+
+**Boot gate.** The Vercel handler can be invoked while the async
+restore→sync chain is still running; an early request would open a fresh
+empty `/tmp` file under the about-to-overwrite handle and return
+`LOGIN_FAILED 500`. Every `/api` request now parks behind `bootReady`
+until restore+sync+migrations complete.
+
+**Accepted trade-off (documented):** concurrent cold instances converge
+last-writer-wins on the single snapshot. For the current MVP traffic
+(one parent per household, low rate) this is fine; the upgrade path is a
+real Turso/Postgres URL (`TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` are
+already honoured by `config/database.js`).
+
+**Verified live (2026-11-14):** register → redeploy (new instances) →
+`/api/health` reports `restored:"restored"` with a non-zero DB → login of
+the same account returns 200 with `emailVerified` preserved, duplicate
+register returns 409, and activity logging works on the restored child
+row. Full OTP acceptance (real Gmail delivery, wrong/expired/resend/correct
+via the deployed UI) is asserted by `scripts/e2e-prod-2.mjs` and
+`scripts/qa-auth-flow.mjs` (47/47).
+
 ### Test-mode codes
 
 `VERIFY_DEV_CODES=true` makes the send response also echo `devCode` and the
