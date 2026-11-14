@@ -255,35 +255,7 @@ export function SyndromeLearningCard({
                         exit={{ scale: 1.5, opacity: 0 }}
                         className="flex flex-col items-center gap-10"
                     >
-                        {studyEntry ? (
-                            <ObjectStudy entry={studyEntry} nameAr={nameAr} nameEn={nameEn} language={language} />
-                        ) : (
-                            <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
-                                <motion.div
-                                    animate={syndrome === 'williams' ? { scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] } : {}}
-                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                    className="text-[150px] md:text-[200px] drop-shadow-[0_20px_20px_rgba(0,0,0,0.3)] select-none leading-none text-white font-black"
-                                >
-                                    {mainVisual || '✨'}
-                                </motion.div>
-
-                                {(contextImage || fullItem?.contextImage) && (
-                                    <motion.div
-                                        initial={{ x: 50, opacity: 0, rotate: 10 }}
-                                        animate={{ x: 0, opacity: 1, rotate: 0 }}
-                                        className="size-56 md:size-72 rounded-brand-xl shadow-brand-lg overflow-hidden border-2 border-hairline/50 p-2 bg-surface"
-                                    >
-                                        <img
-                                            src={contextImage || fullItem?.contextImage}
-                                            alt={name}
-                                            className="w-full h-full object-cover rounded-brand-xl"
-                                        />
-                                    </motion.div>
-                                )}
-                            </div>
-                        )}
-
-                        <h2 className="t-title text-white text-center">{name}</h2>
+                        <ObjectStudy nameAr={nameAr} nameEn={nameEn} language={language} mainVisual={mainVisual} entry={studyEntry} /><h2 className="t-title text-white text-center">{name}</h2>
                         {canInteract && (
                             <motion.div
                                 animate={{ y: [0, -10, 0], opacity: [0.6, 1, 0.6] }}

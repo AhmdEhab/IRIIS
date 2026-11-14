@@ -113,7 +113,7 @@ export function NumbersScreen() {
                             {selectedNum && (
                                 <div className="space-y-8">
                                     <SyndromeLearningCard
-                                        itemId={selectedNumber?.id ?? String(selectedNumber?.value ?? '')}
+                                        itemId={String(selectedNum?.val ?? '')}
                                         mainVisual={selectedNum.val.toString()}
                                         nameAr={selectedNum.nameAr}
                                         nameEn={selectedNum.nameEn}

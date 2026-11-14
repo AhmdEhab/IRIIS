@@ -11,6 +11,8 @@
 export type ProceduralSpec = { kind: 'sphere'; color: string };
 
 export interface Object3DEntry {
+    /** for numbers: how many dots the counting tile shows */
+    count?: number;
     glb?: string;
     proc?: ProceduralSpec;
     photo?: string;
@@ -22,6 +24,17 @@ const M = (id: string) => `/models/${id}.glb`;
 const P = (id: string) => `/photos/${id}.jpg`;
 
 export const OBJECT3D: Record<string, Object3DEntry> = {
+    // numbers: no photo or model — the study grid shows hero + counting tile
+    '1': { count: 1, fallbackEmoji: '🎈' },
+    '2': { count: 2, fallbackEmoji: '🎈' },
+    '3': { count: 3, fallbackEmoji: '🎈' },
+    '4': { count: 4, fallbackEmoji: '🎈' },
+    '5': { count: 5, fallbackEmoji: '🎈' },
+    '6': { count: 6, fallbackEmoji: '🎈' },
+    '7': { count: 7, fallbackEmoji: '🎈' },
+    '8': { count: 8, fallbackEmoji: '🎈' },
+    '9': { count: 9, fallbackEmoji: '🎈' },
+    '10': { count: 10, fallbackEmoji: '🎈' },
     // ── animals ────────────────────────────────────────────────
     lion: { glb: M('lion'), photo: P('lion'), fallbackEmoji: '🦁' },
     elephant: { glb: M('elephant'), photo: P('elephant'), fallbackEmoji: '🐘' },

@@ -359,7 +359,8 @@
 }
 /* viewer root is aspect-square; let the photo fill whatever height the row has */
 .cl-learn .os-3d > *:last-child { flex: 0 0 auto; }
-.cl-learn .os-3d canvas, .cl-learn .os-proc { width: 100% !important; min-height: 230px; height: 280px !important; }
+.cl-learn .os-3d canvas { width: 100% !important; min-height: 230px; height: 280px !important; }
+.cl-learn .os-proc { width: 100% !important; aspect-ratio: 1; height: auto !important; min-height: 230px; }
 .cl-learn .os-photo img { width: 100%; flex: 1 1 auto; min-height: 230px; height: auto; object-fit: cover; border-radius: 18px; display: block; }
 /* hide the viewer's own gesture chip inside studies — we show one hint line below the grid */
 .cl-learn .os-3d span:has(> .t-label) { display: none; }
@@ -386,6 +387,26 @@
   font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
   font-size: clamp(15px, 2.4vw, 17px); font-weight: 700;
 }
+.cl-learn .os-hero, .cl-learn .os-name {
+  align-items: center; justify-content: center; min-height: 356px;
+}
+.cl-learn .os-name { gap: 6px; }
+.cl-learn .os-hero-emoji { font-size: clamp(96px, 16vw, 140px); line-height: 1; filter: drop-shadow(0 10px 14px rgba(42,33,24,0.18)); }
+.cl-learn .os-name-word {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: clamp(26px, 4.5vw, 34px); color: #2A2118;
+}
+@media (max-width: 767px) { .cl-learn .os-hero, .cl-learn .os-name { min-height: 240px; } }
+.cl-learn .os-count { align-items: center; justify-content: center; min-height: 356px; }
+.cl-learn .os-dots { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: center; max-width: 86%; }
+.cl-learn .os-dot {
+  font-size: clamp(44px, 6vw, 64px); line-height: 1;
+  background: rgba(255, 255, 255, 0.72); border-radius: 22px;
+  padding: 10px 14px; box-shadow: 0 10px 20px -12px rgba(42, 33, 24, 0.35);
+  animation: os-pop 0.5s backwards;
+}
+@keyframes os-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (max-width: 767px) { .cl-learn .os-count { min-height: 240px; } }
 .cl-learn .os-loading, .cl-learn .os-emoji {
   display: flex; align-items: center; justify-content: center;
   min-height: 240px; color: #18508A; font-weight: 800; font-size: 24px;
