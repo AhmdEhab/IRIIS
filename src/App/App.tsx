@@ -3,6 +3,7 @@ import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { AudioProvider } from './contexts/AudioContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { useLanguage } from './contexts/LanguageContext';
 import { AppProvider, useApp, type Screen } from './contexts/AppContext';
 import { IrisProvider, useIris } from './contexts/IrisContext';
 import { API_URL, authHeaders, readAuthToken } from './config';
@@ -61,6 +62,12 @@ import { PlayfulBackground } from './components/ui/PlayfulBackground';
 function AppContent() {
   const { currentScreen, addTime, navigateTo, childProfile } = useApp();
   const iris = useIris();
+  const { language } = useLanguage();
+  const ar = language === 'ar';
+  // ── Onboarding gate: no entry to Parent/Child Mode until the getting-to-know
+  // ladder assessment (reference repo IRIS flow) is COMPLETE for this child.
+  const [ladderChecked, setLadderChecked] = React.useState(false);
+  React.useEffect(() => { setLadderChecked(false); }, [childProfile?.name]);
 
   /**
    * Bridge: once a parent has registered/logged in (AppContext.childProfile
@@ -100,19 +107,31 @@ function AppContent() {
    * accumulates one continuous history rather than a new child per login.
    */
   React.useEffect(() => {
-    if (!childProfile?.name || iris.childDbId) return;
+    if (!childProfile?.name) return;
     let cancelled = false;
 
     (async () => {
-      if (!readAuthToken()) return; // Child Mode without an account still runs, just unsaved
+      if (!readAuthToken()) {
+        if (!cancelled) setLadderChecked(true);
+        return; // Child Mode without an account still runs, just unsaved
+      }
+      if (iris.childDbId) {
+        await iris.loadLadderFromServer(iris.childDbId);
+        if (!cancelled) setLadderChecked(true);
+        return;
+      }
       const auth = authHeaders();
       try {
         const listed = await fetch(`${API_URL}/children`, { headers: auth });
         if (listed.ok) {
           const rows = await listed.json();
           const match = Array.isArray(rows) && rows.find((r: any) => r.displayName === childProfile.name);
-          if (match && !cancelled) { iris.setChildDbId(match.id);
-        iris.loadLadderFromServer(match.id); return; }
+          if (match && !cancelled) {
+            iris.setChildDbId(match.id);
+            await iris.loadLadderFromServer(match.id);
+            setLadderChecked(true);
+            return;
+          }
         }
         const created = await fetch(`${API_URL}/children`, {
           method: 'POST',
@@ -128,8 +147,12 @@ function AppContent() {
         if (created.ok && !cancelled) {
           const row = await created.json();
           iris.setChildDbId(row.id);
+          setLadderChecked(true); // brand-new child: nothing server-side yet
+        } else if (!cancelled) {
+          setLadderChecked(true);
         }
       } catch {
+        if (!cancelled) setLadderChecked(true);
         // Offline or unauthenticated: the adaptive loop still runs in state,
         // and IrisContext surfaces the unsaved condition to the parent.
       }
@@ -207,6 +230,28 @@ function AppContent() {
      the per-screen audit finding without touching 40 files. */
   const appMotionReduced = useReducedMotion();
   const renderScreen = () => {
+  const assessmentGate = (dest: string) => {
+    if (!childProfile?.name) return null;
+    if (!ladderChecked) {
+      return (
+        <div key="ladder-checking" className="lc-root relative min-h-screen flex flex-col">
+          <div className="flex flex-1 items-center justify-center p-6">
+            <div className="lc-hero" style={{ width: 'min(460px, 92%)', textAlign: 'center' }}>
+              <div className="lc-hero-dots" aria-hidden="true" />
+              <p className="lc-hero-sub" style={{ maxWidth: 'none' }} dir={ar ? 'rtl' : 'ltr'}>
+                {ar ? 'جارٍ تجهيز رحلة طفلك…' : 'Getting your child\u2019s journey ready…'}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (!iris.ladder) {
+      return <IrisLadderAssessment key="ladder-forced" onFinish={() => navigateTo(dest as any)} />;
+    }
+    return null;
+  };
+
     switch (currentScreen) {
       case 'marketing':
         return (
@@ -224,7 +269,9 @@ function AppContent() {
         return <LoginScreen key="login" />;
       case 'registration':
         return <RegistrationScreen key="registration" />;
-      case 'iris-parent':
+      case 'iris-parent': {
+        const gate = assessmentGate('iris-parent');
+        if (gate) return gate;
         // Parent Mode is now a hub of five sections. The original dashboard is
         // preserved unchanged as the 'iris-progress' section below.
         return (
@@ -241,6 +288,7 @@ function AppContent() {
             onBack={() => navigateTo('marketing')}
           />
         );
+      }
       case 'iris-progress':
         return (
           <IrisParentDashboard
@@ -275,11 +323,14 @@ function AppContent() {
         return <ModeSelectionScreen key="mode-selection" />;
       case 'ai-assessment':
         return <AIAssessmentScreen key="ai-assessment" />;
-      case 'child-mode':
+      case 'child-mode': {
+        const gate = assessmentGate('child-mode');
+        if (gate) return gate;
         // The repository's child home (hero + curriculum categories), wearing
         // the landing page's design language. The adaptive IrisFlow stays
         // reachable from the parent hub's snapshot screen.
         return <LandingChildMode key="child-mode" />;
+      }
       case 'parent-dashboard':
         return <ParentDashboardScreen key="parent-dashboard" />;
       case 'stories':
