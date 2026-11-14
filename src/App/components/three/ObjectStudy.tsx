@@ -65,6 +65,7 @@ export function ObjectStudy({ entry, nameAr, nameEn, language, compact }: Object
             onClick={contain}
             onPointerDown={contain}
         >
+        <div className="os-grid">
             {hasModel && (
                 <div className="os-cell os-3d">
                     <div className="os-tag">{ar ? 'مجسم تفاعلي 3D' : 'Interactive 3D'}</div>
@@ -86,11 +87,6 @@ export function ObjectStudy({ entry, nameAr, nameEn, language, compact }: Object
                     <button type="button" className="os-reset" onClick={reset} aria-label={ar ? 'إرجاع المجسم لبدايته' : 'Reset view'}>
                         ↺ {ar ? 'من الأول' : 'Reset'}
                     </button>
-                    <p className="os-hint">
-                        {ar
-                            ? '👆 حرّك بإصبعك ولفّه من كل ناحية، وقرّب وشوف التفاصيل!'
-                            : '👆 Drag to spin it, pinch or scroll to zoom in!'}
-                    </p>
                 </div>
             )}
             {showPhoto && (
@@ -105,6 +101,12 @@ export function ObjectStudy({ entry, nameAr, nameEn, language, compact }: Object
                 </div>
             )}
             {!hasModel && !showPhoto && <div className="os-emoji">{entry.fallbackEmoji ?? '✨'}</div>}
+        </div>
+        <p className="os-hint">
+            {ar
+                ? '👆 حرّك بإصبعك ولفّه من كل ناحية، وقرّب وشوف التفاصيل!'
+                : '👆 Drag to spin it, pinch or scroll to zoom in!'}
+        </p>
         </div>
     );
 }
