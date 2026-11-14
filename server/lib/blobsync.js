@@ -145,9 +145,21 @@ function middleware(req, res, next) {
   const mutating = req.method !== 'GET' && String(req.path || '').startsWith('/api');
   flushPending().finally(() => {
     if (mutating) {
-      res.on('finish', () => {
-        if (res.statusCode < 400) scheduleFlush();
-      });
+        res.on('finish', () => {
+    if (req.method !== 'GET' && res.statusCode < 400) {
+      dirty = true;
+      scheduleFlush();
+      // The debounce timer may NEVER run: serverless freezes the instance
+      // the moment it has no pending work, so the last mutation before the
+      // freeze would stay only in /tmp. Hand the upload to the platform's
+      // waitUntil (kept alive after the response) when available, else
+      // fire-and-forget the promise — either way the next request's
+      // pre-flush remains the backstop and hashes dedupe double uploads.
+      const wu = typeof globalThis.waitUntil === 'function' ? globalThis.waitUntil : null;
+      if (wu) { try { wu(flushNow()); } catch { /* ignore */ } }
+      else { flushNow().catch(() => {}); }
+    }
+  });
     }
     next();
   });
