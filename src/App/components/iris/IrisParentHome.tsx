@@ -1,41 +1,23 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { Home, Award, ChevronRight, Settings, LogOut, Sparkles } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useIris } from '../../contexts/IrisContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import {
-  ScreenFrame,
-  TopBar,
-  BarAction,
-  ParentCard,
-  Pill,
-  StarCount,
-  DisplayTitle,
-  Button,
-  type IconName,
-  type BrandTone,
-} from './ui/brand';
+import { BrandIcon, type IconName, type BrandTone } from './ui/brand';
 import { ChromeActions } from './ui/ChromeActions';
+import { Blob, Sparkle } from '../landing/LandingDecor';
+import { IrisBuddy } from './ui/IrisBuddy';
+import '../landing-child.css';
 
 /**
  * Parent Mode hub — the six sections a parent can reach.
  *
- * ── WHAT PHASE 10 CHANGED ─────────────────────────────────────────────────
- * D1 — "Log out" was `text-ink-muted` on the warm ground AND sat underneath
- *      the old floating GlobalControls pill. Between the two it was
- *      effectively invisible. It is now a normal control in the top bar, with
- *      full ink contrast, in a row that reserves its own space.
- * D10— the six section icons were emoji (🌱📊🏡💬👨‍👩‍👧🩺), which render as
- *      six different pieces of artwork depending on the operating system.
- *      They are drawn brand marks now.
- * The hand-rolled card markup is replaced by `ParentCard`, the component that
- * already existed for exactly this and had zero render sites — the brochure's
- * "WHAT WE DO?" tile, one-for-one.
- *
- * Nothing about the sections, their order, their copy or their readiness
- * badges changed. The honesty of "Soon" on Community and Specialists is a
- * substantive constraint, not styling.
+ * Re-skinned in the landing-page / child-mode design language: the same
+ * cream polka-dot ground, floating blobs, glass header pills, a white
+ * hero plate with the buddy, and pastel bubble cards. Copy, order and the
+ * honest "Soon" badges are unchanged from the brochure — styling only.
  */
 export function IrisParentHome({
   onProgress,
@@ -149,65 +131,121 @@ export function IrisParentHome({
   ];
 
   return (
-    <ScreenFrame
-      accent="blue"
-      width="lg"
-      tone="tint"
-      topBar={
-        <TopBar
-          ar={ar}
-          onBack={onBack}
-          backLabel={ar ? 'الرئيسية' : 'Home'}
-          actions={
-            <>
-              <StarCount count={stars} />
-              <ChromeActions />
-              {/* Was ink-faint under a floating overlay; now a real control. */}
-              <BarAction onClick={onSettings}>{ar ? 'الإعدادات' : 'Settings'}</BarAction>
-              <BarAction onClick={logoutUser}>{ar ? 'خروج' : 'Log out'}</BarAction>
-            </>
-          }
-        />
-      }
-    >
-      <header className="flex flex-wrap items-end justify-between gap-4 mb-6 mt-1">
-        <div className="min-w-0">
-          <span className="t-label text-brand-blue-ink block mb-1">{ar ? 'وضع الوالدين' : 'Parent Mode'}</span>
-          <DisplayTitle size="title" arc>
-            {ar ? `متابعة ${name}` : `${name}'s learning`}
-          </DisplayTitle>
-        </div>
-        <Button variant="primary" icon="child" onClick={onEnterChildMode}>
-          {ar ? 'وضع الطفل' : 'Child Mode'}
-        </Button>
-      </header>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {sections.map((s, i) => (
-          <motion.div
-            key={s.id}
-            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={reduceMotion ? { duration: 0 } : { delay: i * 0.045 }}
-          >
-            <ParentCard
-              icon={s.icon}
-              tone={s.tone}
-              title={ar ? s.titleAr : s.titleEn}
-              description={ar ? s.descAr : s.descEn}
-              onClick={s.onClick}
-              badge={!s.ready ? <Pill tone="yellow">{ar ? 'قريبًا' : 'Soon'}</Pill> : undefined}
-              className="h-full"
-            />
-          </motion.div>
-        ))}
+    <div className="lc-root" dir={ar ? 'rtl' : 'ltr'}>
+      <div className="lc-decor" aria-hidden="true">
+        <Blob className="lc-blob lc-blob--1" fill="var(--brand-yellow-wash, #FBE7B8)" />
+        <Blob className="lc-blob lc-blob--2" fill="var(--brand-blue-wash, #C9E5F7)" />
+        <Sparkle className="lc-spark lc-spark--1" />
+        <Sparkle className="lc-spark lc-spark--2" />
+        <Sparkle className="lc-spark lc-spark--3" />
       </div>
 
-      <p className="t-small text-ink-muted border-t border-hairline pt-4 mt-6 font-medium">
-        {ar
-          ? 'IRIS نموذج أولي مبني على إطار أدلة بحثي — لم تتم مراجعته من مختص بعد، ولا يقدّم تشخيصًا ولا نصيحة طبية.'
-          : 'IRIS is a research-informed prototype — not yet specialist-reviewed, and it provides no diagnosis or medical advice.'}
-      </p>
-    </ScreenFrame>
+      <header className="lc-header">
+        <div className="lc-header-inner">
+          <button type="button" className="lc-pill lc-pill--blue" onClick={onBack}>
+            <Home aria-hidden="true" />
+            <span>{ar ? 'الرئيسية' : 'Home'}</span>
+          </button>
+          <div className="lc-header-side lc-header-side--parent">
+            <ChromeActions />
+            <span className="lc-pill lc-pill--yellow" role="status">
+              <Award aria-hidden="true" />
+              <span dir="ltr">{stars}</span>
+            </span>
+            <span className="lc-name-chip">{name}</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="lc-main">
+        {/* Hero — the same white plate the child greeting uses */}
+        <motion.section
+          className="lc-hero"
+          initial={reduceMotion ? false : { y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.35 }}
+        >
+          <div className="lc-hero-dots" aria-hidden="true" />
+          <div className="lc-hero-grid">
+            <div className="lc-hero-copy">
+              <span className="lc-parent-eyebrow">{ar ? 'وضع الوالدين' : 'Parent Mode'}</span>
+              <h1 className="lc-hero-title">
+                {ar ? (
+                  <>متابعة <span className="lc-hero-mark">{name}</span></>
+                ) : (
+                  <><span className="lc-hero-mark">{name}</span>'s learning</>
+                )}
+              </h1>
+              <p className="lc-hero-sub">
+                {ar
+                  ? 'كل حاجة عن تعلّمه في مكان واحد: التقدّم، أفكار للبيت، ودعم لطيف.'
+                  : 'Everything about his learning in one place: progress, home ideas, and gentle support.'}
+              </p>
+              <div className="lc-hero-actions">
+                <button type="button" className="lc-pill lc-pill--blue lc-pill--primary" onClick={onEnterChildMode}>
+                  <Sparkles aria-hidden="true" />
+                  <span>{ar ? 'وضع الطفل' : 'Child Mode'}</span>
+                </button>
+                <button type="button" className="lc-pill lc-pill--ghost" onClick={onSettings}>
+                  <Settings aria-hidden="true" />
+                  <span>{ar ? 'الإعدادات' : 'Settings'}</span>
+                </button>
+                <button type="button" className="lc-pill lc-pill--ghost" onClick={logoutUser}>
+                  <LogOut aria-hidden="true" />
+                  <span>{ar ? 'خروج' : 'Log out'}</span>
+                </button>
+              </div>
+            </div>
+            <div className="lc-hero-mascot">
+              <IrisBuddy mood="happy" />
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Sections */}
+        <section className="lc-section">
+          <div className="lc-section-head">
+            <span className="lc-bubble lc-bubble--blue lc-bubble--head" aria-hidden="true">
+              <BrandIcon name="chart" className="w-7 h-7" tone="transparent" />
+            </span>
+            <h2 className="lc-section-title">{ar ? 'أقسام المتابعة' : 'Your sections'}</h2>
+          </div>
+          <div className="lc-grid lc-grid--parent">
+            {sections.map((s, i) => (
+              <motion.div
+                key={s.id}
+                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={reduceMotion ? { duration: 0 } : { delay: i * 0.045 }}
+              >
+                <button type="button" className="lc-card lc-card--section" onClick={s.onClick}>
+                  <span className={`lc-bubble lc-bubble--${s.tone} lc-card-bubble`} aria-hidden="true">
+                    <BrandIcon name={s.icon} className="w-7 h-7" tone="transparent" />
+                  </span>
+                  <span className="lc-card-name">{ar ? s.titleAr : s.titleEn}</span>
+                  <span className="lc-card-desc">{ar ? s.descAr : s.descEn}</span>
+                  {s.ready ? (
+                    <span className="lc-card-chip">
+                      <span>{ar ? 'افتحي' : 'Open'}</span>
+                      <ChevronRight aria-hidden="true" style={{ transform: ar ? 'scaleX(-1)' : undefined }} />
+                    </span>
+                  ) : (
+                    <span className="lc-card-chip lc-card-chip--soon">
+                      <span>{ar ? 'قريبًا' : 'Soon'}</span>
+                    </span>
+                  )}
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        <p className="lc-disclaimer">
+          {ar
+            ? 'IRIS نموذج أولي مبني على إطار أدلة بحثي — لم تتم مراجعته من مختص بعد، ولا يقدّم تشخيصًا ولا نصيحة طبية.'
+            : 'IRIS is a research-informed prototype — not yet specialist-reviewed, and it provides no diagnosis or medical advice.'}
+        </p>
+      </main>
+    </div>
   );
 }
