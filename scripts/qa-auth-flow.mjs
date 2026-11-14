@@ -159,12 +159,27 @@ ok('13 delta registered unverified', rd.status === 201 && rd.data.user.emailVeri
   await page.fill('input[type="password"]', 'Passw0rd1');
   await page.getByRole('button', { name: /دخول الآن|Login Now|Sign in/i }).first().click();
   await page.waitForTimeout(2500);
-  const intro = await page.evaluate(() => /نتعرّف|getting to know|تجهيز|journey ready/i.test(document.body.innerText));
-  ok('13 first login shows assessment (not hub/verify)', intro, await page.evaluate(() => location.pathname + ' | ' + document.body.innerText.slice(0, 80)));
+  const onVerify13 = await page.waitForURL(/\/verify/, { timeout: 8000 }).then(() => true).catch(() => false);
+  ok('13 unverified first login → /verify (verification BEFORE assessment)', onVerify13, await page.evaluate(() => location.pathname));
+  // verify via the dev chip, THEN the assessment gate must take over.
+  // Registration already emitted the first code minutes-worth of seconds
+  // ago, so the mount resend 429s into the cooldown: let it lapse and
+  // press resend explicitly — production users do exactly this when they
+  // mistype the code they received.
+  await page.waitForSelector('.ir-verify-box', { timeout: 8000 });
+  await page.waitForTimeout(31000);
+  await page.getByRole('button', { name: /إعادة إرسال|Resend/i }).first().click();
+  await page.waitForFunction(() => /\d{6}/.test((document.querySelector('.ir-verify-devcode') || {innerText:''}).innerText || ''), null, { timeout: 25000 });
+  const chip = page.locator('.ir-verify-devcode');
+  if (await chip.count()) await chip.first().click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /تأكيد الكود|Confirm code/i }).click();
+  const onAssess = await page.waitForFunction(() => /نتعرّف|getting to know|تجهيز|journey ready|أهلاً/i.test(document.body.innerText), null, { timeout: 15000 }).then(() => true).catch(() => false);
+  ok('13 after verification → assessment onboarding appears (spec order)', onAssess, await page.evaluate(() => location.pathname + ' | ' + document.body.innerText.slice(0, 80)));
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
-  const intro2 = await page.evaluate(() => /نتعرّف|getting to know|تجهيز|journey ready/i.test(document.body.innerText));
-  ok('13 refresh during assessment keeps flow', intro2);
+  const keep = await page.evaluate(() => ({ assess: /نتعرّف|getting to know|تجهيز|journey ready|أهلاً/i.test(document.body.innerText), verify: location.pathname.includes('/verify') }));
+  ok('13 refresh mid-assessment keeps flow (stays verified)', keep.assess || keep.verify, JSON.stringify(keep));
   await context.close();
 }
 

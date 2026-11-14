@@ -84,7 +84,10 @@ function AppContent() {
   const firstAssessmentPending = signedInNow && !!childProfile?.name && (!ladderChecked || !iris.ladder);
   const guardScreen = (name: string): string => {
     if (!signedInNow && PROTECTED_SCREENS.includes(name)) return 'login';
-    if (signedInNow && emailVerified === false && PROTECTED_SCREENS.includes(name) && name !== 'verify-email' && !firstAssessmentPending) return 'verify-email';
+    // Spec order: REGISTER → VERIFY → (assessment if needed) → APP.
+    // Verification has ABSOLUTE precedence over the onboarding assessment
+    // gate: an unverified account never sees hub/child screens at all.
+    if (signedInNow && emailVerified === false && PROTECTED_SCREENS.includes(name) && name !== 'verify-email') return 'verify-email';
     if (signedInNow && emailVerified === true && (name === 'login' || name === 'registration' || name === 'verify-email')) return 'iris-parent';
     return name;
   };
