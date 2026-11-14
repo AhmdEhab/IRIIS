@@ -74,7 +74,7 @@ function copy(lang) {
         msg: 'أهلاً بيك في IRIS! سعيدون إننا هنكون جزء من رحلة تعلّم طفلك. لتأكيد بريدك وتفعيل حسابك، أدخل كود التحقق ده:',
         codeLbl: 'كود التحقق الخاص بيك',
         valid: 'الكود صالح لمدة %M% دقيقة.',
-        closing: 'خطوة صغيرة في طريق تعلّم أجمل ✨',
+        closing: 'خطوة صغيرة في طريق تعلّم أجمل',
         sign1: 'بكل عناية،',
         sign2: 'فريق IRIS',
         ignore: 'لو مش انت اللي عملت الحساب، تقدر تتجاهل الرسالة بأمان — لن يتغير أي شيء.',
@@ -183,16 +183,12 @@ ${T.ignore}`,
             <tr><td align="${ar ? 'right' : 'center'}" style="padding-bottom:18px;">
               <p style="margin:0;font-family:${SERIF};font-size:14.5px;color:${P.purple.ink};">${T.closing}</p>
             </td></tr>
-            <tr><td style="border-top:1px solid ${C.line};padding-top:18px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-                <td align="${ar ? 'right' : 'left'}">
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                    <td valign="middle" style="padding-${ar ? 'left' : 'right'}:10px;">
-                      <img src="${mascot}" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border:0;border-radius:50%;">
-                    </td>
-                    <td valign="middle" style="font-family:${SERIF};font-size:13.5px;color:${C.ink};line-height:1.5;">${T.sign1}<br>${T.sign2}</td>
-                  </tr></table>
+            <tr><td align="${ar ? 'right' : 'left'}" style="border-top:1px solid ${C.line};padding-top:18px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${ar ? 'right' : 'left'}"><tr>
+                <td valign="middle" style="padding-${ar ? 'left' : 'right'}:12px;">
+                  <img src="${mascot}" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border:0;border-radius:50%;">
                 </td>
+                <td valign="middle" align="${ar ? 'right' : 'left'}" nowrap style="font-family:${SERIF};font-size:13.5px;color:${C.ink};line-height:1.5;">${T.sign1}<br>${T.sign2}</td>
               </tr></table>
             </td></tr>
           </table>
