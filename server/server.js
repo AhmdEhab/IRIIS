@@ -380,7 +380,7 @@ app.post('/api/verify/send', requireAuth, async (req, res) => {
       return res.json({ ok: true, sent: false, reason: 'EMAIL_NOT_CONFIGURED', ...dev });
     }
     try {
-      const via = await sendVerificationEmail(user.email, code);
+      const via = await sendVerificationEmail(user.email, code, req.body && req.body.lang);
       // VERIFY_DEV_CODES is an explicit LOCAL flag (never set on Vercel),
       // so the QA battery and the on-screen test chip keep working even
       // when a real provider is wired up. Without it the code only ever

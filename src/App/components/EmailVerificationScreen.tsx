@@ -46,7 +46,13 @@ export function EmailVerificationScreen() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/verify/send`, { method: 'POST', headers: authHeaders() });
+      // The email template follows the language of the interface that asked
+      // for it — the server stores nothing about language, so we say so.
+      const res = await fetch(`${API_URL}/verify/send`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ lang: language }),
+      });
       const data = await res.json().catch(() => ({}));
       if (res.status === 429) {
         setCooldown(Math.ceil((data.retryAfterMs || 15000) / 1000));
