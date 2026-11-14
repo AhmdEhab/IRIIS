@@ -7,6 +7,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { BackButton } from './ui/BackButton';
+import './learning-screens-landing.css';
+import './final-screens-landing.css';
 
 interface Item {
     id: string;
@@ -107,7 +109,7 @@ export function ShadowMatchScreen() {
     };
 
     return (
-        <div className="min-h-screen bg-brand-blue-wash p-4 overflow-hidden">
+        <div className="gam-landing cl-learn min-h-screen bg-brand-blue-wash p-4 overflow-hidden">
             <BackButton onClick={handleBack} />
             <div className="max-w-6xl mx-auto py-8">
                 {/* Header */}

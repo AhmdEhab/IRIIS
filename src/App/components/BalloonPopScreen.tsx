@@ -6,6 +6,8 @@ import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import { BackButton } from './ui/BackButton';
+import './learning-screens-landing.css';
+import './final-screens-landing.css';
 
 interface Balloon {
     id: number;
@@ -112,7 +114,7 @@ export function BalloonPopScreen() {
     }, [isGameOver, score, unlockBadge, playSound, incrementProgress]);
 
     return (
-        <div className="h-screen w-full bg-brand-blue-wash overflow-hidden relative touch-none">
+        <div className="gam-landing cl-learn h-screen w-full bg-brand-blue-wash overflow-hidden relative touch-none">
             <BackButton onClick={handleBack} />
             <div className="absolute top-0 inset-x-0 p-6 flex justify-between items-center z-50">
                 <div className="w-24" />

@@ -7,6 +7,8 @@ import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Card } from './ui/card';
 import { BackButton } from './ui/BackButton';
+import './learning-screens-landing.css';
+import './final-screens-landing.css';
 
 export function RewardsScreen() {
     const { navigateTo, earnedBadges, childProfile, activeRules } = useApp();
@@ -106,7 +108,7 @@ export function RewardsScreen() {
     };
 
     return (
-        <div className={`min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
+        <div className={`rw-landing cl-learn min-h-screen p-4 transition-colors duration-500 ${activeRules?.sensoryProfile === 'low-arousal'
                 ? 'bg-ground-tint'
                 : 'bg-ground'
             }`}>

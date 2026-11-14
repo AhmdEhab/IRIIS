@@ -1,0 +1,399 @@
+/* ===========================================================================
+   The last three child-facing screens in the landing design language:
+   BalloonPop + ShadowMatch share the `gam-landing` scope, Rewards wears
+   `rw-landing`; both groups also carry the shared `cl-learn` class so the
+   sheet works side-by-side with learning-screens-landing.css.
+
+   Markup, state, sound, speech, routing and data are NOT touched. These
+   unlayered rules retarget the Tailwind utilities the screens actually
+   carry (Tailwind v4 ships utilities inside cascade layers, so an unlayered
+   rule wins without editing ui/*). The token + ground + title rules mirror
+   the shared sheet so this file is self-sufficient; every override below is
+   anchored on the compound `.cl-learn.<group>` selector, which beats the
+   shared `.cl-learn …` rules regardless of bundle order.
+   ========================================================================= */
+
+/* ── Tokens + base skin ─────────────────────────────────────────────────── */
+.cl-learn.gam-landing,
+.cl-learn.rw-landing {
+  --cl-blue: #1F67B1;
+  --cl-blue-ink: #18508A;
+  --cl-ink: #2A2118;
+  --cl-muted: #6B655D;
+  --cl-surface: #FFFDF6;
+  --cl-hair: rgba(31, 103, 177, 0.16);
+  --cl-hair-hover: rgba(31, 103, 177, 0.34);
+  --cl-wash-blue: rgba(201, 229, 247, 0.6);
+  --cl-wash-yellow: rgba(251, 231, 184, 0.7);
+  --cl-wash-green: rgba(206, 238, 214, 0.7);
+  --cl-wash-coral: rgba(252, 217, 219, 0.7);
+  --cl-plate-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.24);
+  --cl-emoji-shadow: drop-shadow(0 6px 10px rgba(42, 33, 24, 0.15));
+
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), var(--iris-font-body, 'Cairo'), cursive;
+  color: var(--cl-ink);
+}
+
+/* Ground. BalloonPop + ShadowMatch (gam) get the standard landing cream
+   with the 44px dot lattice and the two radial washes, plus a slightly
+   stronger blue at the top so the open field reads as a calm sky for the
+   balloons. Rewards gets the same family; the low-arousal variant
+   (bg-ground-tint) drops the dots for a flat, quieter surface. */
+.cl-learn.gam-landing {
+  background:
+    radial-gradient(rgba(31, 103, 177, 0.05) 2px, transparent 2.5px) 0 0 / 44px 44px,
+    radial-gradient(1100px 620px at 50% -10%, rgba(201, 229, 247, 0.68), transparent 62%),
+    radial-gradient(900px 520px at 4% 108%, rgba(251, 231, 184, 0.5), transparent 62%),
+    #FFF6E9 !important;
+}
+.cl-learn.rw-landing {
+  background:
+    radial-gradient(rgba(31, 103, 177, 0.05) 2px, transparent 2.5px) 0 0 / 44px 44px,
+    radial-gradient(1100px 560px at 90% -8%, rgba(201, 229, 247, 0.55), transparent 60%),
+    radial-gradient(900px 520px at 4% 108%, rgba(251, 231, 184, 0.5), transparent 62%),
+    #FFF6E9 !important;
+}
+.cl-learn.rw-landing[class*='bg-ground-tint'] {
+  background:
+    radial-gradient(1100px 560px at 90% -8%, rgba(201, 229, 247, 0.38), transparent 60%),
+    #FFF6E9 !important;
+}
+
+/* Title: ink Baloo, swash bar underneath, centered — mirrored from the
+   shared sheet so both groups look right even where the shared `:not(...)`
+   guards leave low-arousal muted titles behind. */
+.cl-learn.gam-landing h1,
+.cl-learn.rw-landing h1 {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(32px, 4vw, 46px) !important;
+  font-weight: 800;
+  line-height: 1.24 !important;
+  text-shadow: none !important;
+  filter: none !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-block-end: 4px;
+}
+.cl-learn.gam-landing h1::after,
+.cl-learn.rw-landing h1::after {
+  content: '';
+  width: clamp(120px, 20vw, 260px);
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 210, 77, 0.15), #FFD24D 28%, #FFD24D 72%, rgba(255, 210, 77, 0.15));
+}
+
+/* ===========================================================================
+   GAMES · BalloonPop + ShadowMatch
+   ========================================================================= */
+
+/* ── HUD / counters → glass chips (blur, white border, blue ink) ─────────
+   Matches by structure, not screen: a rounded-full, padded <div> sitting in
+   the top bar. The balloon score+timer chip and the Round x/10 chip. */
+.cl-learn.gam-landing div[class*='rounded-full'][class*='bg-surface'],
+.cl-learn.gam-landing div[class*='rounded-full'][class*='px-6'][class*='py-2'] {
+  background: rgba(255, 253, 246, 0.82) !important;
+  backdrop-filter: blur(14px) saturate(1.7);
+  -webkit-backdrop-filter: blur(14px) saturate(1.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 12px 26px -14px rgba(31, 103, 177, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+.cl-learn.gam-landing [class*='rounded-full'] p { letter-spacing: 0.02em; }
+/* the hairline divider inside the score chip */
+.cl-learn.gam-landing .w-px { background: var(--cl-hair) !important; }
+
+/* Calm timer: the <10s state swaps in coral + animate-pulse (markup we may
+   not touch). Visually it stays a low-arousal amber-ink countdown — never
+   alarming coral, never pulsing. */
+.cl-learn.gam-landing [class*='text-brand-coral-ink'] {
+  color: #B07A1A !important;
+  animation: none !important;
+}
+
+/* ── Balloons: the CONTENT — hues stay (brand red/blue/yellow/coral/green).
+   Only the finish is softened: a light border, a gentle sheen and a wider
+   ink label. White letters on the yellow/green balloons would be the
+   family's white-on-light sin, so those two wear their brand ink instead. */
+.cl-learn.gam-landing button[class*='rounded-[50%'] {
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  box-shadow: 0 14px 24px -14px rgba(42, 33, 24, 0.3) !important;
+}
+.cl-learn.gam-landing button[class*='rounded-[50%']::before {
+  content: '';
+  position: absolute;
+  inset: 8% 55% 55% 12%;
+  border-radius: inherit;
+  background: radial-gradient(60% 60% at 35% 30%, rgba(255, 255, 255, 0.5), transparent 70%);
+  pointer-events: none;
+}
+.cl-learn.gam-landing button[class*='rounded-[50%'] > span {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  text-shadow: 0 2px 6px rgba(42, 33, 24, 0.35) !important;
+  filter: none !important;
+}
+.cl-learn.gam-landing button[class*='bg-brand-yellow'] > span { color: #614D14 !important; text-shadow: none !important; }
+.cl-learn.gam-landing button[class*='bg-brand-green'] > span { color: #23583B !important; text-shadow: 0 1px 3px rgba(255, 255, 255, 0.4) !important; }
+/* balloon strings: hairline, softer */
+.cl-learn.gam-landing [class*='w-0.5'] { background: rgba(31, 103, 177, 0.25) !important; }
+
+/* ── Start / game-over overlay: warm scrim + plate with confetti dots ──── */
+.cl-learn.gam-landing [class*='bg-ink/45'] {
+  background: rgba(42, 33, 24, 0.38) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.cl-learn.gam-landing [class*='max-w-lg'] {
+  position: relative;
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 30px 60px -30px rgba(42, 33, 24, 0.4), 0 6px 16px -8px rgba(31, 103, 177, 0.1) !important;
+}
+/* confetti dots in the plate corner, like .lc-hero::before */
+.cl-learn.gam-landing [class*='max-w-lg']::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  inset-inline-end: 18px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #F45B63;
+  box-shadow: -16px 6px 0 -2px #2E965C, -8px 20px 0 -3px #1F67B1, -24px 18px 0 -1px #FFD24D;
+  opacity: 0.8;
+  pointer-events: none;
+}
+.cl-learn.gam-landing [class*='max-w-lg'] h2 {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(26px, 3vw, 34px) !important;
+  line-height: 1.3;
+  text-shadow: none !important;
+  filter: none !important;
+}
+.cl-learn.gam-landing [class*='max-w-lg'] .text-9xl { filter: var(--cl-emoji-shadow) !important; }
+.cl-learn.gam-landing [class*='max-w-lg'] [class*='text-2xl'] { color: var(--cl-blue-ink) !important; }
+
+/* ── Buttons: restore primary pills inside the gam scopes ─────────────────
+   The shared sheet flattens every `button[class*='rounded-full']` to the
+   white secondary pill; the compound scope below (higher specificity) puts
+   the landing's blue primary back on Start / Play Again, leaving the
+   outline "Games Hub" buttons as the white plate pills. */
+.cl-learn.gam-landing button[class*='rounded-full'][class*='bg-brand-blue'] {
+  background: var(--cl-blue) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 12px 26px -12px rgba(31, 103, 177, 0.55) !important;
+  filter: none !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cl-learn.gam-landing button[class*='rounded-full'][class*='bg-brand-blue']:hover {
+    background: var(--cl-blue-ink) !important;
+    filter: none !important;
+  }
+}
+
+/* ── ShadowMatch · the "Who am I?" shadow plate ──────────────────────────
+   The silhouette stays dark (brightness(0) is the task itself — inline
+   framer filter, untouched). The tile becomes a landing plate with a faint
+   gray wash behind the shape, and its prompt pill a pastel blue chip. */
+.cl-learn.gam-landing div[class*='aspect-square'][class*='max-w-md'] {
+  background:
+    radial-gradient(78% 66% at 50% 46%, rgba(42, 33, 24, 0.07), transparent 74%),
+    var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 18px 40px -22px rgba(42, 33, 24, 0.28), 0 6px 16px -8px rgba(31, 103, 177, 0.1) !important;
+}
+/* the watermark icon is physically right-anchored in Arabic; mirror logically */
+.cl-learn.gam-landing .absolute.top-6 {
+  left: auto !important;
+  inset-inline-start: 1.5rem !important;
+}
+.cl-learn.gam-landing div[class*='aspect-square'][class*='max-w-md'] [class*='bg-brand-blue-wash'] {
+  background: var(--cl-wash-blue) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.cl-learn.gam-landing div[class*='aspect-square'][class*='max-w-md'] [class*='bg-brand-blue-wash'] p {
+  color: var(--cl-blue-ink) !important;
+}
+/* The markup's 15rem emoji keeps the app's inherited line-height, so its
+   line-box is taller than the square plate and the prompt pill falls off
+   the bottom edge (clipped by overflow-hidden). Cap the face and the gap —
+   styling only, the silhouette itself is untouched. */
+.cl-learn.gam-landing div[class*='aspect-square'][class*='max-w-md'] [class*='text-[15rem]'] {
+  font-size: clamp(140px, 20vw, 230px) !important;
+  line-height: 1.1 !important;
+}
+.cl-learn.gam-landing div[class*='aspect-square'][class*='max-w-md'] [class*='mt-8'] {
+  margin-top: 14px !important;
+}
+
+/* Options: pin the full bubble rotation explicitly (blue → yellow → green
+   → coral), so the cycle is deterministic regardless of how the shared
+   sheet's descendant rules resolve. */
+.cl-learn.gam-landing .grid.grid-cols-2 > button[class*='aspect-square']:nth-child(4n+1)::before { background: var(--cl-wash-blue); }
+.cl-learn.gam-landing .grid.grid-cols-2 > button[class*='aspect-square']:nth-child(4n+2)::before { background: var(--cl-wash-yellow); }
+
+/* ── ShadowMatch · option tiles ────────────────────────────────────────────
+   Idle: the shared `.grid button[aspect-square]` rule already makes each
+   option a white plate with a rotating pastel bubble behind the emoji.
+   Restored on top of it (compound scope):
+   correct = soft green wash + quiet glow, wrong = plate + coral outline
+   only. Framer leaves an inline `transform` on these buttons, so states
+   speak through border/shadow/background, never transform. */
+.cl-learn.gam-landing .grid button[class*='border-brand-green'] {
+  background: var(--cl-wash-green) !important;
+  border-color: rgba(46, 150, 92, 0.45) !important;
+  box-shadow: 0 0 0 6px rgba(46, 150, 92, 0.12), var(--cl-plate-shadow) !important;
+}
+.cl-learn.gam-landing .grid button[class*='border-brand-green']::before { display: none; }
+.cl-learn.gam-landing .grid button[class*='border-brand-coral'] {
+  background: var(--cl-surface) !important;
+  border-color: rgba(210, 70, 78, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(210, 70, 78, 0.1), var(--cl-plate-shadow) !important;
+}
+/* success check wash: barely tinted, ink green glyph */
+.cl-learn.gam-landing .grid [class*='bg-brand-green/20'] { background: rgba(46, 150, 92, 0.12) !important; }
+.cl-learn.gam-landing .grid button svg { color: #2E965C !important; }
+/* idle emoji on the plate wears the landing's soft shadow */
+.cl-learn.gam-landing .grid button[class*='aspect-square'] > span { filter: var(--cl-emoji-shadow) !important; }
+/* a de-selected option keeps the markup's own grayscale — the !important
+   above must not erase the state filter, so restate both together */
+.cl-learn.gam-landing .grid button[class*='aspect-square'] > span[class*='grayscale'] {
+  filter: var(--cl-emoji-shadow) grayscale(1) !important;
+}
+/* ShadowMatch's options are direct grid children (no wrapper level), so the
+   shared sheet's nth-child bubble rotation misses them; restore it here. */
+.cl-learn.gam-landing .grid.grid-cols-2 > button[class*='aspect-square']:nth-child(4n+2)::before { background: var(--cl-wash-yellow); }
+.cl-learn.gam-landing .grid.grid-cols-2 > button[class*='aspect-square']:nth-child(4n+3)::before { background: var(--cl-wash-green); }
+.cl-learn.gam-landing .grid.grid-cols-2 > button[class*='aspect-square']:nth-child(4n+4)::before { background: var(--cl-wash-coral); }
+
+/* ── ShadowMatch · win panel (inline, not an overlay) ───────────────────── */
+.cl-learn.gam-landing .space-y-8 {
+  background: var(--cl-surface);
+  border: 2px solid var(--cl-hair);
+  border-radius: 26px;
+  box-shadow: 0 18px 40px -22px rgba(42, 33, 24, 0.28);
+  padding: 44px 28px;
+  max-width: 760px;
+  margin-inline: auto;
+}
+.cl-learn.gam-landing .space-y-8 h2 {
+  color: var(--cl-ink) !important;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive !important;
+  font-size: clamp(28px, 3.4vw, 40px) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+.cl-learn.gam-landing .space-y-8 [class*='text-3xl'] { color: var(--cl-blue-ink) !important; }
+.cl-learn.gam-landing .space-y-8 svg { filter: var(--cl-emoji-shadow); }
+/* the spinning sparkles are celebratory, not information — keep them quiet */
+.cl-learn.gam-landing .space-y-8 [class*='text-4xl'] { opacity: 0.7; }
+
+/* ===========================================================================
+   REWARDS · the child's achievement shelf
+   ========================================================================= */
+
+/* Header plate around the greeting block (h1 + proud-of-you line with the
+   child's name). flex-1 centers it between the spacer columns. */
+.cl-learn.rw-landing [class*='justify-between'] > [class*='flex-1'][class*='text-center'] {
+  background: var(--cl-surface);
+  border: 2px solid var(--cl-hair);
+  border-radius: 26px;
+  box-shadow: var(--cl-plate-shadow);
+  padding: 30px 26px 34px;
+}
+.cl-learn.rw-landing [class*='justify-between'] > [class*='flex-1'][class*='text-center'] > p {
+  margin-block-start: 16px;
+  font-weight: 700;
+}
+
+/* Stats shelf → three landing plates; the stars card is the big glass chip.
+   Structure-matched: direct [class~='p-8'] children of the gap-6 grid. */
+.cl-learn.rw-landing [class*='grid'][class~='gap-6'] > [class~='p-8'] {
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--cl-plate-shadow) !important;
+}
+.cl-learn.rw-landing [class~='gap-6'] > [class~='p-8'] .size-20 {
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+/* 1 · badges earned → yellow bubble + yellow ink */
+.cl-learn.rw-landing [class~='gap-6'] > [class~='p-8']:nth-child(1) .size-20 { background: var(--cl-wash-yellow) !important; }
+.cl-learn.rw-landing [class~='gap-6'] > [class~='p-8']:nth-child(1) svg { color: #B07A1A !important; }
+.cl-learn.rw-landing [class~='gap-6'] > [class~='p-8']:nth-child(1) p { color: #B07A1A !important; }
+/* 2 · stars → the glass chip: frosted blue, white border, blue ink */
+.cl-learn.rw-landing [class~='gap-6'] > [class~='p-8']:nth-child(2) {
+  background: rgba(201, 229, 247, 0.55) !important;
+  backdrop-filter: blur(14px) saturate(1.7);
+  -webkit-backdrop-filter: blur(14px) saturate(1.7);
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 12px 26px -14px rgba(31, 103, 177, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+.cl-learn.rw-landing [class~='gap-6'] > [class~='p-8']:nth-child(2) [class*='text-surface'] { color: var(--cl-blue-ink) !important; }
+.cl-learn.rw-landing [class~='gap-6'] > [class~='p-8']:nth-child(2) .size-20 { background: rgba(255, 253, 246, 0.85) !important; }
+/* 3 · streak → coral bubble, its coral-ink text is already on family */
+.cl-learn.rw-landing [class~='gap-6'] > [class~='p-8']:nth-child(3) .size-20 { background: var(--cl-wash-coral) !important; }
+
+/* Badge shelf → plates. The markup's own `opacity-40 grayscale` on locked
+   buttons is exactly the family's locked look, so it stays. */
+.cl-learn.rw-landing [class~='p-10'] {
+  background: var(--cl-surface) !important;
+  border: 2px solid var(--cl-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 16px 34px -20px rgba(42, 33, 24, 0.28) !important;
+}
+/* decorative corner circle → a flat pastel bubble; mirror its physical
+   -right-10 anchor for RTL */
+.cl-learn.rw-landing [class*='-top-10'] {
+  right: auto !important;
+  inset-inline-end: -2.5rem !important;
+  opacity: 0.14 !important;
+}
+.cl-learn.rw-landing [class*='-top-10'][class*='bg-brand-yellow'] { background: #FFD24D !important; }
+.cl-learn.rw-landing [class*='-top-10'][class*='bg-hairline'] { background: var(--cl-blue) !important; }
+/* emoji bubble behind the badge: a circular pastel, soft shadow on the glyph */
+.cl-learn.rw-landing [class~='size-40'][class*='rounded-brand-lg'] {
+  border-radius: 999px !important;
+}
+.cl-learn.rw-landing button[class*='hover:scale'] [class~='size-40'][class*='rounded-brand-lg'] { background: var(--cl-wash-yellow) !important; }
+.cl-learn.rw-landing button[class*='hover:scale'] [class~='size-40'] { filter: var(--cl-emoji-shadow); }
+.cl-learn.rw-landing button:not([class*='hover:scale']) [class~='size-40'][class*='rounded-brand-lg'] {
+  background: rgba(201, 229, 247, 0.45) !important;
+}
+.cl-learn.rw-landing button:not([class*='hover:scale']) [class~='size-40'] svg { color: var(--cl-blue-ink) !important; }
+/* unlocked title + yellow swash accent */
+.cl-learn.rw-landing button[class*='hover:scale'] h3 { color: var(--cl-ink) !important; font-weight: 800; }
+.cl-learn.rw-landing button[class*='hover:scale'] h3::after {
+  content: '';
+  display: block;
+  width: 58%;
+  height: 6px;
+  margin: 10px auto 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 210, 77, 0.15), #FFD24D 30%, #FFD24D 70%, rgba(255, 210, 77, 0.15));
+}
+.cl-learn.rw-landing button[class*='hover:scale'] > * p { color: var(--cl-muted) !important; }
+/* Locked chip → blue-lock glass chip */
+.cl-learn.rw-landing [class*='tracking-widest'] {
+  background: rgba(201, 229, 247, 0.55) !important;
+  color: var(--cl-blue-ink) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-learn.gam-landing [class*='animate-pulse'],
+  .cl-learn.rw-landing [class*='animate-pulse'] { animation: none !important; }
+  .cl-learn.rw-landing [class*='hover:scale'] { transform: none !important; }
+}
