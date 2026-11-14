@@ -50,6 +50,21 @@ const app = express();
 /* ── durable snapshots on ephemeral hosts (docs/AUTH_FLOW_REPORT.md §9) ──
  * Mutating /api calls schedule a snapshot of the SQLite file into Vercel
  * Blob; every request first awaits any pending snapshot. */
+/**
+ * Serverless boot gate. On Vercel the function handler can be invoked the
+ * moment this module finishes loading, WHILE the restore -> sequelize.sync
+ * chain below is still running. Without parking, early requests race the
+ * boot: the driver opens a fresh EMPTY /tmp file, restore then overwrites it
+ * under the open handle, and the first logins hit half-initialized tables
+ * (LOGIN_FAILED on a database that actually exists in the snapshot).
+ * Every /api request waits for boot to finish (restore + sync + migrate)
+ * before touching the database.
+ */
+let bootReady = Promise.resolve();
+app.use('/api', (req, res, next) => {
+  bootReady.then(() => next(), () => res.status(503).json({ error: 'BOOT_FAILED' }));
+});
+
 app.use(blobsync.middleware);
 const PORT = process.env.PORT || 5000;
 
@@ -760,7 +775,7 @@ async function addAuthSpecColumns() {
     console.error('AUTHSPEC_MIGRATION_WARNING:', e.message);
   }
 }
-(blobsync.active
+bootReady = (blobsync.active
   ? blobsync.restore(String(sequelize.__storageResolved || sequelize.config.storage)).then((r) => {
       global.__blobsyncRestore = r;
       console.log(`[blobsync] boot restore: ${r}`);
