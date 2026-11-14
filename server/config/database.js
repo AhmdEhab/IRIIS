@@ -36,4 +36,7 @@ const sequelize = new Sequelize({
   storage, // file path locally, libsql:// URL for Turso
   logging: false, // Disable logging SQL queries to console
 });
+/** Absolute path (or URL) the dialect really uses — exported so the
+ *  durability layer snapshots exactly that file. */
+sequelize.__storageResolved = storage;
 module.exports = sequelize;

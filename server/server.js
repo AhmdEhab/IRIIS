@@ -761,7 +761,7 @@ async function addAuthSpecColumns() {
   }
 }
 (blobsync.active
-  ? blobsync.restore(sequelize.config.storage && String(sequelize.config.storage)).then((r) => {
+  ? blobsync.restore(String(sequelize.__storageResolved || sequelize.config.storage)).then((r) => {
       global.__blobsyncRestore = r;
       console.log(`[blobsync] boot restore: ${r}`);
     })
