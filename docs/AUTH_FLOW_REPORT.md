@@ -94,14 +94,22 @@ the SMTP vars; nothing else changes.
 
 ### Template design
 
-The verification email is built in `server/lib/email.js` (`buildVerificationEmail`)
-as a table-based, inline-styled HTML document compatible with Gmail/Outlook/
-Apple Mail: brand logo and mascot PNGs served from the public deployment,
-rainbow dot strip, per-digit rounded code chips, a single pill CTA to
-`/verify?code=…`, plain-text fallback (code + link), bilingual copy that
-follows the language the app sent with `POST /api/verify/send` (`{lang}`),
-and a preheader. No external CSS or webfonts — nothing an email client can
-block or restyle into something ugly.
+Built in `server/lib/email.js` (`buildVerificationEmail`) to the owner's
+"Premium Playful Email" spec. Table-based, inline-styled, no JS/webfonts,
+plain-text fallback, RTL/LTR aware. The **real IRIS logo** sits centered near
+the top; the **verification code is the centerpiece** — one rounded box per
+digit, cycling the exact brand tokens from `src/styles/iris.css` (blue →
+coral → yellow → green → purple) as wash backgrounds with matching borders
+and dark brand-ink digits for contrast. A few intentional soft shapes
+decorate the corners; the mascot appears only as a small signature avatar.
+Copy: "Let's Get Started!" + welcome + "YOUR VERIFICATION CODE" + a
+**lifetime line that is rendered from the actual `CODE_TTL_MS` constant**
+(never a hardcoded number) + "One little step towards a brighter learning
+journey!" + "With care, The IRIS Team". The code shown is the real
+dynamically-generated OTP passed in by the caller; no hashes, tokens, or
+sample values ever appear. Verified live end-to-end: send → wrong code
+rejected (`CODE_WRONG`) → correct code verifies → `emailVerified` true, with
+OTP generation/hashing/expiry logic untouched.
 
 ### Test-mode codes
 
