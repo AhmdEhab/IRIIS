@@ -527,10 +527,15 @@ sequelize.sync(syncOptions).then(async () => {
   await addPhase5Columns();
   await purgeExpiredSessions();
   setInterval(purgeExpiredSessions, 1000 * 60 * 60).unref();
-  app.listen(PORT, () => console.log(`IRIS server on port ${PORT}`));
+  if (require.main === module) {
+    app.listen(PORT, () => console.log(`IRIS server on port ${PORT}`));
+  }
 }).catch((err) => {
   console.error('DATABASE_SYNC_ERROR:', err);
   process.exit(1);
 });
 
+module.exports = app;
+
+/** Importable by a serverless entry (api/index.js) without binding a port. */
 module.exports = app;

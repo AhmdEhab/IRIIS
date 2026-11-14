@@ -1,0 +1,8 @@
+.git
+node_modules
+analysis
+scripts
+tests
+docs
+screenshots
+*.sqlite
