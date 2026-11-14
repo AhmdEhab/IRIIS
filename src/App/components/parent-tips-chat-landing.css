@@ -1,0 +1,204 @@
+/* ===========================================================================
+   Home Tips + Ask IRIS — the two parent sub-screens dressed in the landing
+   language of landing-child.css. Both components import landing-child.css and
+   reuse its .lc-* vocabulary as-is; every NEW rule below is scoped under
+   `.tc-scope` (tips add `.tc-tips`, chat adds `.tc-chat`) so nothing here can
+   leak into another screen. Landing tokens come from the .lc-root variables
+   (--lc-blue, --lc-surface, --lc-border, ...) declared in landing-child.css.
+   Markup, state, routing and copy of the two screens are untouched — this is
+   a visual sheet only.
+   ========================================================================= */
+
+/* ── Shared decor fix ───────────────────────────────────────────────────────
+   `.lc-root svg` pins every svg to 22px; the ambient blobs and sparkles are
+   svgs too, so restate their sizes at higher specificity inside our roots. */
+.tc-scope .lc-blob { width: 340px; height: 340px; }
+.tc-scope .lc-blob--2 { width: 420px; height: 420px; }
+.tc-scope .lc-spark { width: 18px; height: 18px; }
+.tc-scope .lc-spark--2 { width: 14px; height: 14px; }
+.tc-scope .lc-spark--3 { width: 12px; height: 12px; }
+
+/* ==========================================================================
+   HOME TIPS  (.tc-tips)
+   ========================================================================== */
+
+/* Category / tip cards sit directly in the grid (they are the motion nodes),
+   so reproduce the sticker tilt that landing-child.css only gives wrapped
+   cards. */
+.tc-tips .lc-grid > .lc-card:nth-child(odd) { transform: rotate(-1.1deg); }
+.tc-tips .lc-grid > .lc-card:nth-child(even) { transform: rotate(1.1deg); }
+
+/* Two tips per category: a paired grid that never jumps to four columns. */
+.tc-tips .lc-grid--pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Tip titles are full sentences — keep the hero type one notch calmer. */
+.tc-tips .lc-hero-title { font-size: clamp(26px, 3.6vw, 42px); }
+
+/* The tip's own emoji becomes the hero figure, a pastel bubble sticker. */
+.tc-tips .tc-tip-figure {
+  display: grid; place-items: center;
+  width: clamp(112px, 14vw, 152px); height: clamp(112px, 14vw, 152px);
+  border-radius: 34px; font-size: 56px; line-height: 1;
+  background: rgba(251, 231, 184, 0.7);
+  border: 2.5px solid rgba(222, 162, 26, 0.35);
+  transform: rotate(-3deg);
+  box-shadow: 0 18px 34px -20px rgba(42, 33, 24, 0.3);
+}
+
+/* Minutes chip on the detail hero plate. */
+.tc-tips .tc-minutes { align-self: flex-start; font-size: 14px; padding: 6px 14px; transform: rotate(-1deg); }
+
+/* Numbered steps — white plate rows, the number in a pastel bubble chip. */
+.tc-steps { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.tc-step {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--lc-surface); border: 2px solid var(--lc-border); border-radius: 22px;
+  padding: 16px 18px;
+  box-shadow: 0 12px 28px -18px rgba(42, 33, 24, 0.22);
+}
+.tc-step:nth-child(odd) { transform: rotate(-0.5deg); }
+.tc-step:nth-child(even) { transform: rotate(0.5deg); }
+.tc-tips .tc-step-num {
+  flex-shrink: 0; min-width: 34px; height: 34px; padding: 0 8px;
+  justify-content: center; border-radius: 50%; font-size: 15px; transform: none;
+}
+.tc-step:nth-child(5n + 1) .tc-step-num { background: rgba(201, 229, 247, 0.6); color: var(--lc-blue-ink); }
+.tc-step:nth-child(5n + 2) .tc-step-num { background: rgba(206, 238, 214, 0.7); color: #226B44; }
+.tc-step:nth-child(5n + 3) .tc-step-num { background: rgba(251, 231, 184, 0.7); color: #8A5A00; }
+.tc-step:nth-child(5n + 4) .tc-step-num { background: rgba(252, 217, 219, 0.7); color: #A83A41; }
+.tc-step:nth-child(5n)     .tc-step-num { background: rgba(230, 222, 246, 0.75); color: #553B86; }
+.tc-step-text { font-size: 15.5px; font-weight: 600; line-height: 1.8; color: var(--lc-ink); padding-top: 4px; }
+
+/* Two chips side by side on a tip card (steps count + open). */
+.tc-chip-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+/* ==========================================================================
+   ASK IRIS  (.tc-chat)
+   ========================================================================== */
+
+/* The chat owns its own scroll plate: no page scroll, the composer stays
+   reachable at the bottom on any viewport. */
+.lc-root.tc-chat { padding-bottom: 14px; }
+.tc-chat .lc-main { max-width: 960px; padding-top: 18px; }
+
+.tc-chat-plate {
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  height: calc(100dvh - 150px); min-height: 420px;
+  background: var(--lc-surface);
+  border: 2px solid var(--lc-border); border-radius: 28px;
+  box-shadow: 0 26px 60px -32px rgba(42, 33, 24, 0.34), 0 6px 18px -8px rgba(31, 103, 177, 0.1);
+}
+.tc-chat-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 20px 22px;
+}
+
+/* Rows and bubbles — blue pill for the parent, cream bordered plate for IRIS,
+   with the soft corner pointing at the sender on each side. */
+.tc-row { display: flex; align-items: flex-start; gap: 10px; }
+.tc-row--user { justify-content: flex-end; }
+.tc-bubble { font-size: 15px; line-height: 1.75; border-radius: 20px; padding: 13px 17px; }
+.tc-bubble--user {
+  max-width: min(85%, 540px);
+  background: var(--lc-blue); color: #fff; font-weight: 600;
+  border-radius: 20px 20px 6px 20px;
+  box-shadow: 0 10px 22px -12px rgba(31, 103, 177, 0.55);
+}
+.tc-bubble--iris {
+  min-width: 0; max-width: min(82%, 600px);
+  background: var(--lc-surface); color: var(--lc-ink);
+  border: 2px solid var(--lc-border);
+  border-radius: 6px 20px 20px 20px;
+  box-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.18);
+}
+.tc-bubble--safety { background: rgba(251, 231, 184, 0.55); border-color: rgba(222, 162, 26, 0.45); }
+.tc-chat[dir="rtl"] .tc-bubble--user { border-radius: 20px 20px 20px 6px; }
+.tc-chat[dir="rtl"] .tc-bubble--iris { border-radius: 20px 6px 20px 20px; }
+.tc-chat .tc-bubble svg { width: 20px; height: 20px; }
+
+/* The reply's avatar — a pastel disc with the buddy, sized past .lc-root svg. */
+.tc-avatar {
+  flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(230, 222, 246, 0.75); border: 2px solid rgba(108, 79, 168, 0.2);
+}
+.tc-avatar--safety { background: rgba(251, 231, 184, 0.7); border-color: rgba(222, 162, 26, 0.35); }
+.tc-chat .tc-avatar svg { width: 46px; height: 46px; }
+
+/* Meta sections inside a reply keep their brand classes; round them the
+   landing way (unlayered rules outrank Tailwind's layered utilities). */
+.tc-chat .rounded-brand { border-radius: 22px; }
+.tc-chat .rounded-brand-lg { border-radius: 26px; }
+
+/* ── Empty-state greeting ─────────────────────────────────────────────────── */
+.tc-greet {
+  margin-block: auto; /* centre the greeting inside the plate */
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 6px; padding: 22px 12px 26px;
+}
+.tc-greet-buddy { display: grid; place-items: center; }
+.tc-chat .tc-greet-buddy svg { width: 130px; height: auto; }
+.tc-greet-title {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: clamp(22px, 3vw, 30px); line-height: 1.4; color: var(--lc-ink);
+}
+.tc-greet-sub { font-size: 15.5px; font-weight: 600; line-height: 1.8; color: var(--lc-muted); max-width: 52ch; }
+.tc-suggest-wrap { margin-top: 18px; width: 100%; }
+.tc-suggest-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+/* Suggested questions — pill-shaped ghost questions, brochure colour cycle. */
+.tc-chat .tc-suggest {
+  min-height: 0; padding: 9px 18px; font-size: 14px; white-space: normal;
+  text-align: start; border-radius: 999px; background: var(--lc-surface);
+}
+.tc-chat .tc-suggest--blue   { background: rgba(201, 229, 247, 0.55); color: var(--lc-blue-ink); border-color: rgba(31, 103, 177, 0.25); }
+.tc-chat .tc-suggest--green  { background: rgba(206, 238, 214, 0.7);  color: #226B44; border-color: rgba(46, 150, 92, 0.3); }
+.tc-chat .tc-suggest--yellow { background: rgba(251, 231, 184, 0.7);  color: #8A5A00; border-color: rgba(222, 162, 26, 0.4); }
+.tc-chat .tc-suggest--coral  { background: rgba(252, 217, 219, 0.7);  color: #A83A41; border-color: rgba(210, 70, 78, 0.3); }
+.tc-chat .tc-suggest--purple { background: rgba(230, 222, 246, 0.75); color: #553B86; border-color: rgba(108, 79, 168, 0.28); }
+.tc-chat .tc-suggest:hover { transform: translateY(-2px); filter: saturate(1.15); }
+.tc-chat .tc-suggest:focus-visible { outline: 3px solid var(--lc-blue); outline-offset: 3px; }
+
+/* ── Composer ─────────────────────────────────────────────────────────────── */
+.tc-composer {
+  padding: 14px 16px 12px;
+  border-top: 1.5px solid var(--lc-border);
+  background: rgba(255, 253, 246, 0.92);
+}
+.tc-composer-row { display: flex; align-items: flex-end; gap: 10px; }
+.tc-composer-field { flex: 1; min-width: 0; }
+.tc-field {
+  width: 100%; min-height: 52px; padding: 12px 20px;
+  border: 2px solid var(--lc-border); border-radius: 999px; background: #fff;
+  color: var(--lc-ink); font-family: var(--iris-font-body, 'Cairo', system-ui, sans-serif);
+  font-size: 15px; font-weight: 600;
+  transition: border-color 170ms ease, box-shadow 170ms ease;
+}
+.tc-field::placeholder { color: var(--lc-muted); opacity: 0.85; font-weight: 600; }
+.tc-field:focus { outline: none; border-color: var(--lc-blue); box-shadow: 0 0 0 4px rgba(31, 103, 177, 0.18); }
+.tc-chat .tc-send { flex-shrink: 0; width: 52px; height: 52px; min-height: 52px; padding: 0; }
+.tc-chat .tc-notice { margin: 10px 0 0; text-align: center; }
+
+/* ── Responsive collapse ──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .tc-tips .lc-grid, .tc-tips .lc-grid--parent, .tc-tips .lc-grid--pair { grid-template-columns: 1fr; }
+  .tc-tips .tc-tip-figure { transform: rotate(-2deg); }
+  .lc-root.tc-chat { padding-bottom: 10px; }
+  .tc-chat .lc-main { padding: 12px 10px 0; }
+  .tc-chat-plate { height: calc(100dvh - 128px); min-height: 360px; border-radius: 22px; }
+  .tc-chat-scroll { padding: 14px; gap: 12px; }
+  .tc-bubble { font-size: 14.5px; }
+  .tc-chat .tc-suggest { font-size: 13.5px; padding: 8px 14px; }
+  .tc-composer { padding: 10px 10px 8px; }
+  .tc-field { min-height: 46px; padding: 10px 16px; font-size: 16px; /* keep iOS from zooming */ }
+  .tc-chat .tc-send { width: 46px; height: 46px; min-height: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-tips .lc-grid > .lc-card:nth-child(odd),
+  .tc-tips .lc-grid > .lc-card:nth-child(even),
+  .tc-step:nth-child(odd), .tc-step:nth-child(even),
+  .tc-tips .tc-tip-figure, .tc-tips .tc-minutes { transform: none; }
+  .tc-chat .tc-suggest:hover { transform: none; }
+}

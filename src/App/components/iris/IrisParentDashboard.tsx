@@ -10,17 +10,23 @@
  *        clinical interpretation, predictions, or deficit language.
  *
  * Every interpretation is based on OBSERVED PERFORMANCE, never on diagnosis.
+ *
+ * Re-skinned in the landing / parent-home language (cream ground, glass
+ * header pills, white hero plate, pastel bubbles and cards) — the same
+ * vocabulary IrisParentHome uses. Data paths, guards and copy are untouched.
  */
 import React from 'react';
+import { Award, Home, LogOut } from 'lucide-react';
 import { useIris } from '../../contexts/IrisContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useApp } from '../../contexts/AppContext';
-import { Button } from '../ui/button';
-import { RewardBadge } from './ui/RewardBadge';
-import { ScreenFrame, TopBar, BarAction, DisplayTitle, StarCount, EmptyState, Button as BrandButton } from './ui/brand';
+import { BrandIcon } from './ui/brand';
 import { IrisBuddy } from './ui/IrisBuddy';
 import { ChromeActions } from './ui/ChromeActions';
 import { AdaptationTrail } from './ui/AdaptationTrail';
+import { Blob, Sparkle } from '../landing/LandingDecor';
+import '../landing-child.css';
+import '../parent-dashboard-landing.css';
 
 export function IrisParentDashboard({
   onOpenChat, onBack, onEnterChildMode,
@@ -59,40 +65,58 @@ export function IrisParentDashboard({
 
   if (!hasAnything) {
     return (
-      <ScreenFrame
-        accent="blue"
-        width="md"
-        topBar={
-          <TopBar
-            ar={ar}
-            onBack={onBack}
-            backLabel={ar ? 'وضع الوالدين' : 'Parent Mode'}
-            title={ar ? 'المتابعة والتقدّم' : 'Progress & Insights'}
-            actions={
-              <>
-                <ChromeActions />
-                {childProfile && <BarAction onClick={handleLogout}>{ar ? 'خروج' : 'Log out'}</BarAction>}
-              </>
-            }
-          />
-        }
-      >
-        <EmptyState
-          illustration={<IrisBuddy mood="idle" className="w-28 h-28" />}
-          body={
-            ar
-              ? `لم يبدأ ${childName || 'طفلك'} أنشطة التعرّف بعد.`
-              : `${childName || 'Your child'} hasn't started the getting-to-know activities yet.`
-          }
-          action={
-            onEnterChildMode ? (
-              <BrandButton variant="play" size="lg" icon="child" onClick={onEnterChildMode}>
-                {ar ? 'الدخول إلى وضع الطفل' : 'Enter Child Mode'}
-              </BrandButton>
-            ) : undefined
-          }
-        />
-      </ScreenFrame>
+      <div className="lc-root pd-scope" dir={ar ? 'rtl' : 'ltr'}>
+        <div className="lc-decor" aria-hidden="true">
+          <Blob className="lc-blob lc-blob--1" fill="var(--brand-yellow-wash, #FBE7B8)" />
+          <Blob className="lc-blob lc-blob--2" fill="var(--brand-blue-wash, #C9E5F7)" />
+          <Sparkle className="lc-spark lc-spark--1" />
+          <Sparkle className="lc-spark lc-spark--2" />
+          <Sparkle className="lc-spark lc-spark--3" />
+        </div>
+
+        <header className="lc-header">
+          <div className="lc-header-inner">
+            <button type="button" className="lc-pill lc-pill--blue" onClick={onBack}>
+              <Home aria-hidden="true" />
+              <span>{ar ? 'وضع الوالدين' : 'Parent Mode'}</span>
+            </button>
+            <div className="lc-header-side lc-header-side--parent">
+              <ChromeActions />
+              {childProfile && (
+                <button type="button" className="lc-pill lc-pill--ghost" onClick={handleLogout}>
+                  <LogOut aria-hidden="true" />
+                  <span>{ar ? 'خروج' : 'Log out'}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="lc-main">
+          <section className="lc-hero">
+            <div className="lc-hero-dots" aria-hidden="true" />
+            <div className="pd-empty">
+              <div className="pd-buddy">
+                <IrisBuddy mood="idle" className="w-28 h-28" />
+              </div>
+              <div>
+                <span className="lc-parent-eyebrow">{ar ? 'المتابعة والتقدّم' : 'Progress & Insights'}</span>
+                <h1 className="lc-hero-title">
+                  {ar
+                    ? `لم يبدأ ${childName || 'طفلك'} أنشطة التعرّف بعد.`
+                    : `${childName || 'Your child'} hasn't started the getting-to-know activities yet.`}
+                </h1>
+              </div>
+              {onEnterChildMode && (
+                <button type="button" className="lc-pill lc-pill--blue lc-pill--primary" onClick={onEnterChildMode}>
+                  <BrandIcon name="child" className="w-7 h-7" tone="transparent" />
+                  <span>{ar ? 'الدخول إلى وضع الطفل' : 'Enter Child Mode'}</span>
+                </button>
+              )}
+            </div>
+          </section>
+        </main>
+      </div>
     );
   }
 
@@ -100,42 +124,87 @@ export function IrisParentDashboard({
   const mastered = sessions.filter((s: any) => s.decision?.reason_code === 'ADVANCE_MASTERY');
 
   return (
-    <ScreenFrame
-      accent="blue"
-      width="lg"
-      topBar={
-        <TopBar
-          ar={ar}
-          onBack={onBack}
-          backLabel={ar ? 'وضع الوالدين' : 'Parent Mode'}
-          title={ar ? 'المتابعة والتقدّم' : 'Progress & Insights'}
-          actions={
-            <>
-              <StarCount count={stars} />
-              <ChromeActions />
-              {childProfile && <BarAction onClick={handleLogout}>{ar ? 'خروج' : 'Log out'}</BarAction>}
-            </>
-          }
-        />
-      }
-    >
-      <div className="space-y-6">
+    <div className="lc-root pd-scope" dir={ar ? 'rtl' : 'ltr'}>
+      <div className="lc-decor" aria-hidden="true">
+        <Blob className="lc-blob lc-blob--1" fill="var(--brand-yellow-wash, #FBE7B8)" />
+        <Blob className="lc-blob lc-blob--2" fill="var(--brand-blue-wash, #C9E5F7)" />
+        <Sparkle className="lc-spark lc-spark--1" />
+        <Sparkle className="lc-spark lc-spark--2" />
+        <Sparkle className="lc-spark lc-spark--3" />
+      </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <DisplayTitle size="title" arc>
-            {ar ? `متابعة ${childName || 'طفلك'}` : `${childName || 'Your child'}'s progress`}
-          </DisplayTitle>
-          <div className="flex gap-2 flex-wrap justify-end">
-            {onEnterChildMode && (
-              <BrandButton variant="secondary" icon="child" onClick={onEnterChildMode}>
-                {ar ? 'وضع الطفل' : 'Child Mode'}
-              </BrandButton>
+      <header className="lc-header">
+        <div className="lc-header-inner">
+          <button type="button" className="lc-pill lc-pill--blue" onClick={onBack}>
+            <Home aria-hidden="true" />
+            <span>{ar ? 'وضع الوالدين' : 'Parent Mode'}</span>
+          </button>
+          <div className="lc-header-side lc-header-side--parent">
+            <ChromeActions />
+            <span className="lc-pill lc-pill--yellow" role="status">
+              <Award aria-hidden="true" />
+              <span dir="ltr">{stars}</span>
+            </span>
+            {childProfile && (
+              <button type="button" className="lc-pill lc-pill--ghost" onClick={handleLogout}>
+                <LogOut aria-hidden="true" />
+                <span>{ar ? 'خروج' : 'Log out'}</span>
+              </button>
             )}
-            <BrandButton variant="primary" icon="chat" onClick={onOpenChat}>
-              {ar ? 'اسألي IRIS' : 'Ask IRIS'}
-            </BrandButton>
           </div>
         </div>
+      </header>
+
+      <main className="lc-main">
+        {/* Hero — the key numbers, on the same white plate the parent hub uses */}
+        <section className="lc-hero">
+          <div className="lc-hero-dots" aria-hidden="true" />
+          <div className="lc-hero-grid">
+            <div className="lc-hero-copy">
+              <span className="lc-parent-eyebrow">{ar ? 'المتابعة والتقدّم' : 'Progress & Insights'}</span>
+              <h1 className="lc-hero-title">
+                {ar ? (
+                  <>متابعة <span className="lc-hero-mark">{childName || 'طفلك'}</span></>
+                ) : (
+                  <><span className="lc-hero-mark">{childName || 'Your child'}</span>'s progress</>
+                )}
+              </h1>
+              <div className="pd-stats">
+                <div className="pd-stat pd-stat--yellow">
+                  <span className="pd-stat-value" dir="ltr">{stars}</span>
+                  <span className="pd-stat-label">{ar ? 'نجوم' : 'Stars'}</span>
+                </div>
+                <div className="pd-stat pd-stat--blue">
+                  <span className="pd-stat-value" dir="ltr">{sessions.length}</span>
+                  <span className="pd-stat-label">{ar ? 'جلسات' : 'Sessions'}</span>
+                </div>
+                <div className="pd-stat pd-stat--green">
+                  <span className="pd-stat-value" dir="ltr">{mastered.length}</span>
+                  <span className="pd-stat-label">{ar ? 'مستويات أتمّها' : 'Levels completed'}</span>
+                </div>
+                <div className="pd-stat pd-stat--purple">
+                  <span className="pd-stat-value" dir="ltr">{assignments.length}</span>
+                  <span className="pd-stat-label">{ar ? 'أهداف' : 'Goals'}</span>
+                </div>
+              </div>
+              <div className="lc-hero-actions">
+                {onEnterChildMode && (
+                  <button type="button" className="lc-pill lc-pill--ghost" onClick={onEnterChildMode}>
+                    <BrandIcon name="child" className="w-7 h-7" tone="transparent" />
+                    <span>{ar ? 'وضع الطفل' : 'Child Mode'}</span>
+                  </button>
+                )}
+                <button type="button" className="lc-pill lc-pill--blue lc-pill--primary" onClick={onOpenChat}>
+                  <BrandIcon name="chat" className="w-7 h-7" tone="transparent" />
+                  <span>{ar ? 'اسألي IRIS' : 'Ask IRIS'}</span>
+                </button>
+              </div>
+            </div>
+            <div className="lc-hero-mascot">
+              <IrisBuddy mood="happy" />
+            </div>
+          </div>
+        </section>
 
         {/**
           * What changed and why — the first thing on the screen, because it is
@@ -143,144 +212,183 @@ export function IrisParentDashboard({
           * IRIS has to be able to prove. Read from the recorded trail rather
           * than recomputed here, so the screen and the audit agree.
           */}
-        <section className="bg-surface rounded-brand border border-hairline p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-ink">
-            {ar ? 'ما الذي تغيّر ولماذا' : 'What changed, and why'}
-          </h2>
-          <AdaptationTrail
-            history={adaptationHistory}
-            latest={lastAdaptation}
-            ar={ar}
-            error={historyError}
-          />
+        <section className="lc-section">
+          <div className="lc-section-head">
+            <span className="lc-bubble lc-bubble--blue lc-bubble--head" aria-hidden="true">
+              <BrandIcon name="chart" className="w-7 h-7" tone="transparent" />
+            </span>
+            <h2 className="lc-section-title">{ar ? 'ما الذي تغيّر ولماذا' : 'What changed, and why'}</h2>
+          </div>
+          <div className="pd-plate">
+            <AdaptationTrail
+              history={adaptationHistory}
+              latest={lastAdaptation}
+              ar={ar}
+              error={historyError}
+            />
+          </div>
         </section>
 
         {/* Current goals — the older goal/level pathway, when one is in use. */}
         {assignments.length > 0 && (
-        <section className="bg-surface rounded-brand border border-hairline p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-ink">
-            {ar ? 'على ماذا يتدرّب الآن' : 'What they are practising now'}
-          </h2>
-          {assignments.map((a: any, i: number) => {
-            const goal = GOAL_BY_ID[a.goal_id];
-            return (
-              <div key={a.goal_id} className="rounded-brand-sm bg-ground-tint p-4 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-semibold text-ink">{ar ? goal?.nameAr : goal?.nameEn}</span>
-                  <span className="text-sm px-3 py-1 rounded-full bg-brand-blue-wash text-brand-blue-ink">
-                    {ar ? 'المستوى' : 'Level'} {a.level} / 4
-                  </span>
+        <section className="lc-section">
+          <div className="lc-section-head">
+            <span className="lc-bubble lc-bubble--yellow lc-bubble--head" aria-hidden="true">
+              <BrandIcon name="pencil" className="w-7 h-7" tone="transparent" />
+            </span>
+            <h2 className="lc-section-title">{ar ? 'على ماذا يتدرّب الآن' : 'What they are practising now'}</h2>
+          </div>
+          <div className="pd-grid-cards">
+            {assignments.map((a: any, i: number) => {
+              const goal = GOAL_BY_ID[a.goal_id];
+              return (
+                <div key={a.goal_id}>
+                  <div className="lc-card pd-card-static">
+                    <span className="lc-bubble lc-bubble--yellow lc-card-bubble" aria-hidden="true">
+                      <BrandIcon name="map" className="w-7 h-7" tone="transparent" />
+                    </span>
+                    <span className="lc-card-name">{ar ? goal?.nameAr : goal?.nameEn}</span>
+                    <span className="lc-card-chip">{ar ? 'المستوى' : 'Level'} {a.level} / 4</span>
+                    <span className="lc-card-desc">{explainGoalStatus({ assignment: a, snapshot: snapshots[i] }, language)}</span>
+                    <span className="pd-note">
+                      {ar ? 'قوة الدليل خلف هذا الهدف: ' : 'Evidence strength behind this goal: '}
+                      <span className="pd-mono">{goal?.evidence_tier}</span>
+                    </span>
+                  </div>
                 </div>
-                <p className="text-ink-muted text-sm">{explainGoalStatus({ assignment: a, snapshot: snapshots[i] }, language)}</p>
-                <p className="text-xs text-ink-muted">
-                  {ar ? 'قوة الدليل خلف هذا الهدف: ' : 'Evidence strength behind this goal: '}
-                  <span className="font-mono">{goal?.evidence_tier}</span>
-                </p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </section>
         )}
 
         {/* Why the last decision happened — older pathway engine. */}
         {lastDecision && (
-          <section className="bg-surface rounded-brand border border-hairline p-6 space-y-2">
-            <h2 className="text-xl font-semibold text-ink">
-              {ar ? 'لماذا تغيّر شيء؟' : 'Why did something change?'}
-            </h2>
-            <p className="text-ink-muted">{explainDecision(lastDecision, language)}</p>
-            <p className="text-xs text-ink-muted font-mono">
-              {lastDecision.rule_id} · {lastDecision.reason_code} · {lastDecision.rule_pack_version}
-            </p>
-            <p className="text-xs text-ink-muted">
-              {ar
-                ? 'كل قرار في IRIS يُسجَّل مع سببه ومع الأرقام التي أدّت إليه. لا يوجد أي قرار مبني على تشخيص طفلك.'
-                : 'Every IRIS decision is logged with its reason and the numbers behind it. No decision is based on your child\'s diagnosis.'}
-            </p>
+          <section className="lc-section">
+            <div className="lc-section-head">
+              <span className="lc-bubble lc-bubble--purple lc-bubble--head" aria-hidden="true">
+                <BrandIcon name="info" className="w-7 h-7" tone="transparent" />
+              </span>
+              <h2 className="lc-section-title">{ar ? 'لماذا تغيّر شيء؟' : 'Why did something change?'}</h2>
+            </div>
+            <div className="pd-plate pd-plate--tight">
+              <p className="pd-muted">{explainDecision(lastDecision, language)}</p>
+              <p className="pd-mono">{lastDecision.rule_id} · {lastDecision.reason_code} · {lastDecision.rule_pack_version}</p>
+              <p className="pd-fineprint">
+                {ar
+                  ? 'كل قرار في IRIS يُسجَّل مع سببه ومع الأرقام التي أدّت إليه. لا يوجد أي قرار مبني على تشخيص طفلك.'
+                  : 'Every IRIS decision is logged with its reason and the numbers behind it. No decision is based on your child\'s diagnosis.'}
+              </p>
+            </div>
           </section>
         )}
 
         {/* Recent sessions — older pathway engine only. */}
         {sessions.length > 0 && (
-        <section className="bg-surface rounded-brand border border-hairline p-6">
-          <h2 className="text-xl font-semibold text-ink mb-3">
-            {ar ? 'الجلسات الأخيرة' : 'Recent sessions'}
-          </h2>
-          {sessions.length === 0 ? (
-            <p className="text-ink-muted">{ar ? 'لا توجد جلسات بعد.' : 'No sessions yet.'}</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-start text-ink-muted border-b">
-                    <th className="text-start py-2">#</th>
-                    <th className="text-start py-2">{ar ? 'الهدف' : 'Goal'}</th>
-                    <th className="text-start py-2">{ar ? 'المستوى' : 'Level'}</th>
-                    <th className="text-start py-2">{ar ? 'صحيح' : 'Correct'}</th>
-                    <th className="text-start py-2">{ar ? 'بدون مساعدة' : 'Unaided'}</th>
-                    <th className="text-start py-2">{ar ? 'ما حدث بعدها' : 'What happened next'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions.slice(-8).map((s: any, i: number) => (
-                    <tr key={i} className="border-b last:border-0">
-                      <td className="py-2">{sessions.length - Math.min(8, sessions.length) + i + 1}</td>
-                      <td className="py-2">{ar ? GOAL_BY_ID[s.goal_id]?.nameAr : GOAL_BY_ID[s.goal_id]?.nameEn}</td>
-                      <td className="py-2">{s.level}</td>
-                      <td className="py-2">{Math.round((s.accuracy ?? 0) * 100)}%</td>
-                      <td className="py-2">{Math.round((s.independence ?? 0) * 100)}%</td>
-                      <td className="py-2 text-ink-muted">{s.decision?.explanation_parent?.[language] ?? '—'}</td>
+        <section className="lc-section">
+          <div className="lc-section-head">
+            <span className="lc-bubble lc-bubble--blue lc-bubble--head" aria-hidden="true">
+              <BrandIcon name="repeat" className="w-7 h-7" tone="transparent" />
+            </span>
+            <h2 className="lc-section-title">{ar ? 'الجلسات الأخيرة' : 'Recent sessions'}</h2>
+          </div>
+          <div className="pd-plate">
+            {sessions.length === 0 ? (
+              <p className="pd-muted">{ar ? 'لا توجد جلسات بعد.' : 'No sessions yet.'}</p>
+            ) : (
+              <div className="pd-table-wrap">
+                <table className="pd-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>{ar ? 'الهدف' : 'Goal'}</th>
+                      <th>{ar ? 'المستوى' : 'Level'}</th>
+                      <th>{ar ? 'صحيح' : 'Correct'}</th>
+                      <th>{ar ? 'بدون مساعدة' : 'Unaided'}</th>
+                      <th>{ar ? 'ما حدث بعدها' : 'What happened next'}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {sessions.slice(-8).map((s: any, i: number) => (
+                      <tr key={i}>
+                        <td><span className="pd-num">{sessions.length - Math.min(8, sessions.length) + i + 1}</span></td>
+                        <td className="pd-td-goal">{ar ? GOAL_BY_ID[s.goal_id]?.nameAr : GOAL_BY_ID[s.goal_id]?.nameEn}</td>
+                        <td>{s.level}</td>
+                        <td>
+                          <span className="pd-pct">{Math.round((s.accuracy ?? 0) * 100)}%</span>
+                          <div className="pd-bar" aria-hidden="true">
+                            <div className="pd-bar-fill" style={{ width: `${Math.round((s.accuracy ?? 0) * 100)}%` }} />
+                          </div>
+                        </td>
+                        <td>
+                          <span className="pd-pct">{Math.round((s.independence ?? 0) * 100)}%</span>
+                          <div className="pd-bar" aria-hidden="true">
+                            <div className="pd-bar-fill pd-bar-fill--green" style={{ width: `${Math.round((s.independence ?? 0) * 100)}%` }} />
+                          </div>
+                        </td>
+                        <td className="pd-td-next">{s.decision?.explanation_parent?.[language] ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </section>
         )}
 
         {/* Mastered — older pathway engine only. */}
         {sessions.length > 0 && (
-        <section className="bg-surface rounded-brand border border-hairline p-6">
-          <h2 className="text-xl font-semibold text-ink mb-2">
-            {ar ? 'مستويات أتمّها' : 'Levels completed'}
-          </h2>
-          {mastered.length === 0 ? (
-            <p className="text-ink-muted text-sm">
-              {ar ? 'لم يكتمل أي مستوى بعد. يحتاج المستوى جلستين متتاليتين بأداء مرتفع.' : 'No level completed yet. A level needs two consecutive strong sessions.'}
-            </p>
-          ) : (
-            <ul className="space-y-1 text-ink-muted">
-              {mastered.map((s: any, i: number) => (
-                <li key={i}>
-                  ✅ {ar ? GOAL_BY_ID[s.goal_id]?.nameAr : GOAL_BY_ID[s.goal_id]?.nameEn} — {ar ? 'المستوى' : 'Level'} {s.decision.from_level}
-                </li>
-              ))}
-            </ul>
-          )}
+        <section className="lc-section">
+          <div className="lc-section-head">
+            <span className="lc-bubble lc-bubble--green lc-bubble--head" aria-hidden="true">
+              <BrandIcon name="check" className="w-7 h-7" tone="transparent" />
+            </span>
+            <h2 className="lc-section-title">{ar ? 'مستويات أتمّها' : 'Levels completed'}</h2>
+          </div>
+          <div className="pd-plate pd-plate--tight">
+            {mastered.length === 0 ? (
+              <p className="pd-muted">
+                {ar ? 'لم يكتمل أي مستوى بعد. يحتاج المستوى جلستين متتاليتين بأداء مرتفع.' : 'No level completed yet. A level needs two consecutive strong sessions.'}
+              </p>
+            ) : (
+              <ul className="pd-rows">
+                {mastered.map((s: any, i: number) => (
+                  <li key={i} className="pd-row-soft">
+                    ✅ {ar ? GOAL_BY_ID[s.goal_id]?.nameAr : GOAL_BY_ID[s.goal_id]?.nameEn} — {ar ? 'المستوى' : 'Level'} {s.decision.from_level}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
         )}
 
         {/* Profile summary + mandated disclaimer — sub-measure assessment only. */}
         {summary.length > 0 && (
-        <section className="bg-surface rounded-brand border border-hairline p-6 space-y-2">
-          <h2 className="text-xl font-semibold text-ink">
-            {ar ? 'ملخّص أنشطة التعرّف' : 'Screening summary'}
-          </h2>
-          {summary.map((line: string, i: number) => (
-            <p key={i} className={i === summary.length - 1 ? 'text-xs text-ink-muted pt-2 border-t mt-3' : 'text-ink-muted'}>
-              {line}
-            </p>
-          ))}
+        <section className="lc-section">
+          <div className="lc-section-head">
+            <span className="lc-bubble lc-bubble--yellow lc-bubble--head" aria-hidden="true">
+              <BrandIcon name="book" className="w-7 h-7" tone="transparent" />
+            </span>
+            <h2 className="lc-section-title">{ar ? 'ملخّص أنشطة التعرّف' : 'Screening summary'}</h2>
+          </div>
+          <div className="pd-plate pd-plate--tight">
+            {summary.map((line: string, i: number) => (
+              <p key={i} className={i === summary.length - 1 ? 'pd-fineprint' : 'pd-muted'}>
+                {line}
+              </p>
+            ))}
+          </div>
         </section>
         )}
 
-        <p className="text-center text-xs text-ink-muted pb-6">
+        <p className="lc-disclaimer pd-disclaimer">
           {ar
             ? 'المحتوى والإرشادات هنا محتوى أوّلي مبني على إطار الأدلة الحالي. لم تتم مراجعته أو اعتماده من مختص. مراجعة المختصين هي المرحلة التالية.'
             : 'Content and guidance here are research-informed prototype material based on the current evidence framework. Not specialist-reviewed or approved. Specialist validation is the next phase.'}
         </p>
-      </div>
-    </ScreenFrame>
+      </main>
+    </div>
   );
 }

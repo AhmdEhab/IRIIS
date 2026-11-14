@@ -1,0 +1,200 @@
+/* ===========================================================================
+   parent-snapshot-landing.css — scoped additions for the three screens
+   restyled into the landing/Parent-hub language (Learning Snapshot,
+   Ladder Assessment, Ladder Practice). Every NEW rule lives under the
+   `.ps-scope` class that those components add alongside `.lc-root`, so
+   nothing here can leak onto any other screen. All structural look comes
+   from the existing `.lc-*` vocabulary in landing-child.css; this file only
+   fills gaps that vocabulary does not cover (report rows, the child-mode
+   question plate, companion sizing, chips).
+   ========================================================================= */
+
+/* ── shared bits ─────────────────────────────────────────────────────────── */
+
+/* the swash mark may wrap on the headline; clone it per line box */
+.ps-scope .lc-hero-mark {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.ps-scope .lc-hero-title { max-width: 30ch; }
+
+/* header title when a screen has no back pill (child-mode chrome) */
+.ps-scope .ps-header-title {
+  display: inline-flex; align-items: center; min-height: 44px;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: 16px; color: var(--lc-blue-ink);
+}
+
+/* a mirrored back-arrow for RTL, same idea as the hub's chevron */
+.ps-scope [dir='rtl'] .ps-back-ico { transform: scaleX(-1); }
+
+/* narrow reading column for the child-mode game screens */
+.ps-scope .ps-main--narrow { max-width: 780px; }
+
+/* ── Learning Snapshot: report furniture ─────────────────────────────────── */
+
+.ps-scope .ps-confidence {
+  margin-top: 26px; display: flex; align-items: flex-start; gap: 14px;
+  background: rgba(201, 229, 247, 0.42); border: 2px solid var(--lc-border);
+  border-radius: 22px; padding: 16px 18px;
+  box-shadow: 0 12px 28px -18px rgba(42, 33, 24, 0.22);
+}
+.ps-scope .ps-confidence--high { background: rgba(206, 238, 214, 0.5); }
+.ps-scope .ps-confidence .lc-bubble { width: 44px; height: 44px; border-radius: 14px; font-size: 20px; }
+.ps-scope .ps-confidence p {
+  margin: 0; font-weight: 600; line-height: 1.7; color: var(--lc-ink); font-size: 14.5px;
+}
+
+/* one section body: the same white plate the hub cards use, for reading */
+.ps-scope .ps-block {
+  background: var(--lc-surface); border: 2px solid var(--lc-border); border-radius: 24px;
+  padding: 22px 20px;
+  box-shadow: 0 14px 30px -18px rgba(42, 33, 24, 0.22);
+}
+.ps-scope .ps-intro {
+  margin: 0 0 12px; font-size: 14px; font-weight: 600; line-height: 1.7; color: var(--lc-muted);
+}
+.ps-scope .ps-intro--tight { margin-bottom: 10px; }
+
+/* report rhythm: blocks that sit directly in the column, and the save-alert */
+.ps-scope .lc-main > .ps-block { margin-top: 26px; }
+.ps-scope .lc-main > [role='alert'] { margin-top: 26px; }
+.ps-scope .ps-block .lc-hero-actions { margin-top: 18px; }
+
+.ps-scope .ps-eyebrow {
+  margin-inline-start: auto; flex-shrink: 0; transform: rotate(-1deg);
+}
+
+/* strengths / developing rows: name + measured value, note spans full width */
+.ps-scope .ps-skill-list { list-style: none; margin: 0; padding: 0; }
+.ps-scope .ps-skill-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px;
+  align-items: start; padding: 11px 2px;
+  border-bottom: 1px dashed rgba(31, 103, 177, 0.18);
+}
+.ps-scope .ps-skill-row:last-child { border-bottom: 0; }
+.ps-scope .ps-skill-name { font-weight: 800; font-size: 14.5px; color: var(--lc-ink); line-height: 1.6; }
+.ps-scope .ps-skill-note {
+  grid-column: 1 / -1; margin: 2px 0 0; font-size: 13px; line-height: 1.65; font-weight: 600;
+}
+.ps-scope .ps-skill-note--caveat { color: #B07A1A; }
+.ps-scope .ps-skill-note--floor { color: var(--lc-muted); }
+
+/* ordered next-step list: discs come from StepDisc, layout is ours */
+.ps-scope .ps-steps { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.ps-scope .ps-steps li { display: flex; align-items: flex-start; gap: 12px; }
+.ps-scope .ps-steps span { flex: 1; padding-top: 4px; font-size: 14.5px; font-weight: 700; line-height: 1.65; color: var(--lc-ink); }
+
+/* the at-home observations: pastel dot instead of the legacy star bullet */
+.ps-scope .ps-observe-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ps-scope .ps-observe-item { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; font-weight: 600; line-height: 1.7; color: var(--lc-muted); }
+.ps-scope .ps-observe-dot {
+  flex-shrink: 0; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--lc-blue); opacity: 0.55; margin-top: 9px;
+}
+
+/* yellow practice reminder + plain small-head blocks */
+.ps-scope .ps-note--yellow { background: rgba(251, 231, 184, 0.5); border-color: rgba(222, 162, 26, 0.32); }
+.ps-scope .ps-note-head {
+  margin: 0 0 6px; font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: 13px; letter-spacing: 0.02em; color: #8A5A00;
+}
+.ps-scope .ps-note-body { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.7; color: var(--lc-ink); }
+.ps-scope .ps-head-muted { color: var(--lc-muted); }
+
+/* not-measured strand chips — quiet, because they say "untested", not "failed" */
+.ps-scope .ps-ghost-chip {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 4px 14px;
+  border-radius: 999px; border: 1.5px solid var(--lc-border); background: rgba(255, 255, 255, 0.72);
+  color: var(--lc-muted); font-weight: 700; font-size: 12.5px;
+}
+.ps-scope .ps-ghost-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* the coming-up plan list */
+.ps-scope .ps-plan-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ps-scope .ps-plan-item { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--lc-muted); }
+.ps-scope .ps-plan-item::before {
+  content: ''; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%;
+  background: #2E965C; opacity: 0.6;
+}
+
+/* ── Ladder assessment / practice: child-mode stage ──────────────────────── */
+
+.ps-scope .ps-stage { display: flex; flex-direction: column; gap: 22px; margin-top: 24px; }
+
+/* the companion that sits with the child; sized here because the shared
+   .lc-root svg rule would otherwise shrink it to a header icon */
+.ps-scope .ps-companion { display: grid; place-items: center; }
+.ps-scope .ps-companion svg { width: 84px; height: 84px; }
+
+/* progress chip/dots: recolored from the legacy green to landing blue */
+.ps-scope .ps-progress .t-label { font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; color: var(--lc-muted); }
+.ps-scope .ps-progress .bg-brand-green { background-color: var(--lc-blue); }
+.ps-scope .ps-progress .bg-hairline { background-color: rgba(31, 103, 177, 0.22); }
+
+/* question plate — the shared LadderItemCard is NOT edited; we restyle its
+   root div and controls from outside, scoped under .ps-plate only */
+.ps-scope .ps-plate > div {
+  width: 100%; background: var(--lc-surface);
+  border: 2px solid var(--lc-border); border-radius: 24px; padding: 24px 22px;
+  box-shadow: 0 18px 40px -24px rgba(42, 33, 24, 0.3), 0 6px 18px -10px rgba(31, 103, 177, 0.08);
+}
+.ps-scope .ps-plate h2 { font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; color: var(--lc-ink); }
+.ps-scope .ps-plate button { font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; }
+.ps-scope .ps-plate [data-response] { gap: 14px; }
+
+/* answer options as ghost pills; the shared card marks the picked one with
+   its wash classes, which we paint in the landing blue here */
+.ps-scope .ps-plate [data-response] > button {
+  min-height: 68px; padding: 10px 18px; border-radius: 999px;
+  border-width: 2px; border-color: var(--lc-border); background-color: var(--lc-surface);
+  box-shadow: 0 8px 18px -12px rgba(42, 33, 24, 0.22);
+  transition: background-color 170ms ease, border-color 170ms ease, transform 170ms ease, box-shadow 170ms ease;
+}
+.ps-scope .ps-plate [data-response] > button:hover:not(:disabled) {
+  border-color: rgba(31, 103, 177, 0.5); transform: translateY(-2px);
+}
+.ps-scope .ps-plate [data-response] > button:disabled { opacity: 0.55; }
+.ps-scope .ps-plate [data-response] > button.bg-brand-green-wash { background-color: var(--lc-blue); }
+.ps-scope .ps-plate [data-response] > button.border-brand-green { border-color: var(--lc-blue-ink); color: #fff; }
+/* the order badge inside a chosen tile stays readable on the blue fill */
+.ps-scope .ps-plate [data-response] .text-brand-green-ink { color: rgba(255, 255, 255, 0.92); }
+
+/* stimulus panel + speaker button: sunken grey → pastel blue */
+.ps-scope .ps-plate .bg-surface-sunk { background-color: #EAF3FB; border-color: var(--lc-border); }
+.ps-scope .ps-plate .rounded-brand-sm { border-radius: 18px; }
+
+/* practice header row (kicker / skill name / count chip) */
+.ps-scope .ps-practice-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ps-scope .ps-kicker {
+  margin: 0; font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: 13px; letter-spacing: 0.02em; color: var(--lc-blue);
+}
+.ps-scope .ps-skill-title {
+  margin: 2px 0 0; font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: clamp(20px, 2.2vw, 26px); line-height: 1.35; color: var(--lc-ink);
+}
+
+/* done-screen note chip (the honest "we learned something new" line) */
+.ps-scope .ps-done-note {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  border-radius: 999px; background: rgba(206, 238, 214, 0.7);
+  border: 1.5px solid rgba(46, 150, 92, 0.3);
+  color: #23583B; font-weight: 700; font-size: 13.5px;
+}
+.ps-scope .ps-done-note svg { width: 16px; height: 16px; }
+
+/* ── small screens ───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .ps-scope .ps-plate > div { padding: 18px 14px; }
+  .ps-scope .ps-plate [data-response] > button { min-height: 56px; padding: 8px 12px; }
+  .ps-scope .ps-block { padding: 18px 14px; }
+  .ps-scope .ps-companion svg { width: 64px; height: 64px; }
+  .ps-scope .ps-skill-row { gap: 2px 10px; padding: 9px 0; }
+  .ps-scope .ps-confidence { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-scope .ps-plate [data-response] > button,
+  .ps-scope .ps-plate [data-response] > button:hover:not(:disabled) { transform: none; transition-duration: 1ms; }
+}

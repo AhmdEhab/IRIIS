@@ -1,0 +1,223 @@
+/* ===========================================================================
+   Parent Community + Specialists — landing-language pass (iris unification).
+
+   Loaded by IrisCommunity.tsx and IrisSpecialists.tsx. Both screens attach
+   `.pc-scope` to their `.lc-root` element. Everything in THIS file is scoped
+   under `.pc-scope`; the shared `.lc-*` components come from
+   landing-child.css and are reused untouched (this file never overrides an
+   `.lc-*` rule outside the `.pc-scope` subtree, so other screens are safe).
+
+   Values only come from the landing palette already used by landing-child.css
+   (surface #FFFDF6, blue #1F67B1/#18508A, yellow #FBE7B8/#8A5A00, green
+   #2E965C, coral #D2464E, purple #6C4FA8) via the --lc-* custom properties.
+   ========================================================================= */
+
+/* ── section eyebrows — the tone-coloured kicker the old SectionHeader had ── */
+.pc-scope .pc-eyebrow {
+  display: block;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+.pc-scope .pc-eyebrow--coral  { color: #D2464E; }
+.pc-scope .pc-eyebrow--blue   { color: var(--lc-blue); }
+.pc-scope .pc-eyebrow--yellow { color: #B07A1A; }
+.pc-scope .pc-eyebrow--green  { color: #2E965C; }
+
+/* ── honesty demo note — lives inside the hero plate, yellow like the
+      landing's "soon" language, never red ────────────────────────────────── */
+.pc-scope .pc-demo-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(251, 231, 184, 0.55);
+  border: 2px solid rgba(222, 162, 26, 0.4);
+  max-width: 62ch;
+}
+.pc-scope .pc-demo-emoji { font-size: 24px; line-height: 1.2; flex-shrink: 0; }
+.pc-scope .pc-demo-title {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800;
+  font-size: 16.5px;
+  line-height: 1.45;
+  color: #8A5A00;
+  margin-bottom: 4px;
+}
+.pc-scope .pc-demo-text { font-size: 14px; font-weight: 600; line-height: 1.7; color: #6B5A2E; }
+
+/* ── interactive filter chips (category buttons — these stay live) ────────── */
+.pc-scope .pc-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.pc-scope .pc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 2px solid var(--lc-border);
+  background: var(--lc-surface);
+  color: var(--lc-muted);
+  cursor: pointer;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800;
+  font-size: 13.5px;
+  line-height: 1.5;
+  transition: background-color 170ms ease, color 170ms ease, border-color 170ms ease, transform 170ms ease, box-shadow 170ms ease;
+}
+.pc-scope .pc-chip:hover { transform: translateY(-2px); border-color: rgba(31, 103, 177, 0.34); color: var(--lc-blue-ink); }
+.pc-scope .pc-chip:focus-visible { outline: 3px solid var(--lc-blue); outline-offset: 3px; }
+.pc-scope .pc-chip--active {
+  background: var(--lc-blue);
+  border-color: var(--lc-blue);
+  color: #fff;
+  box-shadow: 0 10px 24px -12px rgba(31, 103, 177, 0.55);
+}
+
+/* ── read-only white plates (never buttons: no pointer, no lift) ──────────── */
+.pc-scope .pc-plate {
+  background: var(--lc-surface);
+  border: 2px solid var(--lc-border);
+  border-radius: 26px;
+  padding: 20px 22px;
+  box-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.24);
+}
+.pc-scope .pc-stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* tips plate — the old flat yellow surface, landing-style */
+.pc-scope .pc-tips { background: rgba(251, 231, 184, 0.42); border-color: rgba(222, 162, 26, 0.3); margin-top: 28px; }
+.pc-scope .pc-tips-title {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  display: block;
+  font-weight: 800;
+  font-size: 15px;
+  color: #B07A1A;
+  margin-bottom: 8px;
+}
+.pc-scope .pc-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.pc-scope .pc-li { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; font-weight: 600; color: var(--lc-ink); line-height: 1.6; }
+.pc-scope .pc-li svg { width: 14px; height: 14px; margin-top: 4px; flex-shrink: 0; }
+
+/* ── community thread rows: pastel initial bubble + read-only plate ───────── */
+.pc-scope .pc-thread {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px 16px;
+  align-items: start;
+}
+.pc-scope .pc-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  font-size: 22px;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800;
+  border: 2.5px solid color-mix(in srgb, currentColor 40%, transparent);
+}
+.pc-scope .pc-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pc-scope .pc-title {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800;
+  font-size: 16.5px;
+  line-height: 1.45;
+  color: var(--lc-ink);
+}
+.pc-scope .pc-author { font-size: 12px; font-weight: 600; color: var(--lc-muted); margin-top: 2px; }
+.pc-scope .pc-badge-row { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* kind tags — same chip anatomy as .lc-card-chip, tone per kind */
+.pc-scope .pc-tag--blue   { background: rgba(201, 229, 247, 0.5);  color: var(--lc-blue-ink); }
+.pc-scope .pc-tag--green  { background: rgba(206, 238, 214, 0.7);  color: #226B41; }
+.pc-scope .pc-tag--purple { background: rgba(230, 222, 246, 0.75); color: #4E3A82; }
+
+.pc-scope .pc-text { font-size: 13.5px; font-weight: 500; line-height: 1.7; color: var(--lc-muted); }
+.pc-scope .pc-meta { display: inline-flex; align-items: center; gap: 16px; }
+.pc-scope .pc-count { font-size: 12px; font-weight: 700; color: var(--lc-muted); font-variant-numeric: tabular-nums; }
+
+.pc-scope .pc-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 12px 0 0;
+  list-style: none;
+  border-top: 1px solid rgba(31, 103, 177, 0.14);
+}
+.pc-scope .pc-comment { border-radius: 16px; padding: 12px 14px; background: rgba(201, 229, 247, 0.18); }
+.pc-scope .pc-comment--spec { background: rgba(206, 238, 214, 0.45); }
+.pc-scope .pc-comment-author { font-size: 12px; font-weight: 800; color: var(--lc-ink); margin-bottom: 4px; line-height: 1.6; }
+.pc-scope .pc-comment-note { margin-inline-start: 8px; font-weight: 600; font-size: 11.5px; color: #226B41; }
+
+/* ── specialist demo cards ────────────────────────────────────────────────── */
+.pc-scope .pc-spec {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.pc-scope .pc-spec-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 20px;
+  font-size: 26px;
+  border: 2.5px solid color-mix(in srgb, currentColor 40%, transparent);
+}
+.pc-scope .pc-spec-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pc-scope .pc-specialty { font-size: 13.5px; font-weight: 600; color: var(--lc-muted); margin-top: 2px; }
+.pc-scope .pc-sub-label {
+  display: block;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--lc-muted);
+  margin-bottom: 6px;
+}
+.pc-scope .pc-area {
+  font-size: 11.5px;
+  padding: 3px 10px;
+  background: rgba(201, 229, 247, 0.28);
+  color: var(--lc-blue-ink);
+  transform: none;
+}
+
+/* experience / availability — the old dl, plate-styled */
+.pc-scope .pc-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin: 0; }
+.pc-scope .pc-dl dd { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.6; color: var(--lc-muted); }
+
+/* the unbookable booking chip — keeps the original disabled state; opacity +
+   cursor live here because the old Tailwind `cursor-not-allowed` is gone */
+.pc-scope .pc-book { margin-top: 2px; }
+.pc-scope .pc-book-chip {
+  font-size: 13.5px;
+  padding: 8px 16px;
+  min-height: 40px;
+  transform: none;
+}
+.pc-scope .pc-book-chip:disabled { cursor: not-allowed; opacity: 0.62; }
+
+/* ── spacing helpers inside main ──────────────────────────────────────────── */
+.pc-scope .pc-block { margin-top: 0; }
+
+/* ── 390px / small screens: NEW grids collapse to one column ──────────────── */
+@media (max-width: 640px) {
+  .pc-scope .pc-thread { grid-template-columns: 1fr; gap: 12px; }
+  .pc-scope .pc-spec { grid-template-columns: 1fr; gap: 12px; }
+  .pc-scope .pc-avatar { width: 46px; height: 46px; font-size: 19px; }
+  .pc-scope .pc-spec-avatar { width: 50px; height: 50px; font-size: 22px; }
+  .pc-scope .pc-dl { grid-template-columns: 1fr; }
+  .pc-scope .pc-demo-note { flex-direction: column; gap: 8px; }
+  .pc-scope .pc-plate, .pc-scope .pc-thread, .pc-scope .pc-spec { padding: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-scope .pc-chip, .pc-scope .pc-chip:hover { transform: none; transition-duration: 1ms; }
+}

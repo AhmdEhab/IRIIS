@@ -30,32 +30,27 @@
  * Not one line of the retrieval logic, the context assembly or the answer
  * rendering was changed. `answerParentQuestion` is called with the same
  * arguments, and every branch of `m.meta` renders the same sections.
+ *
+ * The screen now wears the landing language (cream ground, glass header, a
+ * white scroll plate for the thread) — markup and classes only.
  */
 import React, { useState, useRef, useEffect } from 'react';
+import { Home } from 'lucide-react';
 import { useIris } from '../../contexts/IrisContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { answerParentQuestion, SUGGESTED_QUESTIONS } from '../../../iris/parent/chatbot.js';
 import { IrisBuddy } from './ui/IrisBuddy';
-import {
-  ScreenFrame,
-  TopBar,
-  BrandIcon,
-  Mark,
-  inputClass,
-} from './ui/brand';
+import { BrandIcon, Mark } from './ui/brand';
 import { ChromeActions } from './ui/ChromeActions';
+import { Blob, Sparkle } from '../landing/LandingDecor';
+import '../landing-child.css';
+import '../parent-tips-chat-landing.css';
 
 type Msg = { role: 'user' | 'bot'; text: string; meta?: any };
 
-/** The five tag colours cycle, so a row of questions looks like the brochure's
- *  chip cluster rather than six identical grey pills. */
-const TAG = [
-  'bg-brand-blue-wash text-brand-blue-ink hover:border-brand-blue',
-  'bg-brand-green-wash text-brand-green-ink hover:border-brand-green',
-  'bg-brand-yellow-wash text-brand-yellow-ink hover:border-brand-yellow',
-  'bg-brand-coral-wash text-brand-coral-ink hover:border-brand-coral',
-  'bg-brand-purple-wash text-brand-purple-ink hover:border-brand-purple',
-];
+/** The five pastel tones cycle, so a row of questions looks like the
+ *  brochure's chip cluster rather than six identical grey pills. */
+const TAG_TONES = ['blue', 'green', 'yellow', 'coral', 'purple'];
 
 export function IrisParentChat({ onBack }: { onBack: () => void }) {
   const { assignments, lastDecision, snapshots, profile, sessions, ladder, learningSnapshot, lastAdaptation } = useIris();
@@ -106,114 +101,128 @@ export function IrisParentChat({ onBack }: { onBack: () => void }) {
   const mood = msgs.length === 0 ? 'idle' : last?.role === 'user' ? 'thinking' : 'listening';
 
   return (
-    <ScreenFrame
-      accent="purple"
-      width="md"
-      decor={msgs.length === 0}
-      className="!pb-0"
-      topBar={
-        <TopBar
-          ar={ar}
-          onBack={onBack}
-          backLabel={ar ? 'وضع الوالدين' : 'Parent Mode'}
-          title={ar ? 'اسألي إيريس' : 'Ask IRIS'}
-          actions={<ChromeActions />}
-        />
-      }
-    >
-      <div className="flex flex-col min-h-[calc(100vh-9rem)]">
-        <div className="flex-1 space-y-4 pb-4">
-          {msgs.length === 0 ? (
-            /* ── The greeting, not a void ─────────────────────────────── */
-            <div className="pt-4 text-center flex flex-col items-center">
-              <IrisBuddy mood="idle" className="w-32 h-32" />
-              <p className="t-title text-ink mt-3 max-w-md">
-                {ar ? 'اسأليني عن تعلّم طفلك' : "Ask me about your child's learning"}
-              </p>
-              <p className="t-body text-ink-muted mt-2 max-w-md leading-relaxed">
-                {ar
-                  ? 'بجاوب من قاعدة معرفة مراجَعة، وبستخدم اللي طفلك عمله فعلاً في الجلسات. مش بشخّص.'
-                  : 'I answer from a reviewed knowledge base, using what your child actually did in their sessions. I do not diagnose.'}
-              </p>
+    <div className="lc-root tc-scope tc-chat" dir={ar ? 'rtl' : 'ltr'}>
+      {/* Ambient decor only before the first message — the thread owns the
+          rest of the session. Same condition the old ScreenFrame used. */}
+      {msgs.length === 0 && (
+        <div className="lc-decor" aria-hidden="true">
+          <Blob className="lc-blob lc-blob--1" fill="var(--brand-yellow-wash, #FBE7B8)" />
+          <Blob className="lc-blob lc-blob--2" fill="var(--brand-blue-wash, #C9E5F7)" />
+          <Sparkle className="lc-spark lc-spark--1" />
+          <Sparkle className="lc-spark lc-spark--2" />
+          <Sparkle className="lc-spark lc-spark--3" />
+        </div>
+      )}
 
-              <div className="mt-7 w-full">
-                <p className="t-label text-brand-purple-ink mb-3">
-                  {ar ? 'جرّبي واحد من دول' : 'Try one of these'}
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {SUGGESTED_QUESTIONS[language].map((q: string, i: number) => (
-                    <button
-                      key={q}
-                      onClick={() => ask(q)}
-                      className={`t-small px-4 py-2.5 rounded-brand-pill border-2 border-transparent
-                        transition-colors text-start ${TAG[i % TAG.length]}`}
-                    >
-                      {q}
-                    </button>
-                  ))}
+      <header className="lc-header">
+        <div className="lc-header-inner">
+          <button type="button" className="lc-pill lc-pill--blue" onClick={onBack}>
+            <Home aria-hidden="true" />
+            <span>{ar ? 'وضع الوالدين' : 'Parent Mode'}</span>
+          </button>
+          <div className="lc-header-side lc-header-side--parent">
+            <ChromeActions />
+            <span className="lc-name-chip">{ar ? 'اسألي إيريس' : 'Ask IRIS'}</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="lc-main">
+        {/* The chat plate: a scrolling thread over a fixed composer. */}
+        <div className="tc-chat-plate">
+          <div className="tc-chat-scroll">
+            {msgs.length === 0 ? (
+              /* ── The greeting, not a void ─────────────────────────────── */
+              <div className="tc-greet">
+                <div className="tc-greet-buddy">
+                  <IrisBuddy mood={mood} />
                 </div>
-              </div>
-            </div>
-          ) : (
-            msgs.map((m, i) =>
-              m.role === 'user' ? (
-                <div key={i} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-brand-lg rounded-ee-brand-sm bg-brand-blue-ink text-white px-4 py-3 t-body">
-                    {m.text}
+                <p className="tc-greet-title">
+                  {ar ? 'اسأليني عن تعلّم طفلك' : "Ask me about your child's learning"}
+                </p>
+                <p className="tc-greet-sub">
+                  {ar
+                    ? 'بجاوب من قاعدة معرفة مراجَعة، وبستخدم اللي طفلك عمله فعلاً في الجلسات. مش بشخّص.'
+                    : 'I answer from a reviewed knowledge base, using what your child actually did in their sessions. I do not diagnose.'}
+                </p>
+
+                <div className="tc-suggest-wrap">
+                  <p className="lc-parent-eyebrow">
+                    {ar ? 'جرّبي واحد من دول' : 'Try one of these'}
+                  </p>
+                  <div className="tc-suggest-row">
+                    {SUGGESTED_QUESTIONS[language].map((q: string, i: number) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => ask(q)}
+                        className={`lc-pill tc-suggest tc-suggest--${TAG_TONES[i % TAG_TONES.length]}`}
+                      >
+                        {q}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              ) : (
-                <BotTurn key={i} m={m} ar={ar} />
-              )
-            )
-          )}
-          <div ref={endRef} />
-        </div>
-
-        {/* ── Composer ────────────────────────────────────────────────── */}
-        <div className="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-4 bg-ground/95 backdrop-blur-sm border-t border-hairline-soft">
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <label htmlFor="ask-iris" className="sr-only-iris">
-                {ar ? 'اكتبي سؤالك' : 'Type your question'}
-              </label>
-              <input
-                id="ask-iris"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && ask(input)}
-                placeholder={ar ? 'اكتبي سؤالك...' : 'Type your question...'}
-                className={inputClass}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => ask(input)}
-              aria-label={ar ? 'إرسال' : 'Send'}
-              className="shrink-0 w-12 h-12 rounded-brand-pill bg-brand-purple-ink text-white flex items-center justify-center hover:brightness-110 transition-[filter]"
-            >
-              <BrandIcon name="send" className="w-6 h-6" tone="transparent" />
-            </button>
-          </div>
-          {/* Unchanged wording. The marker swipe is the brochure's emphasis
-              device and is the right one here: this line is the most important
-              sentence on the screen, not the smallest. */}
-          <p className="t-small text-ink-muted mt-2.5 text-center leading-relaxed">
-            {ar ? (
-              <>
-                <Mark>لا يقدّم IRIS تشخيصًا ولا نصيحة طبية</Mark> ولا تقديرًا للذكاء. الأسئلة الطبية تُحال دائمًا إلى
-                مختص.
-              </>
+              </div>
             ) : (
-              <>
-                <Mark>IRIS does not diagnose</Mark>, give medical advice, or estimate intelligence. Medical
-                questions are always referred to a professional.
-              </>
+              msgs.map((m, i) =>
+                m.role === 'user' ? (
+                  <div key={i} className="tc-row tc-row--user">
+                    <div className="tc-bubble tc-bubble--user">{m.text}</div>
+                  </div>
+                ) : (
+                  <BotTurn key={i} m={m} ar={ar} />
+                )
+              )
             )}
-          </p>
+            <div ref={endRef} />
+          </div>
+
+          {/* ── Composer ────────────────────────────────────────────────── */}
+          <div className="tc-composer">
+            <div className="tc-composer-row">
+              <div className="tc-composer-field">
+                <label htmlFor="ask-iris" className="sr-only-iris">
+                  {ar ? 'اكتبي سؤالك' : 'Type your question'}
+                </label>
+                <input
+                  id="ask-iris"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && ask(input)}
+                  placeholder={ar ? 'اكتبي سؤالك...' : 'Type your question...'}
+                  className="tc-field"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => ask(input)}
+                aria-label={ar ? 'إرسال' : 'Send'}
+                className="lc-pill lc-pill--blue tc-send"
+              >
+                <BrandIcon name="send" className="w-6 h-6" tone="transparent" />
+              </button>
+            </div>
+            {/* Unchanged wording. The marker swipe is the brochure's emphasis
+                device and is the right one here: this line is the most important
+                sentence on the screen, not the smallest. */}
+            <p className="lc-disclaimer tc-notice">
+              {ar ? (
+                <>
+                  <Mark>لا يقدّم IRIS تشخيصًا ولا نصيحة طبية</Mark> ولا تقديرًا للذكاء. الأسئلة الطبية تُحال دائمًا إلى
+                  مختص.
+                </>
+              ) : (
+                <>
+                  <Mark>IRIS does not diagnose</Mark>, give medical advice, or estimate intelligence. Medical
+                  questions are always referred to a professional.
+                </>
+              )}
+            </p>
+          </div>
         </div>
-      </div>
-    </ScreenFrame>
+      </main>
+    </div>
   );
 }
 
@@ -229,19 +238,13 @@ export function IrisParentChat({ onBack }: { onBack: () => void }) {
 function BotTurn({ m, ar }: { m: Msg; ar: boolean }) {
   const safety = m.meta?.type === 'SAFETY_FALLBACK';
   return (
-    <div className="flex items-start gap-2.5">
-      {/* No overflow-hidden: the companion's petal crown sits outside the
-          circle's bounds and was being sliced off, leaving a cropped face. */}
-      <div className="shrink-0 w-14 h-14 rounded-full bg-brand-purple-wash flex items-center justify-center">
-        <IrisBuddy mood={safety ? 'gentle' : 'happy'} className="w-14 h-14" />
+    <div className="tc-row tc-row--bot">
+      {/* The companion's petal crown sits outside the circle's bounds — the
+          bubble is a plain grid cell, no clipping wrapper around the svg. */}
+      <div className={`tc-avatar${safety ? ' tc-avatar--safety' : ''}`}>
+        <IrisBuddy mood={safety ? 'gentle' : 'happy'} />
       </div>
-      <div
-        className={`min-w-0 max-w-[92%] rounded-brand-lg rounded-ss-brand-sm px-4 py-3.5 whitespace-pre-wrap ${
-          safety
-            ? 'bg-brand-yellow-wash border-2 border-brand-yellow text-ink'
-            : 'bg-surface border-2 border-hairline text-ink shadow-brand-sm'
-        }`}
-      >
+      <div className={`tc-bubble tc-bubble--iris${safety ? ' tc-bubble--safety' : ''}`}>
         {m.text && <p className="whitespace-pre-line t-body">{m.text}</p>}
 
         {m.meta?.type === 'SUPPORT_PLAN' && (

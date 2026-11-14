@@ -1,12 +1,18 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { useIris } from '../../contexts/IrisContext';
 import { topUpActivityItems } from '../../services/aiContent';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudio } from '../../contexts/AudioContext';
-import { ScreenFrame, TopBar, Pill, Button, Celebration, EmptyState } from './ui/brand';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { Pill, BrandIcon } from './ui/brand';
 import { LadderItemCard, LadderProgress } from './ui/LadderItemCard';
 import { IrisBuddy } from './ui/IrisBuddy';
 import { ChromeActions } from './ui/ChromeActions';
+import { Blob, Sparkle } from '../landing/LandingDecor';
+import '../landing-child.css';
+import '../parent-snapshot-landing.css';
 
 /**
  * Child Mode — practice from the assessment's content plan.
@@ -22,6 +28,11 @@ import { ChromeActions } from './ui/ChromeActions';
  *
  *   blueprint activity → items → child answers → recordLadderPractice()
  *     → updated estimate → re-planned blueprint → next activity
+ *
+ * The dressing is the landing / child-home language (`.lc-*` + `.ps-*`), the
+ * same frame the assessment uses on purpose. Items, plan data, scaffold
+ * flags and every handler below are untouched — this file presents and
+ * reports, it does not decide.
  *
  * ── WHAT IT DOES NOT DECIDE ───────────────────────────────────────────────
  * Which strand, which rung, which tier, how many items and which scaffolds —
@@ -153,19 +164,7 @@ export function IrisLadderPractice({ onFinish }: { onFinish: () => void }) {
   if (activities.length === 0) {
     return (
       <Shell ar={ar} onBack={onFinish}>
-        <EmptyState
-          illustration={<IrisBuddy mood="idle" className="w-28 h-28" />}
-          body={
-            ar
-              ? 'مفيش تدريب جاهز لسه. لما نخلّص أنشطة التعرّف هنعرف نبدأ منين.'
-              : 'No practice ready yet. Once the getting-to-know activities are done we will know where to start.'
-          }
-          action={
-            <Button variant="quiet" onClick={onFinish}>
-              {ar ? 'رجوع' : 'Back'}
-            </Button>
-          }
-        />
+        <NoPlanPlate ar={ar} onFinish={onFinish} />
       </Shell>
     );
   }
@@ -174,29 +173,7 @@ export function IrisLadderPractice({ onFinish }: { onFinish: () => void }) {
   if (done) {
     return (
       <Shell ar={ar}>
-        <Celebration
-          mascot={<IrisBuddy mood="celebrate" className="w-32 h-32" />}
-          headline={ar ? 'برافو عليك!' : 'Well done!'}
-          body={
-            ar
-              ? 'خلّصنا التدريب النهارده. شكراً إنك لعبت معانا.'
-              : "That's today's practice done. Thanks for playing with us."
-          }
-          /* Shown because it is true and it is the point of the loop: the
-             child's own work moved the estimate. No score is displayed. */
-          note={
-            movedRungs.length > 0
-              ? ar
-                ? 'اتعلمنا حاجة جديدة عنك النهارده'
-                : 'We learned something new about you today'
-              : undefined
-          }
-          action={
-            <Button variant="primary" size="lg" onClick={onFinish}>
-              {ar ? 'تمام' : 'Done'}
-            </Button>
-          }
-        />
+        <DonePlate ar={ar} hasMovedRungs={movedRungs.length > 0} onFinish={onFinish} />
       </Shell>
     );
   }
@@ -204,38 +181,126 @@ export function IrisLadderPractice({ onFinish }: { onFinish: () => void }) {
   // ── practising ───────────────────────────────────────────────────────────
   return (
     <Shell ar={ar} companion={busy ? 'thinking' : 'listening'}>
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="ps-practice-head">
         <div className="min-w-0">
-          <p className="t-label text-accent-screen-ink">{ar ? 'تدريب' : 'Practice'}</p>
-          <h2 className="t-heading text-ink">{skillName}</h2>
+          <p className="ps-kicker">{ar ? 'تدريب' : 'Practice'}</p>
+          <h2 className="ps-skill-title">{skillName}</h2>
         </div>
         <Pill tone="blue">
           <span dir="ltr" className="tabular-nums">{activityIndex + 1}/{activities.length}</span>
         </Pill>
       </div>
 
-      <LadderProgress current={itemIndex + 1} total={items.length} ar={ar} label={ar ? 'النشاط' : 'This activity'} />
+      <div className="ps-progress">
+        <LadderProgress current={itemIndex + 1} total={items.length} ar={ar} label={ar ? 'النشاط' : 'This activity'} />
+      </div>
 
       {item && (
-        <LadderItemCard
-          key={item.item_id}
-          ar={ar}
-          item={item}
-          onAnswer={answer}
-          onSpeak={(t) => speak?.(t)}
-          disabled={busy}
-          hintMode={noHint ? 'none' : showHintAlways ? 'always' : hintOnRequest ? 'request' : 'request'}
-        />
+        <div className="ps-plate">
+          <LadderItemCard
+            key={item.item_id}
+            ar={ar}
+            item={item}
+            onAnswer={answer}
+            onSpeak={(t) => speak?.(t)}
+            disabled={busy}
+            hintMode={noHint ? 'none' : showHintAlways ? 'always' : hintOnRequest ? 'request' : 'request'}
+          />
+        </div>
       )}
     </Shell>
+  );
+}
+
+// ── presentation helpers ────────────────────────────────────────────────────
+
+/** The well-done plate, in the hero language. */
+function DonePlate({ ar, hasMovedRungs, onFinish }: { ar: boolean; hasMovedRungs: boolean; onFinish: () => void }) {
+  const reduceMotion = useReducedMotion();
+  return (
+    <motion.section
+      className="lc-hero"
+      initial={reduceMotion ? false : { y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.35 }}
+    >
+      <div className="lc-hero-dots" aria-hidden="true" />
+      <div className="lc-hero-grid">
+        <div className="lc-hero-copy">
+          <h1 className="lc-hero-title">
+            <span className="lc-hero-mark">{ar ? 'برافو عليك!' : 'Well done!'}</span>
+          </h1>
+          <p className="lc-hero-sub">
+            {ar
+              ? 'خلّصنا التدريب النهارده. شكراً إنك لعبت معانا.'
+              : "That's today's practice done. Thanks for playing with us."}
+          </p>
+          {/* Shown because it is true and it is the point of the loop: the
+              child's own work moved the estimate. No score is displayed. */}
+          {hasMovedRungs && (
+            <span className="ps-done-note">
+              <BrandIcon name="sprout" className="w-4 h-4" tone="transparent" />
+              <span>{ar ? 'اتعلمنا حاجة جديدة عنك النهارده' : 'We learned something new about you today'}</span>
+            </span>
+          )}
+          <div className="lc-hero-actions">
+            <button type="button" className="lc-pill lc-pill--blue lc-pill--primary" onClick={onFinish}>
+              <Check aria-hidden="true" />
+              <span>{ar ? 'تمام' : 'Done'}</span>
+            </button>
+          </div>
+        </div>
+        <div className="lc-hero-mascot">
+          <IrisBuddy mood="celebrate" />
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+/** The honest "nothing is ready yet" plate, in the hero language. */
+function NoPlanPlate({ ar, onFinish }: { ar: boolean; onFinish: () => void }) {
+  const reduceMotion = useReducedMotion();
+  return (
+    <motion.section
+      className="lc-hero"
+      initial={reduceMotion ? false : { y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.35 }}
+    >
+      <div className="lc-hero-dots" aria-hidden="true" />
+      <div className="lc-hero-grid">
+        <div className="lc-hero-copy">
+          <h1 className="lc-hero-title">
+            <span className="lc-hero-mark">{ar ? 'تدريب' : 'Practice'}</span>
+          </h1>
+          <p className="lc-hero-sub">
+            {ar
+              ? 'مفيش تدريب جاهز لسه. لما نخلّص أنشطة التعرّف هنعرف نبدأ منين.'
+              : 'No practice ready yet. Once the getting-to-know activities are done we will know where to start.'}
+          </p>
+          <div className="lc-hero-actions">
+            <button type="button" className="lc-pill lc-pill--ghost" onClick={onFinish}>
+              <ArrowLeft className="ps-back-ico" aria-hidden="true" />
+              <span>{ar ? 'رجوع' : 'Back'}</span>
+            </button>
+          </div>
+        </div>
+        <div className="lc-hero-mascot">
+          <IrisBuddy mood="idle" />
+        </div>
+      </div>
+    </motion.section>
   );
 }
 
 /**
  * Practice shares the assessment's shell shape on purpose: from the child's
  * side these are the same activity, and a different frame would make practice
- * feel like a different, harder thing. Only the accent differs — coral for
- * doing, green for getting to know you.
+ * feel like a different, harder thing. Only the header differs — a back pill
+ * when the screen offers one, and the practice title. The landing ground's
+ * pastel washes replace the old coral accent: coral stays a brand attention
+ * colour, never a whole page tint under a child's questions.
  */
 function Shell({
   children,
@@ -249,29 +314,41 @@ function Shell({
   onBack?: () => void;
 }) {
   return (
-    <ScreenFrame
-      accent="coral"
-      width="md"
-      childMode
-      center
-      topBar={
-        <TopBar
-          ar={ar}
-          onBack={onBack}
-          backLabel={ar ? 'رجوع' : 'Back'}
-          title={ar ? 'تدريب' : 'Practice'}
-          actions={<ChromeActions />}
-        />
-      }
-    >
-      <div className="pt-2 space-y-5">
-        {companion && (
-          <div className="flex justify-center">
-            <IrisBuddy mood={companion === 'thinking' ? 'thinking' : 'listening'} className="w-20 h-20" />
-          </div>
-        )}
-        {children}
+    <div className="lc-root ps-scope" dir={ar ? 'rtl' : 'ltr'}>
+      <div className="lc-decor" aria-hidden="true">
+        <Blob className="lc-blob lc-blob--1" fill="var(--brand-yellow-wash, #FBE7B8)" />
+        <Blob className="lc-blob lc-blob--2" fill="var(--brand-blue-wash, #C9E5F7)" />
+        <Sparkle className="lc-spark lc-spark--1" />
+        <Sparkle className="lc-spark lc-spark--2" />
+        <Sparkle className="lc-spark lc-spark--3" />
       </div>
-    </ScreenFrame>
+
+      <header className="lc-header">
+        <div className="lc-header-inner">
+          {onBack ? (
+            <button type="button" className="lc-pill lc-pill--blue" onClick={onBack}>
+              <ArrowLeft className="ps-back-ico" aria-hidden="true" />
+              <span>{ar ? 'رجوع' : 'Back'}</span>
+            </button>
+          ) : (
+            <span className="ps-header-title">{ar ? 'تدريب' : 'Practice'}</span>
+          )}
+          <div className="lc-header-side">
+            <ChromeActions />
+          </div>
+        </div>
+      </header>
+
+      <main className="lc-main ps-main--narrow">
+        <div className="ps-stage">
+          {companion && (
+            <div className="ps-companion">
+              <IrisBuddy mood={companion === 'thinking' ? 'thinking' : 'listening'} />
+            </div>
+          )}
+          {children}
+        </div>
+      </main>
+    </div>
   );
 }

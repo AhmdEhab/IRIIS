@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Save, Trash2, Globe, User, Shield, CheckCircle2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Switch } from './ui/switch';
-import { Separator } from './ui/separator';
+import { BrandIcon } from './iris/ui/brand';
+import { Blob, Sparkle } from './landing/LandingDecor';
+import './landing-child.css';
+import './parent-dashboard-landing.css';
 
+/**
+ * Parent settings — language, sensory comfort, child profile and data
+ * management.
+ *
+ * Re-skinned in the landing / parent-home language: cream polka-dot ground,
+ * glass header with the back control as the blue pill, white plates per
+ * settings group, ghost pills that turn blue-filled when selected, and
+ * rounded cream fields. State, persistence, sounds and navigation are
+ * exactly as they were — styling only.
+ */
 export function ParentSettingsScreen() {
     const { navigateTo, childProfile, setChildProfile, resetProgress, updateUser, motionPreference, setMotionPreference } = useApp();
     const { playSound, speak, volume, setVolume } = useAudio();
@@ -29,7 +37,7 @@ export function ParentSettingsScreen() {
 
     const handleBack = () => {
         playSound('tap');
-        navigateTo('parent-dashboard');
+        navigateTo('iris-parent');
     };
 
     const handleSave = async () => {
@@ -62,216 +70,246 @@ export function ParentSettingsScreen() {
         speak(language === 'ar' ? 'تم تصفير التقدم بنجاح' : 'Progress reset successfully', language);
     };
 
+    const ar = language === 'ar';
+
     return (
-        <div className="min-h-screen bg-ground p-4">
-            <div className="max-w-4xl mx-auto py-8">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-8">
-                    <Button
-                        onClick={handleBack}
-                        variant="outline"
-                        size="lg"
-                        className="h-14 px-6 rounded-full text-lg font-bold bg-surface border-2 border-hairline text-ink hover:bg-ground-tint shadow-brand"
-                    >
-                        <ArrowLeft className="size-5 me-2" />
-                        {t.back}
-                    </Button>
+        <div className="lc-root pd-scope" dir={ar ? 'rtl' : 'ltr'}>
+            <div className="lc-decor" aria-hidden="true">
+                <Blob className="lc-blob lc-blob--1" fill="var(--brand-yellow-wash, #FBE7B8)" />
+                <Blob className="lc-blob lc-blob--2" fill="var(--brand-blue-wash, #C9E5F7)" />
+                <Sparkle className="lc-spark lc-spark--1" />
+                <Sparkle className="lc-spark lc-spark--2" />
+                <Sparkle className="lc-spark lc-spark--3" />
+            </div>
 
-                    <h1 className="t-title text-ink">
- {t.settings} 
- </h1>
-
-                    <Button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        size="lg"
-                        className="h-14 px-6 rounded-full text-lg font-bold bg-brand-green-solid hover:bg-brand-green-solid text-surface shadow-brand"
-                    >
-                        {isSaving ? '...' : <Save className="size-5 me-2" />}
-                        {t.save}
-                    </Button>
+            <header className="lc-header">
+                <div className="lc-header-inner">
+                    <button type="button" className="lc-pill lc-pill--blue" onClick={handleBack}>
+                        <ArrowLeft aria-hidden="true" style={{ transform: ar ? 'scaleX(-1)' : undefined }} />
+                        <span>{t.back}</span>
+                    </button>
+                    <div className="lc-header-side">
+                        <button
+                            type="button"
+                            className="lc-pill lc-pill--blue lc-pill--primary pd-header-save"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? '...' : <Save aria-hidden="true" />}
+                            <span>{t.save}</span>
+                        </button>
+                    </div>
                 </div>
+            </header>
 
-                <div className="grid gap-8">
-                    {/* Section: Language */}
-                    <Card className="p-6 bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10">
-                        <div className="flex items-center gap-3 mb-6">
-                            <Globe className="size-6 text-brand-blue-ink" />
-                            <h2 className="t-heading text-ink">{language === 'ar' ? 'اللغة' : 'Language'}</h2>
-                        </div>
-                        <div className="flex gap-4">
-                            <Button
+            <main className="lc-main">
+                {/* Title plate — the same hero the parent hub uses */}
+                <section className="lc-hero">
+                    <div className="lc-hero-dots" aria-hidden="true" />
+                    <div className="lc-hero-copy">
+                        <h1 className="lc-hero-title">
+                            <span className="lc-hero-mark">{t.settings}</span>
+                        </h1>
+                    </div>
+                </section>
+
+                {/* Section: Language */}
+                <section className="lc-section">
+                    <div className="lc-section-head">
+                        <span className="lc-bubble lc-bubble--blue lc-bubble--head" aria-hidden="true">
+                            <BrandIcon name="letters" className="w-7 h-7" tone="transparent" />
+                        </span>
+                        <h2 className="lc-section-title">{language === 'ar' ? 'اللغة' : 'Language'}</h2>
+                    </div>
+                    <div className="pd-plate">
+                        <div className="ps-seg">
+                            <button
+                                type="button"
                                 onClick={() => { setLanguage('ar'); playSound('tap'); }}
-                                variant={language === 'ar' ? 'default' : 'outline'}
-                                className="flex-1 h-16 text-xl font-bold rounded-full"
+                                className={`lc-pill ps-choice ${language === 'ar' ? 'lc-pill--blue' : 'lc-pill--ghost'}`}
                             >
                                 العربية 🇪🇬
-                            </Button>
-                            <Button
+                            </button>
+                            <button
+                                type="button"
                                 onClick={() => { setLanguage('en'); playSound('tap'); }}
-                                variant={language === 'en' ? 'default' : 'outline'}
-                                className="flex-1 h-16 text-xl font-bold rounded-full"
+                                className={`lc-pill ps-choice ${language === 'en' ? 'lc-pill--blue' : 'lc-pill--ghost'}`}
                             >
                                 English 🇺🇸
-                            </Button>
+                            </button>
                         </div>
-                    </Card>
+                    </div>
+                </section>
 
-                    {/* Section: Access & Comfort (parent-level, reversible,
-                        never chosen from a diagnosis — it is the parent's view
-                        of what helps their child; locks override the automatic
-                        performance loop in AppContext). */}
-                    <Card className="p-6 bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <CheckCircle2 className="size-6 text-brand-blue-ink" />
-                            <h2 className="t-heading text-ink">{language === 'ar' ? 'الراحة والحساسية' : 'Comfort & Sensory'}</h2>
-                        </div>
-                        <p className="text-sm text-ink-muted mb-6">
+                {/* Section: Access & Comfort (parent-level, reversible,
+                    never chosen from a diagnosis — it is the parent's view
+                    of what helps their child; locks override the automatic
+                    performance loop in AppContext). */}
+                <section className="lc-section">
+                    <div className="lc-section-head">
+                        <span className="lc-bubble lc-bubble--purple lc-bubble--head" aria-hidden="true">
+                            <BrandIcon name="settings" className="w-7 h-7" tone="transparent" />
+                        </span>
+                        <h2 className="lc-section-title">{language === 'ar' ? 'الراحة والحساسية' : 'Comfort & Sensory'}</h2>
+                    </div>
+                    <div className="pd-plate">
+                        <p className="pd-muted ps-plate-sub">
                             {language === 'ar'
                                 ? 'بتتحكم في الحركة والصوت في التطبيق كله. اختيارك هنا بيلغي أي تعديل تلقائي.'
                                 : 'Controls motion and sound across the app. Your choice here overrides any automatic adjustment.'}
                         </p>
-                        <Label className="block mb-3 text-lg font-bold">{language === 'ar' ? 'مستوى الحركة' : 'Animation level'}</Label>
-                        <div className="flex gap-3 mb-6">
+                        <label className="ps-label">{language === 'ar' ? 'مستوى الحركة' : 'Animation level'}</label>
+                        <div className="ps-seg ps-seg--tight">
                             {([
                                 ['auto', language === 'ar' ? 'تلقائي' : 'Automatic'],
                                 ['calm', language === 'ar' ? 'هادئ' : 'Calm'],
                                 ['lively', language === 'ar' ? 'نشط' : 'Lively'],
                             ] as const).map(([val, label]) => (
-                                <Button
+                                <button
+                                    type="button"
                                     key={val}
                                     onClick={() => { setMotionPreference(val); playSound('tap'); }}
-                                    variant={motionPreference === val ? 'default' : 'outline'}
-                                    className="flex-1 h-14 text-lg font-bold rounded-full"
+                                    className={`lc-pill ps-choice ${motionPreference === val ? 'lc-pill--blue' : 'lc-pill--ghost'}`}
                                 >
                                     {label}
-                                </Button>
+                                </button>
                             ))}
                         </div>
-                        <Label className="block mb-2 text-lg font-bold">{language === 'ar' ? `مستوى الصوت (${Math.round(volume * 100)}%)` : `Sound volume (${Math.round(volume * 100)}%)`}</Label>
+                        <label className="ps-label">{language === 'ar' ? `مستوى الصوت (${Math.round(volume * 100)}%)` : `Sound volume (${Math.round(volume * 100)}%)`}</label>
                         <input
                             type="range"
                             min={0}
                             max={100}
                             value={Math.round(volume * 100)}
                             onChange={(e) => setVolume(Number(e.target.value) / 100)}
-                            className="w-full h-3 accent-brand-blue cursor-pointer"
+                            className="ps-range"
                             aria-label={language === 'ar' ? 'مستوى الصوت' : 'Sound volume'}
                         />
-                        <p className="text-xs text-ink-muted mt-3">
+                        <p className="ps-note">
                             {language === 'ar'
                                 ? '"تلقائي" يعني التطبيق بيبصّ على علامات الإرهاق (إعادة نفس النشاط كتير) ويهدّى الحركة لوحده.'
                                 : '"Automatic" means the app watches for fatigue signs (repeating the same activity a lot) and calms animation on its own.'}
                         </p>
-                    </Card>
+                    </div>
+                </section>
 
-                    {/* Section: Profile */}
-                    <Card className="p-6 bg-surface rounded-brand-lg shadow-brand border border-brand-blue/10">
-                        <div className="flex items-center gap-3 mb-6">
-                            <User className="size-6 text-brand-purple-ink" />
-                            <h2 className="t-heading text-ink">{t.childInfo}</h2>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label>{t.childName}</Label>
-                                <Input
+                {/* Section: Profile */}
+                <section className="lc-section">
+                    <div className="lc-section-head">
+                        <span className="lc-bubble lc-bubble--green lc-bubble--head" aria-hidden="true">
+                            <BrandIcon name="child" className="w-7 h-7" tone="transparent" />
+                        </span>
+                        <h2 className="lc-section-title">{t.childInfo}</h2>
+                    </div>
+                    <div className="pd-plate">
+                        <div className="ps-grid2">
+                            <div className="ps-field">
+                                <label className="ps-label">{t.childName}</label>
+                                <input
+                                    type="text"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface-sunk"
+                                    className="ps-input"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>{t.age}</Label>
-                                <Input
+                            <div className="ps-field">
+                                <label className="ps-label">{t.age}</label>
+                                <input
                                     type="number"
                                     value={formData.age}
                                     onChange={e => setFormData({ ...formData, age: e.target.value })}
-                                    className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface-sunk"
+                                    className="ps-input"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>{t.motherName}</Label>
-                                <Input
+                            <div className="ps-field">
+                                <label className="ps-label">{t.motherName}</label>
+                                <input
+                                    type="text"
                                     value={formData.motherName}
                                     onChange={e => setFormData({ ...formData, motherName: e.target.value })}
-                                    className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface-sunk"
+                                    className="ps-input"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>{t.fatherName}</Label>
-                                <Input
+                            <div className="ps-field">
+                                <label className="ps-label">{t.fatherName}</label>
+                                <input
+                                    type="text"
                                     value={formData.fatherName}
                                     onChange={e => setFormData({ ...formData, fatherName: e.target.value })}
-                                    className="h-14 rounded-brand border-2 border-brand-blue/20 focus:border-brand-blue text-lg px-5 bg-surface-sunk"
+                                    className="ps-input"
                                 />
                             </div>
                         </div>
-                    </Card>
+                    </div>
+                </section>
 
-                    {/* Section: Security & Danger Zone */}
-                    <Card className="p-6 rounded-brand-lg shadow-brand border-2 border-brand-coral bg-brand-coral-wash/30">
-                        <div className="flex items-center gap-3 mb-6">
-                            <Shield className="size-6 text-brand-coral-ink" />
-                            <h2 className="t-heading text-brand-coral-ink">
- {language === 'ar' ? 'إدارة البيانات' : 'Data Management'}
- </h2>
-                        </div>
-                        <div className="flex items-center justify-between p-4 bg-surface rounded-brand border border-brand-coral shadow-brand-sm">
+                {/* Section: Security & Danger Zone */}
+                <section className="lc-section">
+                    <div className="lc-section-head">
+                        <span className="lc-bubble lc-bubble--coral lc-bubble--head" aria-hidden="true">
+                            <BrandIcon name="alert" className="w-7 h-7" tone="transparent" />
+                        </span>
+                        <h2 className="lc-section-title">
+                            {language === 'ar' ? 'إدارة البيانات' : 'Data Management'}
+                        </h2>
+                    </div>
+                    <div className="pd-plate">
+                        <div className="ps-danger-row">
                             <div>
-                                <h3 className="font-bold text-lg text-brand-coral-ink">
+                                <h3 className="ps-danger-title">
                                     {language === 'ar' ? 'تصفير التقدم' : 'Reset Progress'}
                                 </h3>
-                                <p className="text-brand-coral-ink text-sm">
+                                <p className="ps-danger-desc">
                                     {language === 'ar' ? 'سيتم مسح جميع الإنجازات والتقدم وبدء التعلم من جديد' : 'Clear all achievements and start learning from scratch'}
                                 </p>
                             </div>
-                            <Button
-                                variant="destructive"
-                                className="h-14 px-6 rounded-full text-lg font-bold"
+                            <button
+                                type="button"
+                                className="lc-pill lc-pill--ghost ps-pill-reset"
                                 onClick={() => setShowConfirmReset(true)}
                             >
-                                <RotateCcw className="size-4 me-2" />
-                                {language === 'ar' ? 'تصفير' : 'Reset'}
-                            </Button>
+                                <RotateCcw aria-hidden="true" />
+                                <span>{language === 'ar' ? 'تصفير' : 'Reset'}</span>
+                            </button>
                         </div>
-                    </Card>
-                </div>
-            </div>
+                    </div>
+                </section>
+            </main>
 
             {/* Reset Confirmation Modal */}
             {showConfirmReset && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="ps-modal-backdrop">
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-surface rounded-brand-lg p-8 max-w-sm w-full text-center shadow-brand-lg"
+                        className="ps-modal"
                     >
-                        <div className="size-20 bg-brand-coral-wash text-brand-coral-ink rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Trash2 className="size-10" />
+                        <div className="ps-modal-icon">
+                            <Trash2 aria-hidden="true" />
                         </div>
-                        <h2 className="t-heading text-ink mb-4">
- {language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
- </h2>
-                        <p className="text-ink-muted mb-8">
+                        <h2 className="ps-modal-title">
+                            {language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
+                        </h2>
+                        <p className="pd-muted ps-modal-desc">
                             {language === 'ar'
                                 ? 'لا يمكن التراجع عن هذه الخطوة بعد تصفير التقدم.'
                                 : 'This action cannot be undone. All progress will be lost.'}
                         </p>
-                        <div className="flex gap-4">
-                            <Button
-                                variant="outline"
-                                className="flex-1 h-14 rounded-full font-bold"
+                        <div className="ps-modal-actions">
+                            <button
+                                type="button"
+                                className="lc-pill lc-pill--ghost ps-modal-btn"
                                 onClick={() => setShowConfirmReset(false)}
                             >
                                 {t.cancel}
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                className="flex-1 h-14 rounded-full font-bold"
+                            </button>
+                            <button
+                                type="button"
+                                className="lc-pill ps-pill-danger ps-modal-btn"
                                 onClick={handleReset}
                             >
                                 {language === 'ar' ? 'نعم، تصفير' : 'Yes, Reset'}
-                            </Button>
+                            </button>
                         </div>
                     </motion.div>
                 </div>

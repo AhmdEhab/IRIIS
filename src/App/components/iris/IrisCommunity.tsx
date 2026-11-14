@@ -1,13 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
+import { Home } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
   listCommunityCategories, listCommunityPosts, listCommunityTips, isDemoDirectory,
   type CommunityCategory, type CommunityPost,
 } from '../../data/directory';
-import { Surface, SectionHeader, Pill, type BrandTone } from './ui/brand';
-import { Blob, DashedArc, Star } from './ui/brand/Decor';
-import { ScreenFrame, TopBar, DisplayTitle } from './ui/brand';
+import { BrandIcon, type BrandTone } from './ui/brand';
+import { Star } from './ui/brand/Decor';
 import { ChromeActions } from './ui/ChromeActions';
+import { Blob, Sparkle } from '../landing/LandingDecor';
+import { IrisBuddy } from './ui/IrisBuddy';
+import '../landing-child.css';
+import '../parent-community-landing.css';
 
 /**
  * Parent Community — DEMO FEED.
@@ -28,10 +34,16 @@ import { ChromeActions } from './ui/ChromeActions';
  *
  * Real posts, when they exist, come from the authenticated /api/posts endpoint
  * via data/directory.ts — never from a file in the bundle.
+ *
+ * Re-skinned in the landing / parent-home design language (lc-* classes):
+ * same cream polka-dot ground, glass header, white hero plate, pastel
+ * bubbles. Copy, order, handlers and every honesty label are unchanged —
+ * styling only.
  */
 export function IrisCommunity({ onBack }: { onBack: () => void }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
+  const reduceMotion = useReducedMotion();
 
   const [categories, setCategories] = useState<CommunityCategory[]>([]);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -61,152 +73,212 @@ export function IrisCommunity({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <ScreenFrame accent="coral" width="lg" tone="ground" topBar={
-      <TopBar ar={ar} onBack={onBack} backLabel={ar ? 'وضع الوالدين' : 'Parent Mode'}
-        title={ar ? 'مجتمع الأهالي' : 'Parent Community'} actions={<ChromeActions />} />
-    }>
-      <div className="space-y-6">
-        {/* back moved into TopBar #0 */}
+    <div className="lc-root pc-scope" dir={ar ? 'rtl' : 'ltr'}>
+      <div className="lc-decor" aria-hidden="true">
+        <Blob className="lc-blob lc-blob--1" fill="var(--brand-yellow-wash, #FBE7B8)" />
+        <Blob className="lc-blob lc-blob--2" fill="var(--brand-blue-wash, #C9E5F7)" />
+        <Sparkle className="lc-spark lc-spark--1" />
+        <Sparkle className="lc-spark lc-spark--2" />
+        <Sparkle className="lc-spark lc-spark--3" />
+      </div>
 
-        <DisplayTitle size="title" arc>
-          {ar ? 'مجتمع الأهالي' : 'Parent Community'}
-        </DisplayTitle>
+      <header className="lc-header">
+        <div className="lc-header-inner">
+          <button type="button" className="lc-pill lc-pill--blue" onClick={onBack}>
+            <Home aria-hidden="true" />
+            <span>{ar ? 'وضع الوالدين' : 'Parent Mode'}</span>
+          </button>
+          <div className="lc-header-side">
+            <ChromeActions />
+            <span className="lc-name-chip">{ar ? 'مجتمع الأهالي' : 'Parent Community'}</span>
+          </div>
+        </div>
+      </header>
 
-        {isDemoDirectory() && (
-          <Surface elevation="raised" className="p-5 border-brand-yellow">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl" aria-hidden="true">⚠️</span>
-              <div>
-                <h2 className="font-black text-ink mb-1">
-                  {ar ? 'المشاركات دي كلها تجريبية' : 'Every post here is a demo'}
-                </h2>
-                <p className="text-sm text-ink-muted leading-relaxed">
-                  {ar
-                    ? 'مفيش ولا مشاركة حقيقية ولا ولي أمر حقيقي هنا. المحتوى مكتوب عشان يوضّح شكل المساحة لما تفتح. المجتمع لسه مقفول لأن مفيش نظام إشراف، ومفيش أي بيانات بتتجمع دلوقتي.'
-                    : 'Not one of these is a real post or a real parent. The content is written to show the shape of the space once it opens. The community is still closed because there is no moderation in place yet, and no data is collected here at this stage.'}
-                </p>
-              </div>
+      <main className="lc-main">
+        {/* Hero plate — the honest "not open yet" notice lives right here,
+            inside the conditional demo branch, exactly as before. */}
+        <motion.section
+          className="lc-hero"
+          initial={reduceMotion ? false : { y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.35 }}
+        >
+          <div className="lc-hero-dots" aria-hidden="true" />
+          <div className="lc-hero-grid">
+            <div className="lc-hero-copy">
+              <span className="lc-parent-eyebrow">{ar ? 'وضع الوالدين' : 'Parent Mode'}</span>
+              <h1 className="lc-hero-title">
+                {ar ? (
+                  <>مجتمع <span className="lc-hero-mark">الأهالي</span></>
+                ) : (
+                  <><span className="lc-hero-mark">Parent</span> Community</>
+                )}
+              </h1>
+              {isDemoDirectory() && (
+                <div className="pc-demo-note">
+                  <span className="pc-demo-emoji" aria-hidden="true">⚠️</span>
+                  <div>
+                    <h2 className="pc-demo-title">
+                      {ar ? 'المشاركات دي كلها تجريبية' : 'Every post here is a demo'}
+                    </h2>
+                    <p className="pc-demo-text">
+                      {ar
+                        ? 'مفيش ولا مشاركة حقيقية ولا ولي أمر حقيقي هنا. المحتوى مكتوب عشان يوضّح شكل المساحة لما تفتح. المجتمع لسه مقفول لأن مفيش نظام إشراف، ومفيش أي بيانات بتتجمع دلوقتي.'
+                        : 'Not one of these is a real post or a real parent. The content is written to show the shape of the space once it opens. The community is still closed because there is no moderation in place yet, and no data is collected here at this stage.'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          </Surface>
-        )}
+            <div className="lc-hero-mascot">
+              <IrisBuddy mood="happy" />
+            </div>
+          </div>
+        </motion.section>
 
         {/* Categories */}
-        <SectionHeader
-          tone="coral"
-          eyebrow={ar ? 'المواضيع' : 'Topics'}
-          title={ar ? 'الأقسام' : 'Categories'}
-        />
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setActive(null)}
-            aria-pressed={active === null}
-            className={`rounded-full px-4 py-2 text-sm font-bold border-2 transition-colors ${
-              active === null
-                ? 'bg-brand-blue-ink text-white border-brand-blue'
-                : 'bg-surface text-ink-muted border-hairline'
-            }`}
-          >
-            {ar ? 'الكل' : 'All'}
-          </button>
-          {categories.map((c) => (
+        <section className="lc-section">
+          <div className="lc-section-head">
+            <span className="lc-bubble lc-bubble--coral lc-bubble--head" aria-hidden="true">
+              <BrandIcon name="family" className="w-7 h-7" tone="transparent" />
+            </span>
+            <div>
+              <span className="pc-eyebrow pc-eyebrow--coral">{ar ? 'المواضيع' : 'Topics'}</span>
+              <h2 className="lc-section-title">{ar ? 'الأقسام' : 'Categories'}</h2>
+            </div>
+          </div>
+          <div className="pc-chips">
             <button
-              key={c.id}
               type="button"
-              onClick={() => setActive(c.id)}
-              aria-pressed={active === c.id}
-              title={ar ? c.blurb_ar : c.blurb_en}
-              className={`rounded-full px-4 py-2 text-sm font-bold border-2 transition-colors ${
-                active === c.id
-                  ? 'bg-brand-blue-ink text-white border-brand-blue'
-                  : 'bg-surface text-ink-muted border-hairline'
-              }`}
+              onClick={() => setActive(null)}
+              aria-pressed={active === null}
+              className={`pc-chip${active === null ? ' pc-chip--active' : ''}`}
             >
-              <span aria-hidden="true">{c.icon}</span> {ar ? c.name_ar : c.name_en}
+              {ar ? 'الكل' : 'All'}
             </button>
-          ))}
-        </div>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setActive(c.id)}
+                aria-pressed={active === c.id}
+                title={ar ? c.blurb_ar : c.blurb_en}
+                className={`pc-chip${active === c.id ? ' pc-chip--active' : ''}`}
+              >
+                <span aria-hidden="true">{c.icon}</span> {ar ? c.name_ar : c.name_en}
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* Tips strip */}
         {tips.length > 0 && (
-          <Surface elevation="flat" tone="yellow" className="p-4">
-            <h3 className="text-xs font-black uppercase tracking-wide text-brand-yellow-ink mb-2">
-              {ar ? 'أفكار سريعة' : 'Quick ideas'}
-            </h3>
-            <ul className="space-y-1.5">
+          <div className="pc-plate pc-tips">
+            <h3 className="pc-tips-title">{ar ? 'أفكار سريعة' : 'Quick ideas'}</h3>
+            <ul className="pc-list">
               {tips.map((t) => (
-                <li key={t.id} className="flex items-start gap-2 text-sm text-ink">
+                <li key={t.id} className="pc-li">
                   <Star className="w-3.5 h-3.5 mt-1 shrink-0" />
                   <span>{ar ? t.ar : t.en}</span>
                 </li>
               ))}
             </ul>
-          </Surface>
+          </div>
         )}
 
         {/* Feed */}
-        <SectionHeader
-          tone="blue"
-          eyebrow={ar ? 'النقاشات' : 'Threads'}
-          title={ar ? 'مشاركات توضيحية' : 'Example threads'}
-        />
+        <section className="lc-section">
+          <div className="lc-section-head">
+            <span className="lc-bubble lc-bubble--blue lc-bubble--head" aria-hidden="true">
+              <BrandIcon name="chat" className="w-7 h-7" tone="transparent" />
+            </span>
+            <div>
+              <span className="pc-eyebrow pc-eyebrow--blue">{ar ? 'النقاشات' : 'Threads'}</span>
+              <h2 className="lc-section-title">{ar ? 'مشاركات توضيحية' : 'Example threads'}</h2>
+            </div>
+          </div>
 
-        <div className="space-y-4">
-          {shown.map((p) => {
-            const kind = KIND_LABEL[p.kind];
-            return (
-              <Surface key={p.id} elevation="raised" className="p-5 space-y-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <h3 className="font-black text-ink">{ar ? p.title_ar : p.title_en}</h3>
-                    <p className="text-xs text-ink-muted mt-0.5">{ar ? p.author_ar : p.author_en}</p>
-                  </div>
-                  <Pill tone={kind.tone}>{ar ? kind.ar : kind.en}</Pill>
-                </div>
-
-                <p className="text-sm text-ink-muted leading-relaxed">{ar ? p.body_ar : p.body_en}</p>
-
-                <div className="flex items-center gap-4 text-xs text-ink-muted">
-                  {/* dir=ltr so numerals never render reversed under RTL bidi. */}
-                  <span dir="ltr" className="tabular-nums">💛 {p.reactions}</span>
-                  <span dir="ltr" className="tabular-nums">
-                    💬 {p.comments.length}
+          <div className="pc-stack">
+            {shown.map((p, i) => {
+              const kind = KIND_LABEL[p.kind];
+              const author = ar ? p.author_ar : p.author_en;
+              return (
+                <motion.article
+                  key={p.id}
+                  className="pc-plate pc-thread"
+                  initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={reduceMotion ? { duration: 0 } : { delay: i * 0.045 }}
+                >
+                  <span
+                    className={`lc-bubble pc-avatar lc-bubble--${kind.tone}`}
+                    aria-hidden="true"
+                  >
+                    {author.trim().charAt(0)}
                   </span>
-                </div>
 
-                {p.comments.length > 0 && (
-                  <ul className="space-y-2 border-t border-hairline-soft pt-3">
-                    {p.comments.map((c) => (
-                      <li
-                        key={c.id}
-                        className={`rounded-brand-sm p-3 ${
-                          c.from_specialist ? 'bg-brand-green-wash' : 'bg-surface-sunk'
-                        }`}
-                      >
-                        <p className="text-xs font-bold text-ink mb-1">
-                          {ar ? c.author_ar : c.author_en}
-                          {c.from_specialist && (
-                            <span className="ms-2 font-normal text-brand-green-ink">
-                              {ar ? '· نص توضيحي، مش رد من مختص حقيقي' : '· illustrative text, not a reply from a real specialist'}
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-sm text-ink-muted leading-relaxed">{ar ? c.body_ar : c.body_en}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Surface>
-            );
-          })}
-        </div>
+                  <div>
+                    <div className="pc-row-head">
+                      <div>
+                        <h3 className="pc-title">{ar ? p.title_ar : p.title_en}</h3>
+                        <p className="pc-author">{author}</p>
+                      </div>
+                      <div className="pc-badge-row">
+                        <span className={`lc-card-chip pc-tag pc-tag--${kind.tone}`}>
+                          {ar ? kind.ar : kind.en}
+                        </span>
+                        {/* The space is closed until moderation exists — said on
+                            every thread, not only in the banner. */}
+                        <span className="lc-card-chip lc-card-chip--soon">
+                          {ar ? 'مقفولة' : 'Closed'}
+                        </span>
+                      </div>
+                    </div>
 
-        <p className="t-small text-ink-muted leading-relaxed font-medium">
+                    <p className="pc-text">{ar ? p.body_ar : p.body_en}</p>
+
+                    <div className="pc-meta">
+                      {/* dir=ltr so numerals never render reversed under RTL bidi. */}
+                      <span dir="ltr" className="pc-count">💛 {p.reactions}</span>
+                      <span dir="ltr" className="pc-count">
+                        💬 {p.comments.length}
+                      </span>
+                    </div>
+
+                    {p.comments.length > 0 && (
+                      <ul className="pc-comments">
+                        {p.comments.map((c) => (
+                          <li
+                            key={c.id}
+                            className={`pc-comment${c.from_specialist ? ' pc-comment--spec' : ''}`}
+                          >
+                            <p className="pc-comment-author">
+                              {ar ? c.author_ar : c.author_en}
+                              {c.from_specialist && (
+                                <span className="pc-comment-note">
+                                  {ar ? '· نص توضيحي، مش رد من مختص حقيقي' : '· illustrative text, not a reply from a real specialist'}
+                                </span>
+                              )}
+                            </p>
+                            <p className="pc-text">{ar ? c.body_ar : c.body_en}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+        </section>
+
+        <p className="lc-disclaimer">
           {ar
             ? 'لو حابة تعرفي لما المساحة دي تفتح، كلّمي فريق IRIS. مفيش أي بيانات بتتجمع هنا في المرحلة دي.'
             : 'If you would like to know when this opens, speak to the IRIS team. No data is collected here at this stage.'}
         </p>
-      </div>
-    </ScreenFrame>
+      </main>
+    </div>
   );
 }

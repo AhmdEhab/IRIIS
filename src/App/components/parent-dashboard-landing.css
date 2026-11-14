@@ -1,0 +1,206 @@
+/* ===========================================================================
+   Parent dashboard & settings — shared additions to the landing language.
+   Used by IrisParentDashboard.tsx and ParentSettingsScreen.tsx.
+   landing-child.css owns the .lc-* vocabulary and the design tokens; every
+   NEW rule here is scoped under `.pd-scope` so nothing leaks into the shared
+   sheets. Imported after landing-child.css, so equal-specificity overrides
+   resolve in this file's favour.
+   ========================================================================= */
+
+/* ── Shared plates ─────────────────────────────────────────────────── */
+.pd-scope .pd-plate {
+  width: 100%; text-align: start;
+  background: var(--lc-surface); border: 2px solid var(--lc-border); border-radius: 24px;
+  box-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.24);
+  padding: 22px; display: flex; flex-direction: column; gap: 14px;
+}
+.pd-scope .pd-plate--tight { gap: 8px; padding: 18px 20px; }
+
+.pd-scope .pd-muted { font-size: 14.5px; font-weight: 600; line-height: 1.7; color: var(--lc-muted); }
+.pd-scope .pd-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--lc-muted); }
+.pd-scope .pd-fineprint {
+  font-size: 12.5px; line-height: 1.7; color: var(--lc-muted);
+  border-top: 1.5px solid var(--lc-border); margin-top: 4px; padding-top: 10px;
+}
+.pd-scope .pd-note { font-size: 12px; color: var(--lc-muted); margin-top: 2px; }
+
+/* ── Dashboard hero: pastel stat tiles ─────────────────────────────── */
+.pd-scope .pd-stats {
+  width: 100%; margin-top: 4px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 12px;
+}
+.pd-scope .pd-stat {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 14px 18px; border-radius: 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 18px -12px rgba(42, 33, 24, 0.28);
+}
+.pd-scope .pd-stat--blue   { background: rgba(201, 229, 247, 0.5);  color: var(--lc-blue-ink); }
+.pd-scope .pd-stat--green  { background: rgba(206, 238, 214, 0.6);  color: #237A4A; }
+.pd-scope .pd-stat--yellow { background: rgba(251, 231, 184, 0.65); color: #8A5A00; }
+.pd-scope .pd-stat--purple { background: rgba(230, 222, 246, 0.7);  color: #5B3F93; }
+.pd-scope .pd-stat-value {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: 26px; line-height: 1.25;
+}
+.pd-scope .pd-stat-label { font-size: 13px; font-weight: 700; opacity: 0.9; }
+
+/* ── Static goal cards on the dashboard (non-interactive lc-cards) ─── */
+.pd-scope .pd-grid-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (min-width: 900px) { .pd-scope .pd-grid-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.pd-scope .pd-grid-cards > *:nth-child(odd) > .pd-card-static { transform: rotate(-1.1deg); }
+.pd-scope .pd-grid-cards > *:nth-child(even) > .pd-card-static { transform: rotate(1.1deg); }
+.pd-scope .pd-card-static { cursor: default; }
+.pd-scope .pd-grid-cards > * > .pd-card-static:hover {
+  transform: translateY(-2px) rotate(0deg) !important; /* beats the .lc-card:hover !important */
+  box-shadow: 0 16px 32px -18px rgba(42, 33, 24, 0.26);
+}
+
+/* ── Recent-sessions table on a white plate ────────────────────────── */
+.pd-scope .pd-table-wrap { width: 100%; overflow-x: auto; }
+.pd-scope .pd-table { width: 100%; min-width: 600px; border-collapse: collapse; font-size: 14px; }
+.pd-scope .pd-table th {
+  text-align: start; padding: 8px 10px; border-bottom: 2px solid var(--lc-border);
+  font-size: 12.5px; font-weight: 800; color: var(--lc-muted); white-space: nowrap;
+}
+.pd-scope .pd-table td { padding: 10px; border-bottom: 1.5px solid rgba(31, 103, 177, 0.10); vertical-align: top; }
+.pd-scope .pd-table tbody tr:last-child td { border-bottom: 0; }
+.pd-scope .pd-table tbody tr:hover { background: rgba(201, 229, 247, 0.22); }
+.pd-scope .pd-td-goal { font-weight: 700; color: var(--lc-ink); }
+.pd-scope .pd-td-next { color: var(--lc-muted); font-size: 13.5px; min-width: 180px; }
+.pd-scope .pd-num {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 999px;
+  background: rgba(201, 229, 247, 0.55); color: var(--lc-blue-ink);
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; font-weight: 800; font-size: 13px;
+}
+
+/* pastel progress bars: quiet track, blue/green fill, pill ends */
+.pd-scope .pd-pct { font-weight: 800; color: var(--lc-blue-ink); font-size: 13px; }
+.pd-scope .pd-bar {
+  width: 110px; max-width: 100%; height: 8px; margin-top: 6px;
+  border-radius: 999px; background: rgba(31, 103, 177, 0.12); overflow: hidden;
+}
+.pd-scope .pd-bar-fill { height: 100%; border-radius: 999px; background: var(--lc-blue); }
+.pd-scope .pd-bar-fill--green { background: #2E965C; }
+
+/* ── Mastered-levels rows ──────────────────────────────────────────── */
+.pd-scope .pd-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pd-scope .pd-row-soft {
+  background: rgba(206, 238, 214, 0.35); border: 1.5px solid rgba(46, 150, 92, 0.22);
+  border-radius: 16px; padding: 10px 14px; font-weight: 600; font-size: 14px; color: var(--lc-ink);
+}
+
+/* ── Empty state ───────────────────────────────────────────────────── */
+.pd-scope .pd-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px; }
+.pd-scope .pd-empty .lc-hero-title { font-size: clamp(22px, 3vw, 34px); max-width: 24ch; }
+/* beats `.lc-root svg { width:22px; height:22px }` from landing-child.css */
+.pd-scope .pd-buddy, .pd-scope .pd-buddy svg { width: 112px; height: 112px; }
+
+.pd-scope .pd-disclaimer { text-align: center; font-size: 12.5px; }
+
+/* ── Settings: choices as pills ────────────────────────────────────── */
+.pd-scope .ps-seg { display: flex; flex-wrap: wrap; gap: 12px; width: 100%; }
+.pd-scope .ps-seg--tight { gap: 10px; }
+.pd-scope .ps-choice { flex: 1 1 150px; min-height: 56px; padding: 10px 24px; font-size: 17px; }
+.pd-scope .ps-plate-sub { margin: 0; }
+
+.pd-scope .ps-label {
+  display: block; margin: 0;
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: 15.5px; line-height: 1.5; color: var(--lc-ink);
+}
+.pd-scope .ps-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pd-scope .ps-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; width: 100%; }
+
+.pd-scope .ps-input {
+  width: 100%; min-height: 52px; padding: 10px 16px;
+  border-radius: 16px; border: 2px solid var(--lc-border); background: var(--lc-surface);
+  color: var(--lc-ink); font: inherit; font-size: 16px; font-weight: 600;
+  transition: border-color 170ms ease, box-shadow 170ms ease;
+}
+.pd-scope .ps-input:focus { outline: none; border-color: var(--lc-blue); box-shadow: 0 0 0 4px rgba(31, 103, 177, 0.18); }
+.pd-scope .ps-input::placeholder { color: rgba(107, 101, 93, 0.6); }
+
+/* volume slider — pastel track, blue bubble thumb */
+.pd-scope .ps-range {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 12px;
+  border-radius: 999px; background: rgba(31, 103, 177, 0.14); cursor: pointer;
+}
+.pd-scope .ps-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--lc-blue); border: 4px solid var(--lc-surface);
+  box-shadow: 0 4px 10px rgba(31, 103, 177, 0.45);
+}
+.pd-scope .ps-range::-moz-range-track { height: 12px; border-radius: 999px; background: rgba(31, 103, 177, 0.14); }
+.pd-scope .ps-range::-moz-range-thumb {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--lc-blue);
+  border: 4px solid var(--lc-surface); box-shadow: 0 4px 10px rgba(31, 103, 177, 0.45);
+}
+.pd-scope .ps-range:focus-visible { outline: 3px solid var(--lc-blue); outline-offset: 3px; }
+.pd-scope .ps-note { font-size: 12.5px; line-height: 1.7; color: var(--lc-muted); margin: 0; }
+
+/* ── Settings: data-management (soft coral, never a red CTA) ───────── */
+.pd-scope .ps-danger-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  background: rgba(252, 217, 219, 0.35); border: 1.5px solid rgba(210, 70, 78, 0.28);
+  border-radius: 18px; padding: 16px 18px;
+}
+.pd-scope .ps-danger-title {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: 17px; color: #B23A42; margin: 0 0 4px;
+}
+.pd-scope .ps-danger-desc { font-size: 13.5px; line-height: 1.6; color: rgba(178, 58, 66, 0.85); margin: 0; }
+.pd-scope .ps-pill-reset { color: #B23A42; }
+.pd-scope .ps-pill-reset:hover { background: rgba(252, 217, 219, 0.55); color: #9C2F37; }
+
+/* ── Settings: reset-confirmation modal ────────────────────────────── */
+.pd-scope .ps-modal-backdrop {
+  position: fixed; inset: 0; z-index: 50; padding: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(42, 33, 24, 0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.pd-scope .ps-modal {
+  width: min(420px, 100%); text-align: center;
+  background: var(--lc-surface); border: 2px solid var(--lc-border); border-radius: 28px;
+  box-shadow: 0 26px 60px -24px rgba(42, 33, 24, 0.45);
+  padding: 30px 26px;
+}
+.pd-scope .ps-modal-icon {
+  width: 76px; height: 76px; margin-inline: auto; border-radius: 999px;
+  display: grid; place-items: center;
+  background: rgba(252, 217, 219, 0.6); color: #D2464E;
+}
+.pd-scope .ps-modal-icon svg { width: 34px; height: 34px; } /* beats `.lc-root svg` */
+.pd-scope .ps-modal-title {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800; font-size: 24px; color: var(--lc-ink); margin: 14px 0 0;
+}
+.pd-scope .ps-modal-desc { margin: 10px 0 4px; }
+.pd-scope .ps-modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+.pd-scope .ps-modal-btn { flex: 1; }
+.pd-scope .ps-pill-danger { background: #FCD9DB; color: #B23A42; border-color: rgba(210, 70, 78, 0.35); }
+.pd-scope .ps-pill-danger:hover { background: #F9C6CA; color: #9C2F37; transform: translateY(-2px); }
+
+/* header save pill keeps the sticky bar's height */
+.pd-scope .pd-header-save { min-height: 48px; padding: 8px 22px; font-size: 15px; }
+.pd-scope .lc-pill:disabled { opacity: 0.6; cursor: not-allowed; }
+.pd-scope .lc-pill:disabled:hover { transform: none; }
+
+/* ── Responsive collapse ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .pd-scope .pd-grid-cards { grid-template-columns: minmax(0, 1fr); }
+  .pd-scope .pd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pd-scope .ps-grid2 { grid-template-columns: minmax(0, 1fr); }
+  .pd-scope .ps-choice { flex-basis: 100%; min-height: 52px; font-size: 16px; }
+  .pd-scope .ps-danger-row { flex-direction: column; align-items: stretch; text-align: start; }
+  .pd-scope .ps-modal-actions { flex-direction: column; }
+  .pd-scope .pd-plate { padding: 18px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-scope .pd-card-static,
+  .pd-scope .pd-grid-cards > *:nth-child(odd) > .pd-card-static,
+  .pd-scope .pd-grid-cards > *:nth-child(even) > .pd-card-static { transform: none; }
+  .pd-scope .ps-choice, .pd-scope .ps-pill-reset, .pd-scope .ps-pill-danger { transition-duration: 1ms; }
+  .pd-scope .ps-choice:hover, .pd-scope .ps-pill-reset:hover, .pd-scope .ps-pill-danger:hover { transform: none; }
+}
