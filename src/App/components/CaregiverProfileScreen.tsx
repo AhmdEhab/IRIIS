@@ -7,6 +7,8 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { API_URL, authHeaders } from '../config';
 import { CAREGIVER_BANK_VERSION, getCaregiverBlocks } from '../../iris/caregiver/bank.js';
 import { scoreCaregiverProfile } from '../../iris/caregiver/scoring.js';
+import { CAREGIVER_V2_VERSION, getCaregiverBlocksV2, CARE_CARD_CODES } from '../../iris/caregiver/bankV2.js';
+import { scoreCaregiverV2 } from '../../iris/caregiver/scoringV2.js';
 import './caregiver-profile.css';
 
 /**
@@ -84,7 +86,7 @@ interface BankItem {
   gate?: { ar?: BankLoc; en?: BankLoc };
   triplet?: boolean;
   metUnmet?: boolean;
-  followUps?: Array<{ id?: string; when?: { itemId?: string; answers?: Code[] }; item?: BankItem }>;
+  followUps?: Array<{ id?: string; when?: { itemId?: string; answers?: Code[]; allOf?: { itemId: string; answers: Code[] }[] }; item?: BankItem }>;
   ageMinMonths?: number;
   ageMaxMonths?: number;
   feeds?: string;
@@ -118,8 +120,17 @@ type Step =
   | { kind: 'block'; id: string; block: BankBlock }
   | { kind: 'gate'; id: string; block: BankBlock; item: BankItem }
   | { kind: 'item'; id: string; block: BankBlock; item: BankItem }
+  | { kind: 'care'; id: string; block: BankBlock; item: BankItem }
   | { kind: 'review'; id: string };
 
+/** Which bank wrote these answers? cv2 keys are VQ-numbers or VPREF; cv1 are the
+ *  ids. The stamp on a draft wins when present; inference keeps
+ *  OLD cv1 drafts (written before any stamping) resuming correctly with no
+ *  server schema change. */
+function inferBankFromResponses(resp: Answers | undefined | null): string {
+  const keys = Object.keys(resp || {});
+  return keys.some((k) => k === 'VPREF' || /^VQ\d/.test(k)) ? CAREGIVER_V2_VERSION : CAREGIVER_BANK_VERSION;
+}
 /** The only two answers a GATE can hold (§2 response grammar). */
 const GATE_YES = 'yes_happens';
 const GATE_NO = 'not_yet_chance';
@@ -191,7 +202,14 @@ const UI: Record<string, { ar: string; en: string }> = {
     ar: 'أسئلة بسيطة عن يوم طفلك: إزاي بيتواصل، بيلعب، وبيعمل حاجات بنفسه.',
     en: 'Simple questions about your child’s day: how they communicate, play and do things for themselves.',
   },
-  introTime: { ar: 'بنعمله مرة واحدة، ياخد حوالي 10–14 دقيقة.', en: 'It is done once and takes about 10–14 minutes.' },
+  introTime: { ar: 'بنعمله مرة واحدة — ١٥ سؤال قصير على الأكثر.', en: 'Once, and it is at most 15 short questions.' },
+  careTitle: { ar: 'خدنا بالك من النقطة دي', en: 'We took this part carefully' },
+  careBody: {
+    ar: 'الشكر إنك شاركتينا. اللي بيحصل ده ماحدش غلطان فيه، ومفيش في IRIS درجة أو تقييم على حاجات زي كده — إحنا بس هنراعي الموضوع في ترتيب الأنشطة ومددها. لو الحاجة بتتكرر أو قوية، الدكتور اللي متابع معاكم هو أنسب حد يكلموه، وإحنا هنا معاكم.',
+    en: 'Thank you for telling us. Nothing here is judged or scored — we simply shape the activities and their timing around it. If it keeps happening or feels strong, the clinician already following your child is the right person to talk to, and we are with you.',
+  },
+  careCta: { ar: 'تمام، نكمّل', en: 'Okay, continue' },
+  followupWord: { ar: 'سؤال متابعة', en: 'Follow-up question' },
   introEdit: {
     ar: 'ونقدر نرجّع نعدّله في أي وقت؛ تقدّمك بيتحفظ لوحده.',
     en: 'We can come back and edit it any time; your progress saves by itself.',
@@ -334,10 +352,15 @@ function ageVisible(item: BankItem, months: number): boolean {
  * Does a conditional follow-up fire? `when.answers` is a list of codes; a
  * `multi` parent answer matches when ANY of its chips is in the list.
  */
-function followUpFires(when: { itemId?: string; answers?: Code[] } | undefined, answers: Answers): boolean {
-  if (!when || !when.itemId || !Array.isArray(when.answers) || when.answers.length === 0) return false;
-  const parent = codes(answers[when.itemId]);
-  return parent.some(c => when.answers!.includes(c));
+function followUpFires(when: { itemId?: string; answers?: Code[]; allOf?: { itemId: string; answers: Code[] }[] } | undefined, answers: Answers): boolean {
+  if (!when) return false;
+  const one = (itemId?: string, list?: Code[]) => {
+    if (!itemId || !Array.isArray(list) || list.length === 0) return false;
+    return codes(answers[itemId]).some(c => list.includes(c));
+  };
+  // cv2 adds { allOf: [...] } — every clause must match before the probe shows.
+  if (Array.isArray(when.allOf) && when.allOf.length > 0) return when.allOf.every(c => one(c.itemId, c.answers));
+  return one(when.itemId, when.answers);
 }
 
 /** The flat, derived step list. See the header comment for why it is derived. */
@@ -362,15 +385,29 @@ function buildSteps(blocks: BankBlock[], answers: Answers, months: number): Step
         if (firstCode(answers[item.id]) !== GATE_NO) steps.push({ kind: 'item', id: `item:${item.id}`, block, item });
       } else {
         steps.push({ kind: 'item', id: `item:${item.id}`, block, item });
+        // cv2: the self-harm tick opens a calm care card right where the worry
+        // was voiced (approved draft, refinement 3). Not a question — it does
+        // not count in the progress and blocks nothing.
+        if (item.id === 'VQ8') {
+          const vq8 = codes(answers[item.id]);
+          if (vq8.some((c) => CARE_CARD_CODES.includes(c))) {
+            steps.push({ kind: 'care', id: `care:${item.id}`, block, item });
+          }
+        }
       }
 
       // Interview logic: probes fire immediately after their parent answer.
-      for (const fu of item.followUps ?? []) {
-        const child = fu?.item;
-        if (!child || !child.id || !ageVisible(child, months)) continue;
-        if (!followUpFires(fu.when, answers)) continue;
-        steps.push({ kind: 'item', id: `item:${child.id}`, block, item: child });
-      }
+      // Recursive: cv2 nests VQ5 → VQ5f → VQ5h (parts, then who helps).
+      const pushFollowUps = (parent: BankItem) => {
+        for (const fu of parent.followUps ?? []) {
+          const child = fu?.item;
+          if (!child || !child.id || !ageVisible(child, months)) continue;
+          if (!followUpFires(fu.when, answers)) continue;
+          steps.push({ kind: 'item', id: `item:${child.id}`, block, item: child });
+          pushFollowUps(child);
+        }
+      };
+      pushFollowUps(item);
     }
   }
   steps.push({ kind: 'review', id: 'review' });
@@ -424,7 +461,14 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
   /* The bank is read once. `useMemo` with an empty key keeps the step
      identities stable across renders, which is what makes the derived index in
      `idx` mean the same question after every edit. */
-  const blocks = useMemo(() => (Array.isArray(getCaregiverBlocks()) ? getCaregiverBlocks() as BankBlock[] : []), []);
+  /* cv2 for fresh families; a draft stamped cv1 (server or local) resumes on
+     its own bank — a family that already sat cv1 is never re-asked (spec). */
+  const [vBank, setVBank] = useState<string>(CAREGIVER_V2_VERSION);
+  const vBankRef = useRef(CAREGIVER_V2_VERSION);
+  vBankRef.current = vBank;
+  const blocks = useMemo(() => (vBank === CAREGIVER_BANK_VERSION
+    ? (Array.isArray(getCaregiverBlocks()) ? getCaregiverBlocks() as BankBlock[] : [])
+    : getCaregiverBlocksV2() as BankBlock[]), [vBank]);
   const months = useMemo(() => childAgeMonths(childProfile as { age?: number } | null), [childProfile]);
 
   const [answers, setAnswers] = useState<Answers>({});
@@ -438,11 +482,18 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [ownText, setOwnText] = useState<Record<string, string>>({}); // free-text 'add own' buffer per item
   const [restored, setRestored] = useState(false);
+  const startAtRef = useRef<number | null>(null);
 
   const steps = useMemo(() => buildSteps(blocks, answers, months), [blocks, answers, months]);
   const qs = useMemo(() => questionSteps(steps), [steps]);
+  /* cv2: short conditional probes ride between core questions. They are
+     follow-ups, not new questions — the 'question X of Y' counter counts
+     CORE questions only, so the 'at most 15' promise holds on every path. */
+  const PROBE_FLOW_IDS = ['VQ1v', 'VQ6s', 'VQ3f', 'VQ5f', 'VQ5h', 'VQ6m', 'VQ9f'];
+  const coreQs = useMemo(() => qs.filter(x => !(x.kind === 'item' && PROBE_FLOW_IDS.includes(x.item?.id || ''))), [qs]);
   const step: Step | undefined = steps[Math.min(idx, steps.length - 1)];
-  const qNo = step ? qs.findIndex(s => s.id === step.id) + 1 : 0;
+  const qNo = step ? coreQs.findIndex(s => s.id === step.id) + 1 : 0;
+  const isProbeStep = !!step && step.kind === 'item' && PROBE_FLOW_IDS.includes(step.item?.id || '');
 
   /* Wash rotation, by block order rather than array position, so editing an
      answer (which can add or remove a step) never repaints the card. */
@@ -465,17 +516,17 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
      A parent on a flaky 3G connection keeps every answer regardless. */
   const serverTimer = useRef<number | null>(null);
   const submittedRef = useRef(false); // after submit, autosave is done
-  const latest = useRef<{ answers: Answers; clientRef: string }>({ answers, clientRef });
-  latest.current = { answers, clientRef };
+  const latest = useRef<{ answers: Answers; clientRef: string; bankVersion: string }>({ answers, clientRef, bankVersion: vBank });
+  latest.current = { answers, clientRef, bankVersion: vBank };
 
   const postDraft = useCallback(async (status: 'IN_PROGRESS' | 'COMPLETE') => {
-    const { answers: a, clientRef: ref } = latest.current;
+    const { answers: a, clientRef: ref, bankVersion: bv } = latest.current;
     const body = {
       childId: childDbId ?? (childProfile as unknown as { id?: string } | null)?.id ?? null,
       clientRef: ref,
       responses: a,
       status,
-      bankVersion: CAREGIVER_BANK_VERSION,
+      bankVersion: bv,
       updatedAt: new Date().toISOString(),
     };
     try {
@@ -492,7 +543,7 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
         responses: next, itemId: steps[idx]?.kind === 'item' || steps[idx]?.kind === 'gate' ? steps[idx]?.id : null,
-        bankVersion: CAREGIVER_BANK_VERSION, clientRef, updatedAt: new Date().toISOString(),
+        bankVersion: vBankRef.current, clientRef, updatedAt: new Date().toISOString(),
       }));
       setSaveState(prev => (prev === 'server' ? prev : 'local'));
     } catch { /* private mode: the server copy is still queued below */ }
@@ -521,9 +572,15 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
     if (bootRef.current) return;
     bootRef.current = true;
 
-    let local: { responses?: Answers; itemId?: string | null; updatedAt?: string; clientRef?: string } | null = null;
+    let local: { responses?: Answers; itemId?: string | null; updatedAt?: string; clientRef?: string; bankVersion?: string } | null = null;
     try { local = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { local = null; }
     if (local?.clientRef) setClientRef(local.clientRef);
+    if (Object.keys(local?.responses || {}).length) {
+      const stamped = local?.bankVersion === CAREGIVER_BANK_VERSION || local?.bankVersion === CAREGIVER_V2_VERSION
+        ? local.bankVersion : inferBankFromResponses(local?.responses);
+      setVBank(stamped);
+      vBankRef.current = stamped;
+    }
     const localStamp = local?.updatedAt ? Date.parse(local.updatedAt) : 0;
 
     const applyLocal = () => {
@@ -544,13 +601,21 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
     const childId = childDbId ?? ((childProfile as unknown as { id?: string } | null)?.id ?? null);
     fetch(`${API_URL}/caregiver/draft?childId=${encodeURIComponent(childId ?? '')}`, { headers: authHeaders() })
       .then(r => (r.ok ? r.json() : null))
-      .then(data => {
+      .then(raw => {
+        // the endpoint wraps the draft: { ok, draft: { responses… } } — accept
+        // both shapes (a real bug caught by the cv1-resume regression test).
+        const data = (raw && (raw as { draft?: unknown }).draft) || raw;
         const serverStamp = data?.updatedAt ? Date.parse(data.updatedAt) : 0;
-        if (data?.responses && Object.keys(data.responses).length && serverStamp >= localStamp) {
+        const done = (data as { status?: string })?.status === 'COMPLETE';
+        if (!done && data?.responses && Object.keys(data.responses).length && serverStamp >= localStamp) {
           setAnswers(data.responses as Answers);
           setClientRef(data.clientRef || clientRef);
+          const serverBank = (data as { bankVersion?: string })?.bankVersion === CAREGIVER_BANK_VERSION
+            ? CAREGIVER_BANK_VERSION : inferBankFromResponses(data.responses as Answers);
+          setVBank(serverBank);
+          vBankRef.current = serverBank;
           setRestored(true); setPhase('flow'); setSaveState('server');
-          const list = buildSteps(blocks, data.responses as Answers, months);
+          const list = buildSteps(serverBank === CAREGIVER_BANK_VERSION ? getCaregiverBlocks() as BankBlock[] : getCaregiverBlocksV2() as BankBlock[], data.responses as Answers, months);
           const firstOpen = list.findIndex(s => (s.kind === 'item' || s.kind === 'gate') && s.item && !itemComplete(s.item, data.responses as Answers));
           setIdx(firstOpen >= 0 ? firstOpen : 0);
         } else {
@@ -575,7 +640,7 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
 
   // X5 asks the family's preferred format; 'audio' auto-reads the first item
   // of every block, once, and the stop button (or the next press) ends it.
-  const preferred = String(firstCode(answers['X5']) ?? '');
+  const preferred = String(firstCode(answers['X5']) ?? firstCode(answers['VPREF']) ?? (typeof localStorage !== 'undefined' ? localStorage.getItem('iris_display_pref') : '') ?? '');
   useEffect(() => {
     if (phase !== 'flow' || !step || step.kind !== 'item' || !step.item) return;
     if (!/audio|both/i.test(preferred)) return;
@@ -617,8 +682,21 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
       // §5: a brief spinner so the work is visible, then the engine does the
       // reading. The scored object is passed straight through — this screen
       // interprets nothing of its own.
-      const scored = scoreCaregiverProfile({ responses: answers, meta: { childAgeMonths: months, completed: true } });
-      try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ responses: answers, bankVersion: CAREGIVER_BANK_VERSION, clientRef, status: 'COMPLETE', itemId: null, updatedAt: new Date().toISOString() })); } catch { /* silent */ }
+      const probes = ['VQ1v', 'VQ6s', 'VQ3f', 'VQ5f', 'VQ5h', 'VQ6m', 'VQ9f'];
+      const metrics = vBank === CAREGIVER_V2_VERSION ? {
+        bank: vBank,
+        durationSeconds: startAtRef.current ? Math.round((Date.now() - startAtRef.current) / 1000) : null,
+        probesShown: steps.filter((st) => st.kind === 'item' && probes.includes(st.item?.id || '')).length,
+        careCardShown: steps.some((st) => st.kind === 'care'),
+      } : null;
+      const scored = vBank === CAREGIVER_BANK_VERSION
+        ? scoreCaregiverProfile({ responses: answers, meta: { childAgeMonths: months, completed: true } })
+        : scoreCaregiverV2({ responses: answers, meta: { childAgeMonths: months, completed: true, metrics } });
+      if (vBank === CAREGIVER_V2_VERSION) {
+        const pref = String(firstCode(answers['VPREF']) ?? 'both');
+        try { localStorage.setItem('iris_display_pref', pref); } catch { /* non-critical */ }
+      }
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ responses: answers, bankVersion: vBankRef.current, clientRef, status: 'COMPLETE', itemId: null, updatedAt: new Date().toISOString() })); } catch { /* silent */ }
       await postDraft('COMPLETE'); // best-effort; a local COMPLETE still stands
       onComplete(answers, scored);
     } catch {
@@ -757,13 +835,15 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
             <span className="cp-count">
               {step?.kind === 'review'
                 ? T('reviewTitle')
-                : step?.kind === 'block'
+                : step?.kind === 'block' || step?.kind === 'care'
                   ? `${T('blockWord')} ${num((blockOrder[step.block.id] ?? 0) + 1)} ${T('ofWord')} ${num(blocks.length)}`
-                  : `${T('questionWord')} ${num(qNo)} ${T('ofWord')} ${num(qs.length)}`}
+                  : isProbeStep
+                    ? T('followupWord')
+                    : `${T('questionWord')} ${num(qNo)} ${T('ofWord')} ${num(coreQs.length)}`}
             </span>
             <span className="cp-pct" aria-hidden="true">{num(Math.round((answeredQs / Math.max(1, qs.length)) * 100))}%</span>
           </div>
-          <div className="cp-track" aria-hidden="true"><span className="cp-track-fill" style={{ inlineSize: `${(qNo / Math.max(1, qs.length)) * 100}%` }} /></div>
+          <div className="cp-track" aria-hidden="true"><span className="cp-track-fill" style={{ inlineSize: `${(qNo / Math.max(1, coreQs.length)) * 100}%` }} /></div>
           <div className="cp-dots" role="group" aria-label={T('blockWord')}>
             {blocks.map(b => {
               const c = blockCounts(b, answers, months);
@@ -799,6 +879,21 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
       );
     }
 
+    if (step.kind === 'care') {
+      return (
+        <section className={cx('cp-card', 'cp-card--care', `cp-wash--${wash}`, reduced && 'cp-item--still')} dir={ar ? 'rtl' : 'ltr'} role="note">
+          <div className="cp-card-top">
+            <span className="cp-kicker">{ar ? step.block.titleAr : step.block.titleEn}</span>
+          </div>
+          <span className="cp-care-heart" aria-hidden="true">💙</span>
+          <h2 className="cp-care-title">{T('careTitle')}</h2>
+          <p className="cp-care-body">{T('careBody')}</p>
+          <div className="cp-nav cp-nav--end">
+            <button type="button" className="cp-cta cp-cta--care" onClick={goNext} data-sfx="tap"><span>{T('careCta')}</span></button>
+          </div>
+        </section>
+      );
+    }
     if (step.kind === 'gate') {
       const item = step.item;
       const a = answers[item.id] ?? {};
@@ -929,6 +1024,7 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
               <button type="button" className="cp-ghost" onClick={onSuspend} data-sfx="tap">{T('suspend')}</button>
               <button type="button" className="cp-cta cp-cta--start"
                 onClick={() => {
+                  if (!startAtRef.current) startAtRef.current = Date.now();
                   const list = buildSteps(blocks, answers, months);
                   const firstOpen = list.findIndex(s => (s.kind === 'item' || s.kind === 'gate') && s.item && !itemComplete(s.item, answers));
                   setIdx(Object.keys(answers).length && firstOpen >= 0 ? firstOpen : 0);

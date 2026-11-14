@@ -433,3 +433,11 @@
   .cp-opt--on, .cp-chip--on, .cp-topt--on { outline: 3px solid Highlight; outline-offset: 2px; }
   .cp-card, .cp-opt, .cp-chip { border-color: CanvasText; }
 }
+
+/* cv2 calm care card (approved refinement 3) — warm, quiet, never alarming */
+.cp-card--care { border-color: color-mix(in srgb, var(--iris-blue, #4C7DF0) 28%, white); background:
+  radial-gradient(120% 90% at 85% 0%, rgba(76, 125, 240, 0.10), transparent 55%), var(--cp-card-bg, #fff); }
+.cp-care-heart { display: block; font-size: clamp(34px, 6vw, 46px); margin: 4px 0 10px; }
+.cp-care-title { font-family: var(--cp-display, inherit); font-size: clamp(20px, 3.4vw, 26px); font-weight: 800; color: var(--cp-ink, #243056); margin: 0 0 8px; }
+.cp-care-body { font-size: clamp(15px, 2.6vw, 17px); line-height: 1.85; color: var(--cp-text, #3a4468); margin: 0 0 18px; }
+.cp-cta--care { background: linear-gradient(135deg, #4C7DF0, #6a5cff); }

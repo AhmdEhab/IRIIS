@@ -43,7 +43,11 @@ export function IrisActivityScreen({ onSessionDone }: { onSessionDone: (r: any) 
 
   useEffect(() => {
     if (item) {
-      speak(language === 'ar' ? item.prompt?.ar : item.prompt?.en, language);
+      // cv2 display preference ('text' silences AUTO narration only; the
+      // repeat button still speaks on demand). It never touches assessment data.
+      let displayPref = 'both';
+      try { displayPref = localStorage.getItem('iris_display_pref') || 'both'; } catch { /* silent */ }
+      if (displayPref !== 'text') speak(language === 'ar' ? item.prompt?.ar : item.prompt?.en, language);
       setStartedAt(Date.now());
       setHintShown(false);
     }

@@ -25,6 +25,11 @@ export function ParentSettingsScreen() {
     const { t, language, setLanguage } = useLanguage();
 
     const [isSaving, setIsSaving] = useState(false);
+    /* cv2: display preference lives HERE (settings), not in the child's
+     * Family File — stored apart from any assessment and changeable anytime. */
+    const [displayPref, setDisplayPref] = useState<string>(() => {
+        try { return localStorage.getItem('iris_display_pref') || 'both'; } catch { return 'both'; }
+    });
     const [showConfirmReset, setShowConfirmReset] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -193,6 +198,37 @@ export function ParentSettingsScreen() {
                     </div>
                 </section>
 
+                {/* Section: How IRIS shows things (cv2 — outside the child assessment) */}
+                <section className="lc-section">
+                    <div className="pd-plate">
+                        <label className="ps-label">{language === 'ar' ? 'IRIS يعرض إزاي' : 'How IRIS shows things'}</label>
+                        <div className="ps-seg ps-seg--tight">
+                            {([
+                                ['text', language === 'ar' ? 'مكتوب بس' : 'Text only'],
+                                ['audio', language === 'ar' ? 'مسموع بس' : 'Audio only'],
+                                ['both', language === 'ar' ? 'الاتنين مع بعض' : 'Both'],
+                            ] as const).map(([val, label]) => (
+                                <button
+                                    type="button"
+                                    key={val}
+                                    onClick={() => {
+                                        setDisplayPref(val);
+                                        try { localStorage.setItem('iris_display_pref', val); } catch { /* silent */ }
+                                        playSound('tap');
+                                    }}
+                                    className={`lc-pill ps-choice ${displayPref === val ? 'lc-pill--blue' : 'lc-pill--ghost'}`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="ps-note">
+                            {language === 'ar'
+                                ? 'ده تفضيل للعرض بس — مابيأثرش على ملف العيلة ولا على أي حاجة اتسجلت عن الطفل، وممكن يتغيّر في أي وقت.'
+                                : 'This is only how the app displays things — it never changes the family file or anything recorded about the child, and it can change anytime.'}
+                        </p>
+                    </div>
+                </section>
                 {/* Section: Profile */}
                 <section className="lc-section">
                     <div className="lc-section-head">

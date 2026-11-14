@@ -75,3 +75,33 @@ OTP email; draft POST/GET and kind filters verified live.
   answered blocks rather than forcing all 72.
 - On the free hosting tier the DB is snapshot-synced; very recent
   writes can take seconds to mirror.
+
+
+---
+
+# cv2 Implementation — the short Family File (November 2026)
+
+This section supersedes the cv1 questionnaire for NEW families. cv1 remains fully intact for records and in-progress drafts already collected under it.
+
+## What shipped
+- `src/iris/caregiver/bankV2.js` — the cv2 bank exactly as approved in `PARENT_ASSESSMENT_CV2_FINAL_DRAFT.md`: 4 conversational blocks (V-A communication, V-B learning/independence/mobility, V-C people/feelings, V-D world/interests), 13 always-on questions + VQ13 (pre-academic, only age ≥ 60 months) + a final display-preference question, all in Egyptian-conversational Arabic with English mirrors. No gates, no triplets: the opportunity option is visible inside every scale, and support detail collapsed into two nested follow-ups (VQ5f parts → VQ5h helper).
+- `src/iris/caregiver/scoringV2.js` — an adapter that maps every cv2 answer to the legacy cv1 codes it stands for and runs the UNCHANGED cv1 scoring engine. Results are re-stamped `bankVersion: 'cv2'` with honest completeness (core answered / core shown, probes counted separately), care flags, and timing metrics. S/M domain confidence is capped at MEDIUM by design — cv2 asks shallower probes there.
+- Care card: ticking «مش لاقي يطلّع اللي جواه فيؤذي نفسه» (VQ8) inserts a calm, nonjudgmental card right after the answer. It states that nothing is scored or judged, recommends talking to the clinician already following the child if the concern recurs or escalates, and continues the flow with one press. It is stored as a descriptive `careFlags` metadata value — never a score.
+- Display preference moved OUT of the child profile: the last Family File question is a UI preference (text/audio/both, default both); it is persisted in `iris_display_pref`, re-editable in Parent Settings under its own plate that states explicitly it never changes the family file, and it gates auto-narration in child activities. It contributes nothing to ability states.
+- Question counter counts CORE questions only — conditional probes display as «سؤال متابعة» and never inflate the denominator, so the on-screen promise «١٥ سؤال قصير على الأكثر» holds on every path (the maximum reachable is exactly 15).
+- Timing promise: the intro no longer claims minutes (validation evidence pending); the engine records `durationSeconds`, probes shown and care-card shown per submission as anonymised metrics alongside the existing no-PII payloads.
+
+## cv1 compatibility guarantees (verified in QA)
+- Families with a COMPLETED cv1 profile are never re-asked (the gate reads the stored record, version-agnostic).
+- In-progress cv1 drafts resume on the cv1 bank: the draft's stamp wins; un-stamped drafts are inferred by response-key shape (`VQ…`/`VPREF` vs legacy `C1…X6`) — no server schema change was needed.
+- Submitting a resumed cv1 draft scores and stamps as `cv1` (regression-tested end to end).
+- The 13-14 question cv2 walk produces the same downstream contract (domain states, access settings, interests, plans) that the ladder, First Plan and personalization already consume.
+
+## QA evidence (local stack, deterministic scripts)
+- `scripts/qa-cv2-flow.mjs` — 31/31: forced cv2 intro; every conditional probe fires on its condition and NOT on unmet ones (speech probe suppressed for non-verbal channel; senses probe via AND-condition; nested parts+helper probes; opportunity follow-up); care card shown and calm; age gate hides VQ13 at 3 years; preference is last; denominator never > 15; scored record proves cv2 stamp, careFlags, metrics, honest completeness, no score keys, S/M confidence capped; preference stored outside assessment; cv1-era draft resumes and submits as cv1.
+- `scripts/qa-family-flow.mjs` — 16/16 on cv2: full chain registration → Family File → forced ladder → First Plan → hub → family view → reload hydration → API kind/idempotency proofs.
+- `scripts/qa-auth-flow.mjs` — 47/47 auth/verification/gate scenarios.
+- Engine unit tests: `tests/iris.caregiverV2.test.js` (9) + full suite 188/188; `npm run build` clean.
+
+## Validation plan (timing claim)
+2–3 minutes remains a TARGET, not a proven figure. Every cv2 submission now carries `metrics.durationSeconds` + probe counts. After ≥ 20 real family sessions, median wall time will be computed; only then may a minutes claim appear in copy (refinement 5 of the approved draft).
