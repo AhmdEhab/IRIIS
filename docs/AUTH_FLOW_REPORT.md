@@ -92,6 +92,17 @@ Google Account → Security → App passwords.
 To switch to Resend later: add `RESEND_API_KEY` (takes priority) or remove
 the SMTP vars; nothing else changes.
 
+### Template design
+
+The verification email is built in `server/lib/email.js` (`buildVerificationEmail`)
+as a table-based, inline-styled HTML document compatible with Gmail/Outlook/
+Apple Mail: brand logo and mascot PNGs served from the public deployment,
+rainbow dot strip, per-digit rounded code chips, a single pill CTA to
+`/verify?code=…`, plain-text fallback (code + link), bilingual copy that
+follows the language the app sent with `POST /api/verify/send` (`{lang}`),
+and a preheader. No external CSS or webfonts — nothing an email client can
+block or restyle into something ugly.
+
 ### Test-mode codes
 
 `VERIFY_DEV_CODES=true` makes the send response also echo `devCode` and the
