@@ -40,6 +40,7 @@ try {
 // rows into the production snapshot. Only Vercel runtime (or an explicit
 // BLOB_SYNC=1) activates the durable layer.
 const active = !!blob && (process.env.VERCEL === '1' || process.env.BLOB_SYNC === '1');
+console.log(`[blobsync] module loaded: sdk=${!!blob} active=${active} VERCEL=${process.env.VERCEL || '-'} token=${process.env.BLOB_READ_WRITE_TOKEN ? 'set' : 'unset'}`);
 let dbPath = null;
 let lastHash = null;
 let timer = null;
@@ -55,11 +56,23 @@ async function restore(fileStoragePath) {
   if (!active) return 'disabled';
   dbPath = fileStoragePath;
   try {
-    const res = await blob.download(SNAPSHOT_KEY);
-    if (!res) {
+    // @vercel/blob v2 has no download(); resolve the private blob via
+    // head() then fetch its signed download URL with the RW token.
+    let hd = null;
+    try {
+      hd = await blob.head(SNAPSHOT_KEY);
+    } catch (e) {
+      if (e && (e instanceof blob.BlobNotFoundError || e.name === 'BlobNotFoundError')) hd = null;
+      else throw e;
+    }
+    if (!hd || !hd.downloadUrl) {
       fs.mkdirSync(path.dirname(dbPath), { recursive: true });
       return 'empty-store';
     }
+    const res = await fetch(hd.downloadUrl, {
+      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+    });
+    if (!res.ok) throw new Error(`download HTTP ${res.status}`);
     const buf = Buffer.from(await res.arrayBuffer());
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
     fs.writeFileSync(dbPath, buf);
