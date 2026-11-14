@@ -397,3 +397,8 @@
   .cl-learn.rw-landing [class*='animate-pulse'] { animation: none !important; }
   .cl-learn.rw-landing [class*='hover:scale'] { transform: none !important; }
 }
+
+/* Stories screen (IrisStoryPlayer): keep it in the landing family */
+.iris-child button[class*="hover:border-brand-purple"]:hover { border-color: #1F67B1 !important; }
+.iris-child [class*="text-brand-purple-ink"] { color: #18508A !important; }
+.iris-child [class*="border-brand-purple"] { border-color: #1F67B1 !important; }
