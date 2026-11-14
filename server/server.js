@@ -41,6 +41,8 @@ const Child = require('./models/Child');
 const AssessmentRecord = require('./models/AssessmentRecord');
 const ActivitySession = require('./models/ActivitySession');
 const Session = require('./models/Session');
+const VerificationCode = require('./models/VerificationCode');
+const { mode: emailMode, sendVerificationEmail } = require('./lib/email');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -121,6 +123,39 @@ async function requireConsent(req, res, next) {
   next();
 }
 
+/**
+ * App-usage gate (auth spec §3/§8): activity logging — i.e. actually using
+ * the child-facing app — requires a verified email. Reading one's own
+ * profile, children and assessment records stays open, because the
+ * registration → assessment → verification order deliberately puts the
+ * assessment BEFORE verification.
+ */
+async function requireVerified(req, res, next) {
+  try {
+    const user = await User.findOne({ where: { email: req.userEmail } });
+    if (!user) return res.status(401).json({ error: 'UNAUTHENTICATED' });
+    if (!user.emailVerified) {
+      return res.status(403).json({ error: 'EMAIL_NOT_VERIFIED' });
+    }
+    req.userRow = user;
+    next();
+  } catch {
+    return res.status(500).json({ error: 'VERIFY_CHECK_FAILED' });
+  }
+}
+/**
+ * Ownership gate (auth spec §5): a child row — and everything hanging off
+ * it (assessments, activity sessions, pathway decisions) — belongs to one
+ * parent. Routes take child ids from URLs/bodies, so every one of them must
+ * resolve the child and compare parentId with the authenticated user first.
+ * A foreign id answers 404, never 403, so ids cannot be probed.
+ */
+async function childBelongsToUser(childId, userEmail) {
+  const child = await Child.findByPk(Number(childId));
+  if (!child) return false;
+  const user = await User.findOne({ where: { email: userEmail } });
+  return !!user && child.parentId === user.id;
+}
 /** Single serializer — password never leaves the server. */
 const parseSafely = (v, fallback) => {
   try { return typeof v === 'string' ? JSON.parse(v) : (v ?? fallback); }
@@ -209,9 +244,36 @@ app.post('/api/register', async (req, res) => {
       password: hash,
       consent_mvp_use: true,
       consent_at: new Date().toISOString(),
+      // Auth spec §3: a brand-new account is NOT verified until a code is
+      // confirmed. (The column defaults to true for legacy rows only.)
+      emailVerified: false,
     });
+    // Auth spec §1/§2: the child profile is saved with the account, not
+    // lazily on the next app boot — closing the tab right after registering
+    // can no longer orphan the registration data. If the child row fails,
+    // the user row is rolled back by hand (destroy), so a partial account
+    // never exists. This mirrors exactly what the app boot effect used to
+    // create, so hydration finds the same displayName and skips creating a
+    // duplicate.
+    let child = null;
+    try {
+      child = await Child.create({
+        parentId: user.id,
+        displayName: body.name || 'Child',
+        ageYears: Number.isFinite(Number(body.age)) ? Number(body.age) : null,
+        condition: body.condition ?? null,
+        accommodations: JSON.stringify(body.accommodations ?? []),
+      });
+    } catch (childError) {
+      await user.destroy().catch(() => {});
+      return res.status(500).json({
+        error: 'REGISTRATION_INCOMPLETE',
+        detail: 'The account could not be prepared with a child profile. Please try again.',
+        cause: String(childError.message).slice(0, 160),
+      });
+    }
     const token = await issueToken(user.email);
-    res.status(201).json({ token, user: serializeUser(user) });
+    res.status(201).json({ token, user: serializeUser(user), child });
   } catch (error) {
     // Sequelize's own unique/validation failures are reported in the same
     // shape as the explicit checks above, so the client can show one clear
@@ -268,6 +330,113 @@ app.post('/api/logout', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+/**
+ * ── Email verification (auth spec §3) ──────────────────────────────────────
+ * Flow: after the child assessment finishes, the app POSTs /api/verify/send.
+ * A 6-digit code is generated (crypto-grade), hashed, stored for 15 minutes,
+ * and mailed through Resend or SMTP when configured (see lib/email.js).
+ * /api/verify/confirm checks the hash, marks the account verified, and the
+ * app then enters IRIS proper. /api/verify/status is the single source of
+ * truth on every boot so a refresh can never "forget" verification state.
+ * If no email service is configured the send is HONEST: sent:false with a
+ * reason — never a fake success. Outside production builds the response also
+ * carries devCode so the flow stays testable without an email provider.
+ */
+const CODE_TTL_MS = 15 * 60 * 1000;
+const RESEND_COOLDOWN_MS = 30 * 1000;
+const MAX_CODE_ATTEMPTS = 5;
+async function issueVerificationCode(user) {
+  const code = String(require('crypto').randomInt(100000, 1000000));
+  await VerificationCode.destroy({ where: { userId: user.id, used_at: null } });
+  await VerificationCode.create({
+    userId: user.id,
+    code_hash: hashToken(code),
+    expires_at: Date.now() + CODE_TTL_MS,
+  });
+  return code;
+}
+app.post('/api/verify/send', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ where: { email: req.userEmail } });
+    if (!user) return res.status(401).json({ error: 'UNAUTHENTICATED' });
+    if (user.emailVerified) return res.json({ ok: true, alreadyVerified: true });
+    const pending = await VerificationCode.findOne({
+      where: { userId: user.id, used_at: null },
+      order: [['createdAt', 'DESC']],
+    });
+    if (pending && Date.now() - new Date(pending.createdAt).getTime() < RESEND_COOLDOWN_MS) {
+      const retryAfterMs = RESEND_COOLDOWN_MS - (Date.now() - new Date(pending.createdAt).getTime());
+      return res.status(429).json({ error: 'RESEND_COOLDOWN', retryAfterMs });
+    }
+    const code = await issueVerificationCode(user);
+    if (emailMode() === 'none') {
+      const dev = process.env.NODE_ENV !== 'production' ? { devCode: code } : {};
+      console.log(`[verify] email service not configured — code for ${user.email}: ${code} (dev fallback)`);
+      return res.json({ ok: true, sent: false, reason: 'EMAIL_NOT_CONFIGURED', ...dev });
+    }
+    try {
+      const via = await sendVerificationEmail(user.email, code);
+      res.json({ ok: true, sent: true, via });
+    } catch (e) {
+      // The code stays valid; the user can retry with the resend button.
+      res.status(502).json({
+        error: 'EMAIL_SEND_FAILED',
+        detail: 'The verification email could not be delivered. Please try again.',
+        cause: String(e.message).slice(0, 200),
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'VERIFY_SEND_FAILED' });
+  }
+});
+app.post('/api/verify/confirm', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ where: { email: req.userEmail } });
+    if (!user) return res.status(401).json({ error: 'UNAUTHENTICATED' });
+    if (user.emailVerified) return res.json({ ok: true, emailVerified: true });
+    const code = String((req.body || {}).code || '').trim();
+    if (!/^\d{6}$/.test(code)) {
+      return res.status(400).json({ error: 'CODE_INVALID', detail: 'Enter the 6 digits from the email.' });
+    }
+    const row = await VerificationCode.findOne({
+      where: { userId: user.id, used_at: null },
+      order: [['createdAt', 'DESC']],
+    });
+    if (!row) return res.status(400).json({ error: 'NO_PENDING_CODE', detail: 'Request a new code.' });
+    if (Number(row.expires_at) < Date.now()) {
+      await row.destroy();
+      return res.status(400).json({ error: 'CODE_EXPIRED', detail: 'That code expired. Request a new one.' });
+    }
+    if (row.attempts >= MAX_CODE_ATTEMPTS) {
+      await row.destroy();
+      return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS', detail: 'Too many tries. A fresh code was requested for you.' });
+    }
+    row.attempts = row.attempts + 1;
+    await row.save();
+    // Constant-time compare of the hashes — never a raw string equality.
+    const candidate = hashToken(code);
+    const a = Buffer.from(candidate);
+    const b = Buffer.from(row.code_hash);
+    const ok = a.length === b.length && require('crypto').timingSafeEqual(a, b);
+    if (!ok) {
+      if (row.attempts >= MAX_CODE_ATTEMPTS) await row.destroy();
+      return res.status(400).json({ error: 'CODE_WRONG', detail: 'That code is not correct.' });
+    }
+    row.used_at = Date.now();
+    await row.save();
+    user.emailVerified = true;
+    await user.save();
+    await VerificationCode.destroy({ where: { userId: user.id, used_at: null } });
+    res.json({ ok: true, emailVerified: true, user: serializeUser(user) });
+  } catch (error) {
+    res.status(500).json({ error: 'VERIFY_CONFIRM_FAILED' });
+  }
+});
+app.get('/api/verify/status', requireAuth, async (req, res) => {
+  const user = await User.findOne({ where: { email: req.userEmail } });
+  if (!user) return res.status(401).json({ error: 'UNAUTHENTICATED' });
+  res.json({ emailVerified: !!user.emailVerified });
+});
 // ── user routes (authenticated + ownership-checked) ───────────────────────
 app.get('/api/users/:email', requireAuth, requireSelf, async (req, res) => {
   const user = await User.findOne({ where: { email: req.params.email } });
@@ -327,6 +496,11 @@ app.get('/api/children', requireAuth, async (req, res) => {
 /** Persist a completed assessment. Scoring happens client-side in the engines. */
 app.post('/api/assessments', requireAuth, requireConsent, async (req, res) => {
   try {
+    // The record must belong to a child of THIS parent — never a raw id
+    // from the wire (auth spec §5: no cross-user writes).
+    if (!(await childBelongsToUser(req.body?.childId, req.userEmail))) {
+      return res.status(404).json({ error: 'CHILD_NOT_FOUND', detail: 'No child with that id belongs to this account.' });
+    }
     const rec = await AssessmentRecord.create({
       childId: req.body.childId,
       domain_scores: JSON.stringify(req.body.domain_scores ?? {}),
@@ -356,6 +530,9 @@ app.post('/api/assessments', requireAuth, requireConsent, async (req, res) => {
  */
 app.get('/api/assessments/:childId', requireAuth, async (req, res) => {
   try {
+    if (!(await childBelongsToUser(req.params.childId, req.userEmail))) {
+      return res.status(404).json({ error: 'NOT_FOUND' });
+    }
     const rows = await AssessmentRecord.findAll({
       where: { childId: req.params.childId },
       order: [['createdAt', 'DESC']],
@@ -382,7 +559,7 @@ app.get('/api/assessments/:childId', requireAuth, async (req, res) => {
 });
 
 /** Persist a session AND its pathway decision — no silent adaptation. */
-app.post('/api/sessions', requireAuth, requireConsent, async (req, res) => {
+app.post('/api/sessions', requireAuth, requireVerified, requireConsent, async (req, res) => {
   try {
     const d = req.body.decision || {};
     const s = await ActivitySession.create({
@@ -408,6 +585,9 @@ app.post('/api/sessions', requireAuth, requireConsent, async (req, res) => {
 });
 
 app.get('/api/sessions/:childId', requireAuth, async (req, res) => {
+  if (!(await childBelongsToUser(req.params.childId, req.userEmail))) {
+    return res.status(404).json({ error: 'NOT_FOUND' });
+  }
   const parent = await User.findOne({ where: { email: req.userEmail } });
   const child = await Child.findByPk(req.params.childId);
   if (!child || child.parentId !== parent.id) return res.status(403).json({ error: 'FORBIDDEN' });
@@ -417,6 +597,9 @@ app.get('/api/sessions/:childId', requireAuth, async (req, res) => {
 
 /** Decision audit trail (doc 20 §7). */
 app.get('/api/decisions/:childId', requireAuth, async (req, res) => {
+  if (!(await childBelongsToUser(req.params.childId, req.userEmail))) {
+    return res.status(404).json({ error: 'NOT_FOUND' });
+  }
   const parent = await User.findOne({ where: { email: req.userEmail } });
   const child = await Child.findByPk(req.params.childId);
   if (!child || child.parentId !== parent.id) return res.status(403).json({ error: 'FORBIDDEN' });
@@ -522,9 +705,24 @@ if (process.env.SERVE_STATIC !== '0') {
   }
 }
 
+async function addAuthSpecColumns() {
+  const wanted = [['Users', 'emailVerified', 'BOOLEAN NOT NULL DEFAULT 1']];
+  try {
+    for (const [table, name, ddl] of wanted) {
+      const [cols] = await sequelize.query(`PRAGMA table_info(${table});`);
+      if (!cols || cols.length === 0) continue; // sync will create it complete
+      if (cols.some((c) => c.name === name)) continue;
+      await sequelize.query(`ALTER TABLE ${table} ADD COLUMN ${name} ${ddl};`);
+      console.log(`[migrate] added ${table}.${name}`);
+    }
+  } catch (e) {
+    console.error('AUTHSPEC_MIGRATION_WARNING:', e.message);
+  }
+}
 sequelize.sync(syncOptions).then(async () => {
   console.log(`Database synced${process.env.DB_ALTER === 'true' ? ' (ALTER MODE)' : ''}`);
   await addPhase5Columns();
+  await addAuthSpecColumns();
   await purgeExpiredSessions();
   setInterval(purgeExpiredSessions, 1000 * 60 * 60).unref();
   if (require.main === module) {

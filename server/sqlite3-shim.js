@@ -22,7 +22,15 @@ class Database extends EventEmitter {
   run(...a) {
     const [sql, params, cb] = this._norm(...a);
     this.client.execute({ sql, args: params }).then(r => {
-      cb.call({ stmt: r }, null, r.lastInsertRowid, r.rowsAffected);
+      /**
+       * @libsql reports row ids as BigInt; the sqlite3 API contract
+       * (and Sequelize's getInsertIdField → "lastID") expects a Number,
+       * and BigInt never ==  a number literal. Normalise here so
+       * Model.create() instances carry a usable id — the shim's earlier
+       * version made Child.parentId silently null after create.
+       */
+      const lastID = r.lastInsertRowid === null ? null : Number(r.lastInsertRowid);
+      cb.call({ stmt: r, lastID, changes: r.rowsAffected }, null, lastID, r.rowsAffected);
     }).catch(e => cb.call({ stmt: null }, e));
   }
   all(...a) {

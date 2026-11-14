@@ -664,3 +664,48 @@
 @media (max-width: 479px) {
   .ir-auth-field > .ir-auth-input { min-height: 62px; font-size: 16.5px; }
 }
+
+
+/* ── Email verification screen (auth spec §3) ─────────────────────────
+   Same card language as login/registration: pastel scene, white rounded
+   card, display font, blue CTAs. The code row is six tactile squares —
+   playful but calm, with clear filled/focus states. */
+.ir-verify { display: flex; flex-direction: column; gap: 18px; text-align: center; }
+.ir-verify-mail {
+  width: 56px; height: 56px; margin: 0 auto; display: grid; place-items: center;
+  border-radius: 18px; color: var(--brand-blue-ink, #1f67b1);
+  background: var(--brand-blue-wash, #e7f0fa);
+  box-shadow: 0 10px 22px -12px rgba(31, 103, 177, 0.45);
+}
+.ir-verify-email { font-weight: 700; color: var(--iris-ink, #2a2118); font-size: 17px; word-break: break-all; }
+.ir-verify-note {
+  margin: 0; padding: 12px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55;
+  background: var(--brand-yellow-wash, #fdf3d7); color: var(--iris-ink, #2a2118);
+}
+.ir-verify-devcode {
+  border: 1.5px dashed var(--brand-blue, #2b7ccc); background: transparent; cursor: pointer;
+  color: var(--brand-blue-ink, #1f67b1); border-radius: 12px; padding: 8px 12px;
+  font-weight: 700; font-size: 15px; letter-spacing: 2px;
+}
+.ir-verify-devcode:hover { background: var(--brand-blue-wash, #e7f0fa); }
+.ir-verify-code { display: flex; justify-content: center; gap: 8px; }
+.ir-verify-box {
+  width: 46px; height: 56px; border-radius: 14px; text-align: center;
+  font-size: 24px; font-weight: 800; color: var(--iris-ink, #2a2118);
+  border: 2px solid rgba(42, 33, 24, 0.12); background: #fffdf8;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  outline: none;
+}
+.ir-verify-box:focus { border-color: var(--brand-blue, #2b7ccc); box-shadow: 0 0 0 4px rgba(43, 124, 204, 0.18); transform: translateY(-1px); }
+.ir-verify-box--filled { background: var(--brand-blue-wash, #e7f0fa); border-color: var(--brand-blue, #2b7ccc); }
+.ir-verify-error { margin: 0; color: var(--brand-coral-solid, #d1495b); font-weight: 700; font-size: 14px; }
+.ir-auth-linkbtn {
+  display: inline-flex; align-items: center; gap: 6px; border: none; background: none; cursor: pointer;
+  color: var(--brand-blue-ink, #1f67b1); font-weight: 700; font-size: inherit;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.ir-auth-linkbtn:disabled { opacity: 0.55; cursor: default; }
+@media (max-width: 430px) {
+  .ir-verify-box { width: 40px; height: 50px; font-size: 20px; }
+  .ir-verify-code { gap: 6px; }
+}

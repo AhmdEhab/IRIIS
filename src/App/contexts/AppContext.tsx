@@ -9,6 +9,7 @@ export type Screen =
   | 'splash'
   | 'login'
   | 'registration'
+  | 'verify-email'
   | 'iris-parent'
   | 'iris-parent-chat'
   | 'iris-progress'
@@ -140,6 +141,15 @@ interface AppContextType {
   setMotionPreference: (v: 'auto' | 'calm' | 'lively') => void;
   registerUser: (profile: ChildProfile & { password?: string }) => Promise<boolean>;
   logoutUser: () => Promise<void>;
+  /**
+   * Email verification flag (auth spec §3/§5). TRUE/FALSE always comes FROM
+   * THE SERVER — /api/verify/status on boot, the login payload, or a
+   * confirm response. null means "not loaded yet" and the router then
+   * refuses to jump ahead of the truth. localStorage is never consulted.
+   */
+  emailVerified: boolean | null;
+  setEmailVerified: (v: boolean | null) => void;
+  refreshVerifyStatus: () => Promise<void>;
   /** Last auth failure as a server error code; render with authMessage(). */
   authError: string | null;
   clearAuthError: () => void;
@@ -205,16 +215,18 @@ const TOKEN_KEY = AUTH_TOKEN_KEY;
    address bar mirrors the screens people may share or bookmark. Screens not
    listed keep the current path — app internals are deliberately unaddressable
    so protected routes cannot be deep-linked by guessing a URL. */
-const SCREEN_PATHS: Partial<Record<Screen, string>> = {
+export const SCREEN_PATHS: Partial<Record<Screen, string>> = {
   marketing: '/',
   login: '/login',
   registration: '/register',
+  'verify-email': '/verify',
   'iris-parent': '/parent',
   'child-mode': '/play',
 };
 const PATH_SCREENS: Record<string, Screen> = {
   '/': 'marketing', '/login': 'login',
-  '/register': 'registration', '/parent': 'iris-parent', '/play': 'child-mode',
+  '/register': 'registration', '/verify': 'verify-email',
+  '/parent': 'iris-parent', '/play': 'child-mode',
 };
 
 /**
@@ -415,6 +427,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setEarnedBadges(user.earnedBadges || ['explorer', 'beginner']);
         setActivities(user.activities || []);
         setIsReturningUser(true);
+        // Auth spec §3: a brand-new account starts unverified — the server
+        // payload says so; we mirror it without deciding anything locally.
+        setEmailVerified(user.emailVerified === true);
         return true;
       }
       // Surface WHY it failed. Previously this only reached the console, so a
@@ -472,6 +487,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         setActivities(data.activities || []);
         setIsReturningUser(true);
+        // Auth spec §4.5/§5: verification state travels WITH the login
+        // response, so a returning unverified account resumes at /verify.
+        setEmailVerified(data.emailVerified === true);
         return data;
       }
       // Wrong password / unknown email — tell the parent, don't fail silently.
@@ -493,6 +511,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setAuthToken(null);
     try { localStorage.removeItem('iris_auth_email'); } catch {}
     setChildProfile(null);
+    setEmailVerified(null);
     setIsReturningUser(false);
     setIsParentModeUnlocked(false);
     setAssessmentResult(null);
@@ -503,7 +522,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // used to drop the user on the older 'splash' screen instead, which shows
     // a different pair of entry buttons — so after logging out they landed
     // somewhere that did not match where they had started.
-    setCurrentScreen('marketing');
+    // navigateTo keeps the address bar in step (the previous direct
+    // setCurrentScreen left a stale /parent URL behind after logout).
+    navigateTo('marketing');
+    // navigateTo is intentionally NOT in the deps array: it is declared
+    // later in this hook (TDZ at evaluation time) and is a stable
+    // useCallback anyway.
   }, [authToken, authHeaders, setAuthToken]);
 
   /** Rehydrate a session on page load if a token + email survived a refresh. */
@@ -540,6 +564,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setModuleProgress(data.moduleProgress || {});
         setEarnedBadges(data.earnedBadges || ['explorer', 'beginner']);
         if (data.assessmentResult) setAssessmentResult(data.assessmentResult);
+        setEmailVerified(data.emailVerified === true);
         setActivities(data.activities || []);
         setIsReturningUser(true);
       } catch { /* silent — user can just log in again */ }
@@ -561,6 +586,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, [syncWithBackend]);
 
+  // ── Email verification state (auth spec §3) — server is the source ──
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const refreshVerifyStatus = useCallback(async () => {
+    if (!authToken) { setEmailVerified(null); return; }
+    try {
+      const res = await fetch(`${API_URL}/verify/status`, { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setEmailVerified(!!data.emailVerified);
+      }
+    } catch { /* offline keeps the last known value; the router gates on it */ }
+  }, [authToken]);
   const navigateTo = useCallback((screen: Screen) => {
     setCurrentScreen(screen);
     try {
@@ -729,6 +766,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loginUser,
         registerUser,
         logoutUser,
+        emailVerified,
+        setEmailVerified,
+        refreshVerifyStatus,
         authError: authErrorCode,
         clearAuthError,
         authToken,

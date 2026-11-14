@@ -4,7 +4,7 @@ import { useReducedMotion } from './hooks/useReducedMotion';
 import { AudioProvider } from './contexts/AudioContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { useLanguage } from './contexts/LanguageContext';
-import { AppProvider, useApp, type Screen } from './contexts/AppContext';
+import { AppProvider, useApp, type Screen, SCREEN_PATHS } from './contexts/AppContext';
 import { IrisProvider, useIris } from './contexts/IrisContext';
 import { API_URL, authHeaders, readAuthToken } from './config';
 import { SplashScreen } from './components/SplashScreen';
@@ -15,6 +15,7 @@ import { AIAssessmentScreen } from './components/AIAssessmentScreen';
 import { ChildModeScreen } from './components/ChildModeScreen';
 import { ParentDashboardScreen } from './components/ParentDashboardScreen';
 import { LandingPage } from './components/landing/LandingPage';
+import { EmailVerificationScreen } from './components/EmailVerificationScreen';
 import { IrisFlow, mapCondition } from './components/iris/IrisFlow';
 import { LandingChildMode } from './components/LandingChildMode';
 import { IrisParentDashboard } from './components/iris/IrisParentDashboard';
@@ -60,13 +61,44 @@ import { PlayfulBackground } from './components/ui/PlayfulBackground';
 
 
 function AppContent() {
-  const { currentScreen, addTime, navigateTo, childProfile } = useApp();
+  const { currentScreen, addTime, navigateTo, childProfile, emailVerified } = useApp();
   const iris = useIris();
   const { language } = useLanguage();
   const ar = language === 'ar';
   // ── Onboarding gate: no entry to Parent/Child Mode until the getting-to-know
   // ladder assessment (reference repo IRIS flow) is COMPLETE for this child.
   const [ladderChecked, setLadderChecked] = React.useState(false);
+
+  /* ── Auth spec §4–§7 route guards — computed once per render ──
+     Applied from server-known state only, so every entry point —
+     buttons, deep links, browser back/forward — obeys the same rules:
+      · no token on a protected screen → login (and after logout the
+        back button can only replay these guards, never stale screens)
+      · unverified email on app screens → verification, except while the
+        very first assessment is still pending (register → assess →
+        verify is the deliberate product order)
+      · signed-in AND verified on login/register/verify → straight to
+        the hub: no repeat onboarding, no assessment restart, no loops */
+  const PROTECTED_SCREENS: string[] = ['iris-parent', 'iris-snapshot', 'iris-progress', 'iris-tips', 'iris-parent-chat', 'iris-community', 'iris-specialists', 'parent-settings', 'child-mode', 'verify-email', 'iris-ladder-assessment', 'iris-ladder-practice', 'ladder-intro', 'rewards'];
+  const signedInNow = !!readAuthToken();
+  const firstAssessmentPending = signedInNow && !!childProfile?.name && (!ladderChecked || !iris.ladder);
+  const guardScreen = (name: string): string => {
+    if (!signedInNow && PROTECTED_SCREENS.includes(name)) return 'login';
+    if (signedInNow && emailVerified === false && PROTECTED_SCREENS.includes(name) && name !== 'verify-email' && !firstAssessmentPending) return 'verify-email';
+    if (signedInNow && emailVerified === true && (name === 'login' || name === 'registration' || name === 'verify-email')) return 'iris-parent';
+    return name;
+  };
+  const guardedScreen = guardScreen(currentScreen);
+  // When a guard rewrites the screen, the address bar follows — a stale
+  // /login or /verify never lingers after an automatic redirect, and the
+  // replaceState keeps back/forward from replaying auth screens.
+  React.useEffect(() => {
+    if (guardedScreen === currentScreen) return;
+    const path = SCREEN_PATHS[guardedScreen as any];
+    if (path && window.location.pathname !== path) {
+      window.history.replaceState({ screen: guardedScreen }, '', path);
+    }
+  }, [guardedScreen, currentScreen]);
   React.useEffect(() => { setLadderChecked(false); }, [childProfile?.name]);
 
   /**
@@ -247,12 +279,15 @@ function AppContent() {
       );
     }
     if (!iris.ladder) {
-      return <IrisLadderAssessment key="ladder-forced" onFinish={() => navigateTo(dest as any)} />;
+      // Auth spec §3: after a fresh registration the forced assessment hands
+      // over to email verification instead of the hub — the hub is the
+      // reward for a verified account, not for a finished quiz.
+      return <IrisLadderAssessment key="ladder-forced" onFinish={() => navigateTo((emailVerified === false ? 'verify-email' : dest) as any)} />;
     }
     return null;
   };
 
-    switch (currentScreen) {
+    switch (guardedScreen) {
       case 'marketing':
         return (
           <LandingPage
@@ -269,6 +304,8 @@ function AppContent() {
         return <LoginScreen key="login" />;
       case 'registration':
         return <RegistrationScreen key="registration" />;
+      case 'verify-email':
+        return <EmailVerificationScreen key="verify-email" />;
       case 'iris-parent': {
         const gate = assessmentGate('iris-parent');
         if (gate) return gate;

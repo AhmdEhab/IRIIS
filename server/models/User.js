@@ -32,6 +32,18 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    /**
+     * Email verification gate (auth spec §3). Defaults to TRUE so every
+     * account created before this column existed keeps working — nobody is
+     * locked out of an app they were already using. Accounts created from
+     * now on are explicitly stamped false by /api/register and flip to true
+     * only when /api/verify/confirm validates a real code.
+     */
+    emailVerified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
+    },
     /** Consent gate — doc 20 requires it on every mutating endpoint. */
     consent_mvp_use: {
         type: DataTypes.BOOLEAN,

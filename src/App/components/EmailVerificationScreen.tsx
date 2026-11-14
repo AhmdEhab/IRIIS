@@ -1,0 +1,296 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useApp } from '../contexts/AppContext';
+import { useAudio } from '../contexts/AudioContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { API_URL, authHeaders } from '../config';
+import { AuthShell } from './auth/AuthShell';
+import { Button } from './iris/ui/brand';
+import { ChevronLeft, ChevronRight, Mail, RefreshCw } from 'lucide-react';
+
+/**
+ * Email verification (auth spec §3).
+ *
+ * Reached automatically when a signed-in account has no verified email:
+ * right after the child assessment finishes, or on login for an account
+ * that never completed verification. The code itself is the server's
+ * business — this screen only asks for it, shows honest states, and hands
+ * control back to the router once /api/verify/confirm says the account is
+ * verified. Nothing here can mark the account verified locally: the flag
+ * comes back from the database with every response.
+ *
+ * Honest email delivery: the first mount calls /api/verify/send. If the
+ * deployment has no email provider configured the server answers
+ * `sent:false` + reason, and this screen says exactly that (test mode may
+ * hand back the code as devCode — shown as a hint, never auto-accepted).
+ */
+export function EmailVerificationScreen() {
+  const { navigateTo, childProfile, setEmailVerified } = useApp();
+  const { language } = useLanguage();
+  const ar = language === 'ar';
+  const { playSound, speak } = useAudio();
+
+  const email = childProfile?.email || '';
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [phase, setPhase] = useState<'sending' | 'waiting' | 'checking' | 'sent'>('sending');
+  const [note, setNote] = useState<string | null>(null); // honest provider note
+  const [devCode, setDevCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const boxesRef = useRef<Array<HTMLInputElement | null>>([]);
+  const startedRef = useRef(false);
+
+  const codeString = digits.join('');
+
+  const requestSend = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/verify/send`, { method: 'POST', headers: authHeaders() });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        setCooldown(Math.ceil((data.retryAfterMs || 15000) / 1000));
+        setNote(ar
+          ? 'طلبتي كود جديد من قبل — انتظر ثواني قليلة ثم أعد المحاولة.'
+          : 'You just requested a code — wait a few seconds and try again.');
+      } else if (data.alreadyVerified) {
+        // Verified elsewhere (link opened twice, other device): straight in.
+        setEmailVerified(true);
+        navigateTo('iris-parent');
+        return;
+      } else if (data.sent) {
+        setPhase('sent');
+        setNote(ar
+          ? `أرسلنا كوداً من ٦ أرقام إلى ${email}. الكود صالح ١٥ دقيقة.`
+          : `We sent a 6-digit code to ${email}. It is valid for 15 minutes.`);
+        setCooldown(30);
+      } else if (data.reason === 'EMAIL_NOT_CONFIGURED') {
+        setPhase('waiting');
+        if (data.devCode) {
+          setDevCode(String(data.devCode));
+          setNote(ar
+            ? 'خدمة البريد غير مفعّلة على هذا النشر — وضع الاختبار يُظهر الكود هنا.'
+            : 'No email provider is configured on this deployment — test mode shows the code here.');
+        } else {
+          setNote(ar
+            ? 'خدمة البريد غير مفعّلة على هذا النشر، لم يُرسل شيء فعلياً. فعّل بريد الخدمة (RESEND_API_KEY أو SMTP) ثم أعد المحاولة.'
+            : 'This deployment has no email provider configured, so nothing was actually sent. Set RESEND_API_KEY or SMTP_* and retry.');
+        }
+      } else if (data.error === 'EMAIL_SEND_FAILED') {
+        setPhase('waiting');
+        setError(ar
+          ? 'تعذر إرسال البريد — اضغط إعادة الإرسال للمحاولة مرة أخرى.'
+          : 'The email could not be delivered — press resend to try again.');
+      } else if (!res.ok) {
+        setPhase('waiting');
+        setError(ar ? 'حدث خطأ غير متوقع. حاول مرة أخرى.' : 'Something went wrong. Please try again.');
+      }
+    } catch {
+      setPhase('waiting');
+      setError(ar ? 'تعذر الوصول إلى الخادم — تحقق من الاتصال.' : 'Cannot reach the server — check your connection.');
+    } finally {
+      setBusy(false);
+    }
+  }, [ar, email, navigateTo, setEmailVerified]);
+
+  // First mount: if the email link carried a code (?code=…), prefill it and
+  // skip generating a fresh one. Otherwise ask the server to send.
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    const fromLink = new URLSearchParams(window.location.search).get('code');
+    if (fromLink && /^\d{6}$/.test(fromLink)) {
+      setDigits(fromLink.split(''));
+      setPhase('waiting');
+      setNote(ar ? 'فتحنا لك هذا من رابط التحقق — أكمل بإدخال الكود.' : 'Opened from your verification link — confirm the code to continue.');
+      return;
+    }
+    void requestSend();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Resend cooldown ticker.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const setDigit = (i: number, ch: string) => {
+    setError(null);
+    const clean = ch.replace(/\D/g, '');
+    if (!clean) {
+      const next = [...digits];
+      next[i] = '';
+      setDigits(next);
+      return;
+    }
+    if (clean.length > 1) {
+      // Pasted full code.
+      const spread = clean.slice(0, 6).split('');
+      const next = ['', '', '', '', '', ''].map((_, k) => spread[k] ?? '').slice(0, 6);
+      setDigits(next);
+      const focusAt = Math.min(spread.length, 5);
+      boxesRef.current[focusAt]?.focus();
+      return;
+    }
+    const next = [...digits];
+    next[i] = clean[clean.length - 1];
+    setDigits(next);
+    if (i < 5) boxesRef.current[i + 1]?.focus();
+  };
+
+  const onKey = (i: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) {
+      boxesRef.current[i - 1]?.focus();
+      const next = [...digits];
+      next[i - 1] = '';
+      setDigits(next);
+      e.preventDefault();
+    } else if (e.key === 'ArrowLeft' && i > 0) boxesRef.current[i - 1]?.focus();
+    else if (e.key === 'ArrowRight' && i < 5) boxesRef.current[i + 1]?.focus();
+  };
+
+  const confirm = async () => {
+    if (codeString.length !== 6 || busy) return;
+    setBusy(true);
+    setError(null);
+    setPhase('checking');
+    try {
+      const res = await fetch(`${API_URL}/verify/confirm`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ code: codeString }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        playSound('success');
+        speak(ar ? 'تم التحقق! أهلاً بك في IRIS.' : 'Verified! Welcome to IRIS.', language);
+        setEmailVerified(true);
+        // Leave /verify out of history so the back button cannot revisit it.
+        window.history.replaceState({ screen: 'iris-parent' }, '', '/parent');
+        navigateTo('iris-parent');
+        return;
+      }
+      playSound('error');
+      if (data.error === 'CODE_EXPIRED' || data.error === 'NO_PENDING_CODE' || data.error === 'TOO_MANY_ATTEMPTS') {
+        setDigits(['', '', '', '', '', '']);
+        setNote(ar
+          ? 'الكود لم يعد صالحاً — اطلب كوداً جديداً.'
+          : 'That code is no longer valid — request a new one.');
+        setError(ar ? 'انتهت صلاحية الكود. اضغط إعادة الإرسال.' : 'The code expired. Press resend.');
+      } else if (data.error === 'CODE_WRONG') {
+        setError(ar ? 'الكود غير صحيح — راجع الأرقام.' : 'That code is not correct — check the digits.');
+      } else {
+        setError(data.detail || (ar ? 'حدث خطأ. حاول مرة أخرى.' : 'Something went wrong. Please try again.'));
+      }
+      setPhase('waiting');
+    } catch {
+      setPhase('waiting');
+      setError(ar ? 'تعذر الوصول إلى الخادم.' : 'Cannot reach the server.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleBack = () => {
+    playSound('tap');
+    navigateTo('marketing');
+  };
+
+  return (
+    <AuthShell
+      tone="blue"
+      title={ar ? 'تأكيد البريد الإلكتروني' : 'Verify your email'}
+      tagline={ar
+        ? 'خطوة أخيرة قبل دخول IRIS — الكود وصل لبريدك بعد تقييم طفلك.'
+        : 'One last step before IRIS — the code was sent after your child\u2019s assessment.'}
+      topBar={
+        <div className="ir-auth-bar">
+          <button type="button" className="ir-auth-back" onClick={handleBack}>
+            {ar ? <ChevronRight aria-hidden="true" /> : <ChevronLeft aria-hidden="true" />}
+            <span>{ar ? 'الرئيسية' : 'Home'}</span>
+          </button>
+        </div>
+      }
+      footer={
+        <p className="ir-auth-footnote">
+          {ar ? 'لم يصلك البريد؟ ' : "Didn't get it? "}
+          <button
+            type="button"
+            className="ir-auth-linkbtn"
+            onClick={() => { void requestSend(); }}
+            disabled={busy || cooldown > 0}
+          >
+            <RefreshCw size={14} aria-hidden="true" />{' '}
+            {cooldown > 0
+              ? (ar ? `إعادة الإرسال بعد ${cooldown} ثانية` : `Resend in ${cooldown}s`)
+              : (ar ? 'إعادة إرسال الكود' : 'Resend the code')}
+          </button>
+        </p>
+      }
+    >
+      <div className="ir-verify" dir={ar ? 'rtl' : 'ltr'}>
+        <div className="ir-verify-mail" aria-hidden="true">
+          <Mail size={18} />
+        </div>
+        <p className="ir-verify-email">{email || (ar ? 'بريدك المسجّل' : 'your registered email')}</p>
+
+        {phase === 'sending' && (
+          <p className="ir-verify-note" role="status">
+            {ar ? 'جارٍ إرسال كود التحقق…' : 'Sending your verification code…'}
+          </p>
+        )}
+        {note && <p className="ir-verify-note">{note}</p>}
+
+        {devCode && (
+          <button
+            type="button"
+            className="ir-verify-devcode"
+            onClick={() => { setDigits(devCode.split('')); }}
+            title={ar ? 'اضغط لملء الكود تلقائياً (وضع اختبار)' : 'Click to fill the code (test mode)'}
+          >
+            {ar ? `كود وضع الاختبار: ${devCode}` : `Test-mode code: ${devCode}`}
+          </button>
+        )}
+
+        <div
+          className="ir-verify-code"
+          role="group"
+          aria-label={ar ? 'كود التحقق من ستة أرقام' : 'Six digit verification code'}
+        >
+          {digits.map((d, i) => (
+            <input
+              key={i}
+              ref={(el) => { boxesRef.current[i] = el; }}
+              className={`ir-verify-box${d ? ' ir-verify-box--filled' : ''}`}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={d}
+              onChange={(e) => setDigit(i, e.target.value)}
+              onKeyDown={onKey(i)}
+              onFocus={(e) => e.target.select()}
+              aria-label={ar ? `الرقم ${i + 1}` : `digit ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        {error && <p className="ir-verify-error" role="alert">{error}</p>}
+
+        <Button
+          variant="primary"
+          size="lg"
+          full
+          onClick={() => { void confirm(); }}
+          disabled={busy || codeString.length !== 6}
+          hint={ar ? 'تأكيد الدخول إلى IRIS' : 'Confirm and enter IRIS'}
+        >
+          <span className="ir-auth-cta-inner">{ar ? 'تأكيد الكود' : 'Confirm code'}</span>
+        </Button>
+      </div>
+    </AuthShell>
+  );
+}
+
+export default EmailVerificationScreen;

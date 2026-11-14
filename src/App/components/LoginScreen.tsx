@@ -73,6 +73,10 @@ export function LoginScreen() {
       playSound('success');
       speak(ar ? 'تم تسجيل الدخول بنجاح!' : 'Login successful!', language);
       setIsLoading(false);
+      // Auth spec §4.5: where the returning parent GOES is decided by the
+      // router guards (App.tsx) from server-known state — pending first
+      // assessment beats pending verification beats the hub. The login
+      // screen just signs in and asks for the parent home.
       navigateTo('iris-parent');
     } else {
       playSound('error');
