@@ -381,7 +381,12 @@ app.post('/api/verify/send', requireAuth, async (req, res) => {
     }
     try {
       const via = await sendVerificationEmail(user.email, code);
-      res.json({ ok: true, sent: true, via });
+      // VERIFY_DEV_CODES is an explicit LOCAL flag (never set on Vercel),
+      // so the QA battery and the on-screen test chip keep working even
+      // when a real provider is wired up. Without it the code only ever
+      // travels inside the email — exactly like production.
+      const dev = process.env.VERIFY_DEV_CODES === 'true' ? { devCode: code } : {};
+      res.json({ ok: true, sent: true, via, ...dev });
     } catch (e) {
       // The code stays valid; the user can retry with the resend button.
       res.status(502).json({

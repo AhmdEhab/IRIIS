@@ -75,7 +75,8 @@ ok('7 re-login yields working token', (await J('GET', `${api}/api/verify/status`
 
 // 8. verification: send (test mode) → wrong → expired → right
 const send = await J('POST', `${api}/api/verify/send`, {}, tokA2);
-ok('8 send 200 + honest note + devCode', send.status === 200 && send.data.sent === false && !!send.data.devCode, JSON.stringify(send.data).slice(0, 100));
+const honestEither = send.data.sent === true || send.data.reason === 'EMAIL_NOT_CONFIGURED';
+ok('8 send 200 + honest result + devCode', send.status === 200 && honestEither && !!send.data.devCode, JSON.stringify(send.data).slice(0, 100));
 const dev = send.data.devCode;
 const cooldown = await J('POST', `${api}/api/verify/send`, {}, tokA2);
 ok('8 resend within 30s 429', cooldown.status === 429, `${cooldown.status}`);
@@ -167,10 +168,13 @@ await J('POST', `${api}/api/assessments`, { childId: kidB, assessment_kind: 'LAD
   await page.getByRole('button', { name: /دخول الآن|Login Now|Sign in/i }).first().click();
   const onVerify = await page.waitForURL(/\/verify/, { timeout: 8000 }).then(() => true).catch(() => false);
   ok('14 unverified w/ assessment → /verify', onVerify, await page.evaluate(() => location.pathname));
-  // code boxes present; send note visible
+  // code boxes present; then wait for the SEND response to land — with a
+  // real SMTP provider the request now takes seconds, not milliseconds,
+  // so the dev chip must be awaited by content, not existence.
   await page.waitForSelector('.ir-verify-box', { timeout: 8000 });
+  await page.waitForFunction(() => /\d{6}/.test(document.querySelector('.ir-verify-devcode')?.innerText || ''), null, { timeout: 15000 });
   const note = await page.evaluate(() => document.querySelector('.ir-verify-note')?.innerText || '');
-  ok('14 honest provider note shown', /غير مفعّلة|not configured|إرسال|sent/i.test(note), note.slice(0, 70));
+  ok('14 honest provider note shown', /غير مفعّلة|not configured|أرسلنا|we sent/i.test(note), note.slice(0, 70));
   // wrong code path: type six digits that are not the chip's code
   const chip0 = page.locator('.ir-verify-devcode');
   const realCode = (await chip0.count())

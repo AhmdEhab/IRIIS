@@ -60,6 +60,11 @@ export function EmailVerificationScreen() {
         return;
       } else if (data.sent) {
         setPhase('sent');
+        // Test mode works with a real provider too: VERIFY_DEV_CODES makes
+        // the server echo the code it just emailed, so local QA (and the
+        // on-screen chip) can complete the flow without an inbox. On any
+        // real deployment the field is absent and this stays invisible.
+        if (data.devCode) setDevCode(String(data.devCode));
         setNote(ar
           ? `أرسلنا كوداً من ٦ أرقام إلى ${email}. الكود صالح ١٥ دقيقة.`
           : `We sent a 6-digit code to ${email}. It is valid for 15 minutes.`);
