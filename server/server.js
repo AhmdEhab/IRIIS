@@ -370,7 +370,12 @@ app.post('/api/verify/send', requireAuth, async (req, res) => {
     }
     const code = await issueVerificationCode(user);
     if (emailMode() === 'none') {
-      const dev = process.env.NODE_ENV !== 'production' ? { devCode: code } : {};
+      // devCode is an opt-in LOCAL convenience, never a deployment
+      // behavior: it is only echoed when VERIFY_DEV_CODES=true is set
+      // explicitly. A production build with NODE_ENV unset still keeps
+      // codes private — the code itself is always written to the server
+      // log for local debugging.
+      const dev = process.env.VERIFY_DEV_CODES === 'true' ? { devCode: code } : {};
       console.log(`[verify] email service not configured — code for ${user.email}: ${code} (dev fallback)`);
       return res.json({ ok: true, sent: false, reason: 'EMAIL_NOT_CONFIGURED', ...dev });
     }
