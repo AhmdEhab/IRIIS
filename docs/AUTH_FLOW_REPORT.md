@@ -138,6 +138,12 @@ targeted an email the (empty) database no longer had an account for.
   `await flushNow()` BEFORE responding, because serverless functions may
   freeze the moment a response is sent.
 - `identical bytes never re-upload` (md5 compare).
+- **Trailing-write flush**: the debounced timer cannot survive a serverless
+  freeze, so every successful mutation also hands `flushNow()` to the
+  platform `waitUntil` (fire-and-forget fallback) right after the response
+  — the very last write before a freeze is durable too. Proven by
+  `scripts/e2e-prod-3.cjs`: markers written seconds before a forced
+  redeploy round-trip through the restored snapshot (10/10 assertions).
 
 **Boot gate.** The Vercel handler can be invoked while the async
 restore→sync chain is still running; an early request would open a fresh
