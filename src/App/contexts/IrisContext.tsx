@@ -6,7 +6,7 @@
  * The only place the diagnosis is used is accommodationDefaults(), which
  * returns access supports (extra time / audio repeat / reduced animation).
  */
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   runAssessment, planGoals, nextActivity, completeSession, buildProgress,
   accommodationDefaults,
@@ -23,6 +23,46 @@ import { progressSnapshot } from '../../iris/engines/progress.js';
 
 type Ctx = ReturnType<typeof useIrisState>;
 const IrisContext = createContext<Ctx | undefined>(undefined);
+
+/**
+ * ── Ladder run observation metadata (audit W13 + std-accom §17/§18) ────────
+ * The shell object for everything the run observes ABOUT the run: per-item
+ * latency, break count, when it started, whether a helper was present, and
+ * whether item audio auto-played. It is DATA QUALITY and accommodation
+ * RECORD only — nothing in it reaches scoring, placement or content, and it
+ * travels as a TOP-LEVEL addition on the saved payload, never inside
+ * `item_results`, which stays byte-compatible with the engine's record.
+ */
+const emptyLadderObservation = () => ({
+  latencies: [] as { itemId: string; ms: number }[],
+  breaks: 0,
+  startedAt: null as string | null,
+  helperUsed: false,
+  audioAuto: false,
+});
+
+/** Normalise whatever was stored back into the full, honest shape. */
+function normalizeObservationMeta(o: any) {
+  return {
+    latencies: Array.isArray(o?.latencies) ? o.latencies : [],
+    breaks: Number(o?.breaks) || 0,
+    startedAt: o?.startedAt ?? null,
+    helperUsed: o?.helperUsed === true,
+    audioAuto: o?.audioAuto === true,
+  };
+}
+
+/**
+ * Idempotency key for a pending ladder run (framework §1 `client_ref`).
+ * One uuid per run, persisted with the draft so a reload-and-finish reuses
+ * it and a double-submit cannot create two records for one session.
+ */
+function newLadderClientRef(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  } catch { /* older webviews */ }
+  return `ladder-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function useIrisState() {
   const [childName, setChildName] = useState<string>('');
@@ -79,12 +119,47 @@ function useIrisState() {
   const [probeState, setProbeState] = useState<any>(savedProbe?.probeState ?? null);
   const [probeCalibration, setProbeCalibration] = useState<any>(savedProbe?.probeCalibration ?? null);
   const [currentVisit, setCurrentVisit] = useState<any>(savedProbe?.currentVisit ?? null);
-  useEffect(() => {
+  /*
+   * ── W17: the draft envelope, extended and debounced ──────────────────────
+   * The same localStorage mechanism as before, now also carrying the run's
+   * observation meta and its client_ref, so a reload mid-assessment resumes
+   * the run AND keeps the idempotency key with it. Writes are debounced by
+   * 800ms (one write per settled moment rather than one per keystroke of
+   * state), and `flushLadderDraft` / the `pagehide` listener guarantee the
+   * last moment is never lost to the debounce window when the child leaves
+   * via SAVE & EXIT or the tab simply closes.
+   */
+  const [ladderObservation, setLadderObservation] = useState<any>(savedProbe?.observation ?? null);
+  const [ladderClientRef, setLadderClientRef] = useState<string | null>(
+    typeof savedProbe?.clientRef === 'string' && savedProbe.clientRef ? savedProbe.clientRef : null,
+  );
+  /**
+   * W4: hydration failure surfaced honestly. The app shows nothing
+   * automatically on failure; the ladder intro screen reads this and offers
+   * a gentle retry of `loadLadderFromServer`.
+   */
+  const [ladderLoadError, setLadderLoadError] = useState<string | null>(null);
+
+  const ladderDraftRef = useRef<any>(null);
+  ladderDraftRef.current = { probeState, probeCalibration, currentVisit, observation: ladderObservation, clientRef: ladderClientRef };
+  const writeLadderDraft = useCallback(() => {
     try {
-      if (!probeState && !probeCalibration && !currentVisit) localStorage.removeItem('iris_ladder_probe_v1');
-      else localStorage.setItem('iris_ladder_probe_v1', JSON.stringify({ probeState, probeCalibration, currentVisit }));
+      const d = ladderDraftRef.current;
+      const empty = !d.probeState && !d.probeCalibration && !d.currentVisit && !d.observation && !d.clientRef;
+      if (empty) localStorage.removeItem('iris_ladder_probe_v1');
+      else localStorage.setItem('iris_ladder_probe_v1', JSON.stringify(d));
     } catch { /* private mode */ }
-  }, [probeState, probeCalibration, currentVisit]);
+  }, []);
+  useEffect(() => {
+    const t = setTimeout(writeLadderDraft, 800);
+    return () => clearTimeout(t);
+  }, [probeState, probeCalibration, currentVisit, ladderObservation, ladderClientRef, writeLadderDraft]);
+  useEffect(() => {
+    const flush = () => writeLadderDraft();
+    window.addEventListener('pagehide', flush);
+    return () => window.removeEventListener('pagehide', flush);
+  }, [writeLadderDraft]);
+  const flushLadderDraft = writeLadderDraft;
 
   /** Intake — the ONLY diagnosis touchpoint, and it sets access supports only. */
   const startChild = useCallback((name: string, cond: string, ageYears: number | null = null) => {
@@ -96,6 +171,7 @@ function useIrisState() {
     setSessions([]); setLastDecision(null); setCurrentActivity(null);
     setLadder(null); setLadderPlan(null); setLadderLedger(null); setLadderSaveError(null);
     setProbeState(null); setProbeCalibration(null); setCurrentVisit(null);
+    setLadderObservation(null); setLadderClientRef(null); setLadderLoadError(null);
   }, []);
 
   const accommodationInfo = useMemo(() => accommodationDefaults(condition), [condition]);
@@ -124,6 +200,45 @@ function useIrisState() {
   const getCalibrationProbes = useCallback(
     () => ladderCalibrationProbes({ ageYears: childAgeYears }),
     [childAgeYears]
+  );
+
+  /*
+   * ── Observation record actions (W13 / std-accom §17-18) ──────────────────
+   * Presentation-layer bookkeeping only. None of these values is ever passed
+   * to an engine call — they exist to be recorded, and scoring cannot see
+   * them. The `condition` label never enters any of these paths either.
+   */
+  const patchLadderObservation = useCallback((patch: any) => {
+    setLadderObservation((o: any) => {
+      const base = o ?? emptyLadderObservation();
+      const delta = typeof patch === 'function' ? patch(base) : patch;
+      return { ...base, ...delta };
+    });
+  }, []);
+
+  /** Per-item response latency: item-shown → answer, in ms. Data quality only. */
+  const recordLadderLatency = useCallback((itemId: string, ms: number) => {
+    if (!itemId || !Number.isFinite(ms)) return;
+    patchLadderObservation((o: any) => ({
+      latencies: [...(o.latencies ?? []), { itemId, ms: Math.max(0, Math.round(ms)) }],
+    }));
+  }, [patchLadderObservation]);
+
+  /** Break-button interruptions. Counted as engagement context, never as ability. */
+  const recordLadderBreak = useCallback(() => {
+    patchLadderObservation((o: any) => ({ breaks: Number(o.breaks ?? 0) + 1 }));
+  }, [patchLadderObservation]);
+
+  /** Accommodation record: a helper was with the child. Does NOT change scoring. */
+  const setLadderHelperUsed = useCallback(
+    (v: boolean) => patchLadderObservation({ helperUsed: !!v }),
+    [patchLadderObservation],
+  );
+
+  /** Accommodation record: item audio was on, so listen-item words auto-played. */
+  const setLadderAudioAuto = useCallback(
+    (v: boolean) => patchLadderObservation({ audioAuto: !!v }),
+    [patchLadderObservation],
   );
 
   /**
@@ -334,16 +449,54 @@ function useIrisState() {
    * Reload the latest complete LADDER assessment from the server and re-derive
    * the snapshot with the engine. Fixes the amnesia where a finished assessment
    * vanished on the next login (the record existed; nothing read it back).
+   *
+   * ── W17 + W4 (audit §6 of ASSESSMENT_FRAMEWORK) ────────────────────────
+   * Loads through the kind-filtered collection form
+   * `GET /assessments?childId=…&kind=LADDER`. The parallel server work makes
+   * the `kind` param authoritative; until it lands (or if it ever ignores the
+   * param) the response is filtered CLIENT-SIDE as well:
+   *   - CAREGIVER records NEVER hydrate into ladder state — explicit exclusion;
+   *   - a row with no `assessment_kind` is treated as LADDER for legacy rows;
+   *   - only status COMPLETE counts — an IN_PROGRESS draft is not a result.
+   * A failed load sets `ladderLoadError` rather than failing silently; the
+   * intro screen offers a gentle retry. A 404 (child genuinely has no rows)
+   * is not an error — it is just "nothing yet".
    */
   const loadLadderFromServer = useCallback(async (id?: number | null) => {
     const childId = id ?? childDbId;
     if (!childId) return false;
+    setLadderLoadError(null);
     try {
-      const res = await fetch(`${API_URL}/assessments/${childId}`, { headers: authHeaders() });
-      if (!res.ok) return false;
-      const rows = await res.json();
-      const latest = (Array.isArray(rows) ? rows : [])
-        .filter((r: any) => (r.assessment_kind ?? 'LADDER') === 'LADDER' && r.status === 'COMPLETE')
+      let rows: any = null;
+      try {
+        const resQ = await fetch(`${API_URL}/assessments?childId=${childId}&kind=LADDER`, { headers: authHeaders() });
+        if (resQ.ok) {
+          const jsonQ = await resQ.json();
+          if (Array.isArray(jsonQ)) rows = jsonQ;
+        }
+      } catch { /* collection form may not exist yet — fall through to the path form */ }
+      if (!Array.isArray(rows)) {
+        const res = await fetch(`${API_URL}/assessments/${childId}`, { headers: authHeaders() });
+        if (!res.ok) {
+          if (res.status !== 404) {
+            setLadderLoadError(`LOAD_FAILED_${res.status}`);
+            console.warn('IRIS ladder hydration failed:', `LOAD_FAILED_${res.status}`);
+          }
+          return false;
+        }
+        rows = await res.json();
+      }
+      if (!Array.isArray(rows)) {
+        setLadderLoadError('LOAD_FAILED_SHAPE');
+        console.warn('IRIS ladder hydration failed: unexpected response shape');
+        return false;
+      }
+      const latest = rows
+        .filter((r: any) => {
+          const kind = r.assessment_kind ?? 'LADDER'; // legacy rows predate the column
+          if (kind === 'CAREGIVER') return false;     // explicit — two tracks, never mixed
+          return kind === 'LADDER' && r.status === 'COMPLETE';
+        })
         .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0];
       if (!latest) return false;
       const assessment = fromAssessmentRecord(latest);
@@ -352,8 +505,11 @@ function useIrisState() {
       setLadderPlan(plan);
       setLadderLedger(assessment.ledger);
       setLadderSaveError(null);
+      setLadderLoadError(null);
       return true;
-    } catch {
+    } catch (e: any) {
+      console.warn('IRIS ladder hydration failed:', e?.message || e);
+      setLadderLoadError(e?.message || 'LOAD_FAILED');
       return false;
     }
   }, [childDbId]);
@@ -365,6 +521,13 @@ function useIrisState() {
     setProbeCalibration(calibration);
     setProbeState(state);
     setCurrentVisit(visit);
+    /* A run is starting: stamp its start time and mint (or reuse, on a
+       reload-resume) the idempotency key. Reused later by the finalise POST. */
+    setLadderObservation((o: any) => ({
+      ...(o ?? emptyLadderObservation()),
+      startedAt: o?.startedAt ?? new Date().toISOString(),
+    }));
+    setLadderClientRef((r: any) => (typeof r === 'string' && r ? r : newLadderClientRef()));
     return { calibration, visit };
   }, [childAgeYears]);
 
@@ -382,8 +545,9 @@ function useIrisState() {
 
     const next = recordProbe(probeState, currentVisit, result);
     const visit = nextProbe(next);
-    setProbeState(next);
+    setProbeState(visit ? next : null);
     setCurrentVisit(visit);
+    if (!visit) setProbeCalibration(null);
 
     if (visit) return { visit, finished: false, assessment: null };
 
@@ -392,6 +556,29 @@ function useIrisState() {
       probe: { ...next, finished: true },
       accommodations,
     });
+
+    /*
+     * ── W20 / principle 10: invalid administration ───────────────────────
+     * A run that ends with fewer than three completed items is not a
+     * measurement — it is an accidental exit. It is never persisted and never
+     * published to local state (no low estimate, no phantom snapshot). The
+     * draft is cleared, so on resume the child simply sees the intro again.
+     */
+    const invalidRun = (assessment.items_presented ?? 0) < 3;
+
+    /* The run is over either way: the pending draft (observation + clientRef)
+       is consumed now, captured locally for the POST below. */
+    const observationMeta = normalizeObservationMeta(ladderObservation);
+    const clientRef = typeof ladderClientRef === 'string' && ladderClientRef
+      ? ladderClientRef
+      : newLadderClientRef();
+    setLadderObservation(null);
+    setLadderClientRef(null);
+
+    if (invalidRun) {
+      return { visit: null, finished: true, assessment: null, invalidRun: true };
+    }
+
     const plan = planLadderContent({ assessment, accommodations });
     setLadder(assessment);
     setLadderPlan(plan);
@@ -403,7 +590,21 @@ function useIrisState() {
         const res = await fetch(`${API_URL}/assessments`, {
           method: 'POST',
           headers: authHeaders(),
-          body: JSON.stringify({ childId, assessment_kind: 'LADDER', ...toAssessmentRecord(assessment) }),
+          body: JSON.stringify({
+            childId,
+            assessment_kind: 'LADDER',
+            ...toAssessmentRecord(assessment),
+            // ── TOP-LEVEL ADDITIONS ONLY (W13 + accommodation record + §1) ──
+            // `observationMeta` and `clientRef` sit BESIDE the engine record,
+            // never inside `item_results`, whose shape is byte-compatible
+            // with every engine test. The server stores what it knows today
+            // and ignores the rest; the parallel server work adds the
+            // client_ref idempotency key and an observation column beside
+            // the existing ones — nothing ladder-specific moves inside the
+            // engine's envelope.
+            observationMeta,
+            clientRef,
+          }),
         });
         if (!res.ok) setLadderSaveError(`SAVE_FAILED_${res.status}`);
       } catch (e: any) {
@@ -411,8 +612,8 @@ function useIrisState() {
       }
     }
 
-    return { visit: null, finished: true, assessment };
-  }, [probeState, currentVisit, probeCalibration, accommodations, childDbId]);
+    return { visit: null, finished: true, assessment, invalidRun: false };
+  }, [probeState, currentVisit, probeCalibration, accommodations, childDbId, ladderObservation, ladderClientRef]);
 
   /**
    * Fold a finished practice session back into the ledger — closes the loop.
@@ -559,6 +760,11 @@ function useIrisState() {
     childAgeYears, getCalibrationProbes, runLadder, recordLadderPractice,
     beginLadderProbe, submitLadderVisit, currentVisit, probeState, loadLadderFromServer,
     ladder, ladderPlan, ladderLedger, learningSnapshot, ladderSaveError,
+    // Ladder run experience (W13/W17/W4/W20): observation record, idempotency
+    // key, hydration error surface, and the debounced draft with its flush.
+    ladderObservation, ladderClientRef, ladderLoadError,
+    recordLadderLatency, recordLadderBreak, setLadderHelperUsed, setLadderAudioAuto,
+    flushLadderDraft,
     // The adaptive decision trace — what changed, why, and on what evidence.
     lastAdaptation, practiceSaveError, childDbId, setChildDbId,
     adaptationHistory, historyError, refreshAdaptationHistory,

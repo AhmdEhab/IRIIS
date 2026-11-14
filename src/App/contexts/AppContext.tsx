@@ -45,6 +45,9 @@ export type Screen =
   | 'iris-ladder-practice'
   | 'parent-settings'
   | 'transition'
+  | 'caregiver-profile'
+  | 'ladder-plan'
+  | 'iris-family-profile'
   | 'teaching-demo';
 
 export type Condition = 'down-syndrome' | 'autism' | 'williams' | 'fragile-x' | 'other';
@@ -149,6 +152,13 @@ interface AppContextType {
    */
   emailVerified: boolean | null;
   setEmailVerified: (v: boolean | null) => void;
+  /** Research framework: the merged caregiver Family Profile record
+      ({responses, scored}) — server-owned once hydration lands; null until
+      the parent finishes the questionnaire. Never used for ability levels. */
+  caregiver: { responses: Record<string, any>; scored: Record<string, any> } | null;
+  setCaregiver: (v: { responses: Record<string, any>; scored: Record<string, any> } | null, childId?: number | string | null) => void;
+  /** Read the locally mirrored Family Profile for a given child row id. */
+  caregiverForChild: (childId: number | string | null) => { responses: Record<string, any>; scored: Record<string, any> } | null;
   /** True only when the backend reported the registration OTP email sent. */
   registerEmailSent: boolean | null;
   refreshVerifyStatus: () => Promise<void>;
@@ -224,11 +234,16 @@ export const SCREEN_PATHS: Partial<Record<Screen, string>> = {
   'verify-email': '/verify',
   'iris-parent': '/parent',
   'child-mode': '/play',
+  'caregiver-profile': '/caregiver',
+  'ladder-plan': '/plan',
+  'iris-family-profile': '/family',
 };
 const PATH_SCREENS: Record<string, Screen> = {
   '/': 'marketing', '/login': 'login',
   '/register': 'registration', '/verify': 'verify-email',
   '/parent': 'iris-parent', '/play': 'child-mode',
+  '/caregiver': 'caregiver-profile', '/plan': 'ladder-plan',
+  '/family': 'iris-family-profile',
 };
 
 /**
@@ -609,6 +624,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch { /* offline keeps the last known value; the router gates on it */ }
   }, [authToken]);
+  /* ── Research framework: the Family Profile (caregiver questionnaire) ────
+     Server is the durable source; localStorage is a per-child MIRROR so the
+     hub/plan screens work offline between hydrations. Keyed by the Child ROW
+     id — never by name/email — so two families sharing a device don't mix. */
+  const FAMILY_KEY = 'iris_family_profiles_v1';
+  const [caregiver, setCaregiverState] = useState<{ responses: Record<string, any>; scored: Record<string, any> } | null>(null);
+  const readFamilyMap = useCallback((): Record<string, any> => {
+    try { return JSON.parse(localStorage.getItem(FAMILY_KEY) || '{}'); } catch { return {}; }
+  }, []);
+  const setCaregiver = useCallback((v: { responses: Record<string, any>; scored: Record<string, any> } | null, childId?: number | string | null) => {
+    setCaregiverState(v);
+    try {
+      const map = readFamilyMap();
+      const cid = String(childId ?? 'current');
+      if (v) map[cid] = v; else delete map[cid];
+      localStorage.setItem(FAMILY_KEY, JSON.stringify(map));
+    } catch { /* private mode — in-memory state still serves this session */ }
+  }, [readFamilyMap]);
+  const caregiverForChild = useCallback((childId: number | string | null) => {
+    const map = readFamilyMap();
+    return map[String(childId ?? 'current')] ?? map['current'] ?? null;
+  }, [readFamilyMap]);
   const navigateTo = useCallback((screen: Screen) => {
     setCurrentScreen(screen);
     try {
@@ -781,6 +818,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         registerEmailSent,
         setEmailVerified,
         refreshVerifyStatus,
+        caregiver,
+        setCaregiver,
+        caregiverForChild,
         authError: authErrorCode,
         clearAuthError,
         authToken,

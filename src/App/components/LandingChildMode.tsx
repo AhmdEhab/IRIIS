@@ -16,6 +16,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Award, ChevronRight, Home, Lock, Sparkles } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useIris } from '../contexts/IrisContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { readAuthToken } from '../config';
@@ -35,9 +36,45 @@ interface Level {
   category: string;
 }
 
+/* ── Profile-driven recommended order (research framework §4 / audit W8) ───
+   The "Recommended" head category now comes from what THIS child showed —
+   Family Profile states first, learning-ladder strands second. A condition
+   label never chooses the path; it was already excluded from scoring, and
+   after the P34 fix it no longer drives module order either. Strand→module
+   mapping is a documented heuristic pending the validation study
+   (docs/research/RESEARCH_MAP.md — NEEDS-VALIDATION). */
+const BLOCK_MODULES: Record<string, string[]> = {
+  C: ['songs', 'stories'],
+  L: ['letters', 'numbers', 'shapes', 'colors'],
+  S: ['life-skills', 'body-parts'],
+  M: ['drawing', 'games-hub'],
+  P: ['emotions'],
+};
+const STATE_ORDER = ['unmet_need', 'emerging', 'does_with_support', 'does_independently'];
+function recommendedFromProfile(scored: any, ladder: any): string[] {
+  const ids: string[] = [];
+  const push = (id?: string) => { if (id && !ids.includes(id)) ids.push(id); };
+  const states = (scored && scored.domainStates) || {};
+  for (const st of STATE_ORDER) {
+    for (const [block, d] of Object.entries(states) as [string, any][]) {
+      if (d && d.state === st) (BLOCK_MODULES[block] || []).forEach(push);
+    }
+  }
+  const lp = (ladder && (ladder.learningPriorities || ladder.priorities)) || [];
+  for (const prio of lp) {
+    const key = String((prio && (prio.id || prio.label || prio)) || '').toLowerCase();
+    if (key.includes('letter') || key.includes('phon')) push('letters');
+    if (key.includes('number') || key.includes('count') || key.includes('quant')) push('numbers');
+    if (key.includes('shape')) push('shapes');
+    if (key.includes('color')) push('colors');
+  }
+  return ids.slice(0, 5);
+}
+
 export function LandingChildMode() {
-  const { navigateTo, childProfile, moduleProgress, activeRules, startDailySession } = useApp();
+  const { navigateTo, childProfile, moduleProgress, activeRules, startDailySession, caregiver } = useApp();
   const { speak, playSound } = useAudio();
+  const { ladder } = useIris();
   const { t, language, dir } = useLanguage();
   const ar = language === 'ar';
 
@@ -68,16 +105,14 @@ export function LandingChildMode() {
       { id: 'songs', name: t.songs, icon: '🎵', tone: 'blue', locked: false, progress: moduleProgress['songs'] || 0, category: 'creative' },
       { id: 'games-hub', name: t.gamesHub, icon: '🎮', tone: 'purple', locked: false, progress: moduleProgress['games-hub'] || 0, category: 'creative' },
     ];
-    if (!activeRules?.moduleOrder) return rawLevels;
-    // Same "Recommended" head category as the repo: the scientific module order
-    // observed for this child, prepended before the browsable categories.
-    const orderedIds = activeRules.moduleOrder;
+    const orderedIds = recommendedFromProfile(caregiver?.scored ?? null, ladder);
+    if (!orderedIds.length) return rawLevels;
     const recommendedLevels = orderedIds
       .map((id: string) => rawLevels.find((l) => l.id === id))
       .filter((l): l is Level => l !== undefined)
       .map((l) => ({ ...l, category: 'recommended' }));
     return [...recommendedLevels, ...rawLevels];
-  }, [moduleProgress, t, activeRules, language]);
+  }, [moduleProgress, t, caregiver, ladder, language]);
 
   const handleLevelClick = (level: Level) => {
     if (level.locked) {

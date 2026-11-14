@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Surface, ProgressTrack } from './brand';
+import { PROBE_CONFIG } from '../../../../iris/engines/adaptiveProbe.js';
 
 /**
  * The shared item renderer for the ladder assessment AND ladder practice.
@@ -59,6 +60,46 @@ export function LadderProgress({ current, total, ar, label }: { current: number;
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Kid-legible "how much is left" chip for the probe phase (std-accom §2 /
+ * audit W14: progress predictability — a child must never feel a session
+ * simply disappears).
+ *
+ * ── WHY IT SAYS "تقريباً" ──────────────────────────────────────────────────
+ * The engine bounds the session with `PROBE_CONFIG.SESSION_ITEM_BUDGET`, but
+ * it does not expose an exact count of items REMAINING: tracks climb, step
+ * down, re-sample and rescue, so the real end can come earlier than the
+ * budget ceiling. Rather than invent precision, this chip shows an honest
+ * soft indicator computed from items already done plus the engine's budget,
+ * and labels it "تقريباً" (roughly). It counts missions, never performance —
+ * no accuracy, no rank, nothing score-shaped.
+ */
+export function LadderRemainingChip({ itemsAnswered, ar }: { itemsAnswered: number; ar: boolean }) {
+  const done = Math.max(0, Math.round(itemsAnswered || 0));
+  const remainingItems = Math.max(0, PROBE_CONFIG.SESSION_ITEM_BUDGET - done);
+  const remainingMissions = Math.ceil(remainingItems / PROBE_CONFIG.ITEMS_PER_VISIT);
+  // Arabic-Indic digits read more naturally to the child than Latin ones.
+  const num = (v: number) => {
+    try { return ar ? v.toLocaleString('ar-EG') : String(v); } catch { return String(v); }
+  };
+  const text = done > 0 && remainingMissions <= 1
+    ? (ar ? 'قربنا نخلص!' : 'Almost done!')
+    : (ar
+        ? `المهمة ${num(done + 1)} · فاضل كم little وهنخلص`
+        : `Mission ${done + 1} · a few little games to go`);
+  return (
+    <p
+      className="ps-ghost-chip"
+      role="status"
+      aria-label={ar ? `${text} — تقريباً` : `${text} — roughly`}
+      style={{ marginTop: 10 }}
+    >
+      <span>{text}</span>
+      <span style={{ opacity: 0.7, marginInlineStart: 8 }}>{ar ? 'تقريباً' : 'roughly'}</span>
+    </p>
   );
 }
 

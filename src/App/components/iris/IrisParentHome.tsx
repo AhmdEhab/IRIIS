@@ -28,6 +28,7 @@ export function IrisParentHome({
   onSnapshot,
   onEnterChildMode,
   onSettings,
+  onFamilyProfile,
   onBack,
 }: {
   onProgress: () => void;
@@ -38,6 +39,7 @@ export function IrisParentHome({
   onSnapshot: () => void;
   onEnterChildMode: () => void;
   onSettings: () => void;
+  onFamilyProfile: () => void;
   onBack: () => void;
 }) {
   const { logoutUser, childProfile } = useApp();
@@ -59,6 +61,20 @@ export function IrisParentHome({
     onClick: () => void;
     ready: boolean;
   }> = [
+    {
+      // The Family Profile is the FOUNDATION of everything else in Parent
+      // Mode (research framework §1) — so it sits first, before the ladder's
+      // own snapshot. It holds the parent's words, not a verdict.
+      id: 'family',
+      icon: 'family',
+      tone: 'blue',
+      titleAr: 'ملف العائلة',
+      titleEn: 'Family Profile',
+      descAr: 'اللي شاركتيه عن يومه — أساس الخطة كلها.',
+      descEn: 'What you shared about his day — the base of the whole plan.',
+      onClick: onFamilyProfile,
+      ready: true,
+    },
     {
       // The learning snapshot sits first: it answers the question a parent
       // actually arrives with — what can my child do right now — before the

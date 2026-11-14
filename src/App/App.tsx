@@ -16,6 +16,9 @@ import { ChildModeScreen } from './components/ChildModeScreen';
 import { ParentDashboardScreen } from './components/ParentDashboardScreen';
 import { LandingPage } from './components/landing/LandingPage';
 import { EmailVerificationScreen } from './components/EmailVerificationScreen';
+import { CaregiverProfileScreen } from './components/CaregiverProfileScreen';
+import { IrisFirstPlan } from './components/iris/IrisFirstPlan';
+import { IrisFamilyProfile } from './components/iris/IrisFamilyProfile';
 import { IrisFlow, mapCondition } from './components/iris/IrisFlow';
 import { LandingChildMode } from './components/LandingChildMode';
 import { IrisParentDashboard } from './components/iris/IrisParentDashboard';
@@ -61,13 +64,16 @@ import { PlayfulBackground } from './components/ui/PlayfulBackground';
 
 
 function AppContent() {
-  const { currentScreen, addTime, navigateTo, childProfile, emailVerified } = useApp();
+  const { currentScreen, addTime, navigateTo, childProfile, emailVerified, caregiver, setCaregiver, caregiverForChild, motionPreference, setMotionPreference } = useApp();
   const iris = useIris();
   const { language } = useLanguage();
   const ar = language === 'ar';
   // ── Onboarding gate: no entry to Parent/Child Mode until the getting-to-know
   // ladder assessment (reference repo IRIS flow) is COMPLETE for this child.
   const [ladderChecked, setLadderChecked] = React.useState(false);
+  /* Research framework: the FAMILY FILE (caregiver questionnaire) gates the
+     hub exactly the way the ladder did — see ASSESSMENT_FRAMEWORK §1. */
+  const [caregiverChecked, setCaregiverChecked] = React.useState(false);
 
   /* ── Auth spec §4–§7 route guards — computed once per render ──
      Applied from server-known state only, so every entry point —
@@ -79,9 +85,9 @@ function AppContent() {
         verify is the deliberate product order)
       · signed-in AND verified on login/register/verify → straight to
         the hub: no repeat onboarding, no assessment restart, no loops */
-  const PROTECTED_SCREENS: string[] = ['iris-parent', 'iris-snapshot', 'iris-progress', 'iris-tips', 'iris-parent-chat', 'iris-community', 'iris-specialists', 'parent-settings', 'child-mode', 'verify-email', 'iris-ladder-assessment', 'iris-ladder-practice', 'ladder-intro', 'rewards'];
+  const PROTECTED_SCREENS: string[] = ['iris-parent', 'iris-snapshot', 'iris-progress', 'iris-tips', 'iris-parent-chat', 'iris-community', 'iris-specialists', 'parent-settings', 'child-mode', 'verify-email', 'iris-ladder-assessment', 'iris-ladder-practice', 'ladder-intro', 'rewards', 'caregiver-profile', 'ladder-plan', 'iris-family-profile'];
   const signedInNow = !!readAuthToken();
-  const firstAssessmentPending = signedInNow && !!childProfile?.name && (!ladderChecked || !iris.ladder);
+  const firstAssessmentPending = signedInNow && !!childProfile?.name && (!ladderChecked || !caregiverChecked || !iris.ladder);
   const guardScreen = (name: string): string => {
     if (!signedInNow && PROTECTED_SCREENS.includes(name)) return 'login';
     // Spec order: REGISTER → VERIFY → (assessment if needed) → APP.
@@ -102,7 +108,7 @@ function AppContent() {
       window.history.replaceState({ screen: guardedScreen }, '', path);
     }
   }, [guardedScreen, currentScreen]);
-  React.useEffect(() => { setLadderChecked(false); }, [childProfile?.name]);
+  React.useEffect(() => { setLadderChecked(false); setCaregiverChecked(false); }, [childProfile?.name]);
 
   /**
    * Bridge: once a parent has registered/logged in (AppContext.childProfile
@@ -152,6 +158,7 @@ function AppContent() {
       }
       if (iris.childDbId) {
         await iris.loadLadderFromServer(iris.childDbId);
+        await loadCaregiverFromServer(iris.childDbId);
         if (!cancelled) setLadderChecked(true);
         return;
       }
@@ -164,6 +171,7 @@ function AppContent() {
           if (match && !cancelled) {
             iris.setChildDbId(match.id);
             await iris.loadLadderFromServer(match.id);
+            await loadCaregiverFromServer(match.id);
             setLadderChecked(true);
             return;
           }
@@ -264,6 +272,77 @@ function AppContent() {
      every framer transform loop and infinite repeat across all 40 screens —
      the per-screen audit finding without touching 40 files. */
   const appMotionReduced = useReducedMotion();
+
+  /* ── Family Profile plumbing (research framework §1/§5) ─────────────── */
+  const loadCaregiverFromServer = React.useCallback(async (childId: number) => {
+    const pick = (rows: any[]) => {
+      for (const r of rows) {
+        try {
+          const parsed = typeof r.item_results === 'string' ? JSON.parse(r.item_results) : r.item_results;
+          if (parsed && parsed.responses && parsed.scored) return parsed;
+        } catch { /* row not ours — keep scanning */ }
+      }
+      return null;
+    };
+    try {
+      const listed = await fetch(`${API_URL}/assessments/${childId}?kind=CAREGIVER`, { headers: authHeaders() });
+      if (listed.ok) {
+        const rows0 = await listed.json();
+        const rows = (Array.isArray(rows0) ? rows0 : rows0?.records || []).filter(
+          (r: any) => !r.assessment_kind || r.assessment_kind === 'CAREGIVER'
+        );
+        const found = pick(rows);
+        if (found) { setCaregiver(found, childId); setCaregiverChecked(true); return true; }
+      }
+      const dr = await fetch(`${API_URL}/caregiver/draft?childId=${childId}`, { headers: authHeaders() });
+      if (dr.ok) {
+        const d: any = await dr.json();
+        const draft = d?.draft;
+        if (draft && draft.status === 'COMPLETE') {
+          const resp: any = draft.responses || {};
+          const scored = resp.scored ?? (resp.responses ? resp : null);
+          const responses = resp.responses ?? resp ?? {};
+          if (scored) { setCaregiver({ responses, scored }, childId); setCaregiverChecked(true); return true; }
+        }
+      }
+    } catch { /* offline — the local mirror below still counts */ }
+    const mirrored = caregiverForChild(childId);
+    if (mirrored?.scored) { setCaregiver(mirrored, childId); setCaregiverChecked(true); return true; }
+    return false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_URL]);
+
+  const handleCaregiverComplete = React.useCallback(async (responses: any, scored: any) => {
+    const record = { responses, scored };
+    setCaregiver(record, iris.childDbId ?? null);
+    setCaregiverChecked(true);
+    const id = iris.childDbId;
+    if (!id || !readAuthToken()) return; // demo/offline: local mirror is enough for now
+    const clientRef = `cg-${id}-${Date.now()}`;
+    try {
+      await fetch(`${API_URL}/assessments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        // item_results carries the WHOLE family record (responses + scored);
+        // the ladder's own hydration filters on assessment_kind, so this
+        // never leaks into learning-track state. clientRef makes retries safe.
+        body: JSON.stringify({ childId: id, assessment_kind: 'CAREGIVER', clientRef, item_results: record }),
+      });
+    } catch { /* the questionnaire's own draft endpoint already kept it; login retries */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iris.childDbId, setCaregiver]);
+
+  /* Access settings derived from the Family Profile become REAL defaults:
+     big tap targets via a document flag, and a reduced-motion floor when the
+     child is sensory-sensitive (the parent can still lock either way). */
+  React.useEffect(() => {
+    const acc = caregiver?.scored?.accessSettings;
+    if (!acc) return;
+    try { document.documentElement.dataset.caregiverTargets = acc.targetSize === 'large' ? 'large' : 'standard'; } catch { /* SSR/tests */ }
+    if (acc.reducedMotion && motionPreference === 'auto') setMotionPreference('calm');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caregiver]);
+
   const renderScreen = () => {
   const assessmentGate = (dest: string) => {
     if (!childProfile?.name) return null;
@@ -281,11 +360,23 @@ function AppContent() {
         </div>
       );
     }
+    if (emailVerified !== false && !caregiverChecked) {
+      // Research framework sequence: REGISTER → VERIFY → FAMILY FILE →
+      // LADDER → FIRST PLAN → HUB. Suspension is safe: every answer is
+      // auto-saved server-side (draft) and mirrored locally.
+      return (
+        <CaregiverProfileScreen
+          key="caregiver-forced"
+          onSuspend={() => navigateTo('iris-parent')}
+          onComplete={handleCaregiverComplete}
+        />
+      );
+    }
     if (!iris.ladder) {
       // Auth spec §3: after a fresh registration the forced assessment hands
       // over to email verification instead of the hub — the hub is the
       // reward for a verified account, not for a finished quiz.
-      return <IrisLadderAssessment key="ladder-forced" onFinish={() => navigateTo((emailVerified === false ? 'verify-email' : dest) as any)} />;
+      return <IrisLadderAssessment key="ladder-forced" onFinish={() => navigateTo((emailVerified === false ? 'verify-email' : 'ladder-plan') as any)} />;
     }
     return null;
   };
@@ -309,6 +400,37 @@ function AppContent() {
         return <RegistrationScreen key="registration" />;
       case 'verify-email':
         return <EmailVerificationScreen key="verify-email" />;
+      case 'caregiver-profile':
+        return (
+          <CaregiverProfileScreen
+            key="caregiver-profile"
+            onSuspend={() => navigateTo(caregiverChecked ? 'iris-family-profile' : 'iris-parent')}
+            onComplete={(r: any, sc: any) => { handleCaregiverComplete(r, sc); navigateTo('iris-family-profile'); }}
+          />
+        );
+      case 'ladder-plan': {
+        const gate = assessmentGate('ladder-plan');
+        if (gate) return gate;
+        return (
+          <IrisFirstPlan
+            key="ladder-plan"
+            caregiver={caregiver}
+            onContinue={() => navigateTo('iris-parent')}
+            onOpenFamily={() => navigateTo('iris-family-profile')}
+          />
+        );
+      }
+      case 'iris-family-profile':
+        return (
+          <IrisFamilyProfile
+            key="iris-family-profile"
+            caregiver={caregiver}
+            onBack={() => navigateTo('iris-parent')}
+            onEditCaregiver={() => navigateTo('caregiver-profile')}
+            onOpenSnapshot={() => navigateTo('iris-snapshot')}
+            onRetakeLadder={() => navigateTo('iris-ladder-assessment')}
+          />
+        );
       case 'iris-parent': {
         const gate = assessmentGate('iris-parent');
         if (gate) return gate;
@@ -325,6 +447,7 @@ function AppContent() {
             onSpecialists={() => navigateTo('iris-specialists')}
             onEnterChildMode={() => navigateTo('child-mode')}
             onSettings={() => navigateTo('parent-settings')}
+            onFamilyProfile={() => navigateTo('iris-family-profile')}
             onBack={() => navigateTo('marketing')}
           />
         );

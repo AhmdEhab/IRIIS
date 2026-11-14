@@ -22,10 +22,30 @@ const AssessmentRecord = sequelize.define('AssessmentRecord', {
   skill_estimates: { type: DataTypes.TEXT, defaultValue: '{}' },
   learning_priorities: { type: DataTypes.TEXT, defaultValue: '[]' },
   confidence: { type: DataTypes.TEXT, defaultValue: '{}' },
-  assessment_kind: { type: DataTypes.STRING, defaultValue: 'SUB_MEASURE' }, // or 'LADDER'
+  assessment_kind: { type: DataTypes.STRING, defaultValue: 'SUB_MEASURE' }, // or 'LADDER' | 'CAREGIVER'
 
   rule_pack_version: { type: DataTypes.STRING, defaultValue: 'mvp-1.0.0' },
   is_synthetic: { type: DataTypes.BOOLEAN, defaultValue: false },
+
+  /**
+   * Caregiver flow — additive. Optional client-generated reference id used
+   * for idempotent submission: a POST repeating (childId, assessment_kind,
+   * clientRef) returns the stored record instead of inserting a duplicate.
+   * Nullable with no default, so every pre-existing row (and every old
+   * client that never sends one) stays NULL and behaves exactly as before.
+   * Databases created before this column existed are upgraded by the
+   * addClientRefColumns() ADD-COLUMN-ONLY migration in server.js — the same
+   * pattern as emailVerified.
+   */
+  clientRef: { type: DataTypes.TEXT, allowNull: true },
+  /**
+   * Research framework — observation layer (latencies, breaks, startedAt,
+   * helperUsed, audioAuto) sent TOP-LEVEL by the ladder client as
+   * `observationMeta`. Persisted as an evidence sibling; deliberately NOT
+   * exposed on GET /api/assessments (the 14-key response contract stays
+   * byte-identical for every existing caller). Nullable, no default.
+   */
+  observationJson: { type: DataTypes.TEXT, allowNull: true },
 });
 
 module.exports = AssessmentRecord;

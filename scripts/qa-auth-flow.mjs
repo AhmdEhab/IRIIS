@@ -174,16 +174,22 @@ ok('13 delta registered unverified', rd.status === 201 && rd.data.user.emailVeri
   if (await chip.count()) await chip.first().click();
   await page.waitForTimeout(300);
   await page.getByRole('button', { name: /تأكيد الكود|Confirm code/i }).click();
-  const onAssess = await page.waitForFunction(() => /نتعرّف|getting to know|تجهيز|journey ready|أهلاً/i.test(document.body.innerText), null, { timeout: 15000 }).then(() => true).catch(() => false);
+  const onAssess = await page.waitForFunction(() => /نتعرّف|getting to know|تجهيز|journey ready|أهلاً|ملف العائلة|Family profile/i.test(document.body.innerText), null, { timeout: 15000 }).then(() => true).catch(() => false);
   ok('13 after verification → assessment onboarding appears (spec order)', onAssess, await page.evaluate(() => location.pathname + ' | ' + document.body.innerText.slice(0, 80)));
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
-  const keep = await page.evaluate(() => ({ assess: /نتعرّف|getting to know|تجهيز|journey ready|أهلاً/i.test(document.body.innerText), verify: location.pathname.includes('/verify') }));
+  const keep = await page.evaluate(() => ({ assess: /نتعرّف|getting to know|تجهيز|journey ready|أهلاً|ملف العائلة|Family profile/i.test(document.body.innerText), verify: location.pathname.includes('/verify') }));
   ok('13 refresh mid-assessment keeps flow (stays verified)', keep.assess || keep.verify, JSON.stringify(keep));
   await context.close();
 }
 
 await J('POST', `${api}/api/assessments`, { childId: kidB, assessment_kind: 'LADDER', status: 'COMPLETE', domain_scores: { letter: 0.4 }, skill_estimates: { letter: 0.4 }, item_results: {}, accommodations_used: [], data_quality_flags: [], interruption_count: 0 }, tokB);
+// P57 order: BB must also be past the FAMILY FILE to reach the hub straight.
+await J('POST', `${api}/api/caregiver/draft`, { childId: kidB, clientRef: 'qa-bravo', status: 'COMPLETE',
+  responses: { responses: { C1: { v: ['independently'] } }, scored: { strandProfile: {}, learningPriorities: [] } } }, tokB);
+await J('POST', `${api}/api/assessments`, { childId: kidB, assessment_kind: 'CAREGIVER', status: 'COMPLETE',
+  domain_scores: {}, skill_estimates: {}, item_results: { responses: { C1: { v: ['independently'] } }, scored: { strandProfile: {}, learningPriorities: [] } },
+  accommodations_used: [], data_quality_flags: [], interruption_count: 0 }, tokB);
 // 14. assessment done + unverified → login lands on /verify; wrong code errors;
 //     dev code verifies → /parent; refresh persists; back never re-enters auth.
 // The register auto-send for BB is still inside its 30s resend cooldown

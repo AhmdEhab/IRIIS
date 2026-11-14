@@ -39,6 +39,7 @@ const Post = require('./models/Post');
 const Booking = require('./models/Booking');
 const Child = require('./models/Child');
 const AssessmentRecord = require('./models/AssessmentRecord');
+const CaregiverDraft = require('./models/CaregiverDraft');
 const ActivitySession = require('./models/ActivitySession');
 const Session = require('./models/Session');
 const VerificationCode = require('./models/VerificationCode');
@@ -528,6 +529,14 @@ app.get('/api/users', (req, res) => {
 });
 
 // ── IRIS domain routes ────────────────────────────────────────────────────
+/**
+ * assessment_kind values the API accepts. 'SUB_MEASURE' and 'LADDER' are the
+ * historical pair; 'CAREGIVER' is added for the caregiver questionnaire.
+ * Unknown or absent values keep falling back to 'SUB_MEASURE', so every
+ * pre-caregiver client stores and reads exactly what it did before.
+ */
+const ASSESSMENT_KINDS = ['SUB_MEASURE', 'LADDER', 'CAREGIVER'];
+
 app.post('/api/children', requireAuth, requireConsent, async (req, res) => {
   try {
     const parent = await User.findOne({ where: { email: req.userEmail } });
@@ -557,6 +566,34 @@ app.post('/api/assessments', requireAuth, requireConsent, async (req, res) => {
     if (!(await childBelongsToUser(req.body?.childId, req.userEmail))) {
       return res.status(404).json({ error: 'CHILD_NOT_FOUND', detail: 'No child with that id belongs to this account.' });
     }
+    // Caregiver flow — additive. assessment_kind was previously
+    // `=== 'LADDER' ? 'LADDER' : 'SUB_MEASURE'`; the whitelist keeps both
+    // legacy values behaving identically and only newly recognises
+    // 'CAREGIVER', so the caregiver submission survives the round-trip
+    // instead of being coerced to SUB_MEASURE. Anything else still falls
+    // back to SUB_MEASURE exactly as before.
+    const assessmentKind = ASSESSMENT_KINDS.includes(req.body.assessment_kind)
+      ? req.body.assessment_kind
+      : 'SUB_MEASURE';
+    // Idempotency: a retry of the SAME submission (same childId + kind +
+    // clientRef) replays the stored record with 200 instead of inserting a
+    // duplicate. Clients that omit clientRef (every existing caller) skip
+    // this entirely — behaviour unchanged.
+    const clientRef = typeof req.body.clientRef === 'string' && req.body.clientRef.trim()
+      ? req.body.clientRef.trim().slice(0, 200)
+      : null;
+    if (clientRef) {
+      const dupe = await AssessmentRecord.findOne({
+        where: { childId: req.body.childId, assessment_kind: assessmentKind, clientRef },
+      });
+      if (dupe) return res.status(200).json(dupe);
+    }
+    // Research framework: the ladder client ships an optional observation
+    // envelope at top level. We store it (capped) for the evidence trail but
+    // never surface it on GET — see the shape comment on that route.
+    const observationJson = req.body.observationMeta && typeof req.body.observationMeta === 'object'
+      ? JSON.stringify(req.body.observationMeta).slice(0, 262144)
+      : null;
     const rec = await AssessmentRecord.create({
       childId: req.body.childId,
       domain_scores: JSON.stringify(req.body.domain_scores ?? {}),
@@ -569,7 +606,9 @@ app.post('/api/assessments', requireAuth, requireConsent, async (req, res) => {
       skill_estimates: JSON.stringify(req.body.skill_estimates ?? {}),
       learning_priorities: JSON.stringify(req.body.learning_priorities ?? []),
       confidence: JSON.stringify(req.body.confidence ?? {}),
-      assessment_kind: req.body.assessment_kind === 'LADDER' ? 'LADDER' : 'SUB_MEASURE',
+      assessment_kind: assessmentKind,
+      clientRef,
+      observationJson,
       rule_pack_version: req.body.rule_pack_version ?? 'mvp-1.0.0',
       is_synthetic: req.body.is_synthetic === true,
     });
@@ -589,8 +628,17 @@ app.get('/api/assessments/:childId', requireAuth, async (req, res) => {
     if (!(await childBelongsToUser(req.params.childId, req.userEmail))) {
       return res.status(404).json({ error: 'NOT_FOUND' });
     }
+    // Caregiver flow — optional ?kind= filter. WHEN ABSENT the query is
+    // byte-for-byte the old one (every kind, newest first) so Parent Mode
+    // and every existing caller are untouched. When present it is an exact
+    // equality match on assessment_kind ('LADDER', 'CAREGIVER', …); an
+    // unknown value simply returns [] — it is never coerced.
+    const where = { childId: req.params.childId };
+    if (typeof req.query.kind === 'string' && req.query.kind.trim()) {
+      where.assessment_kind = req.query.kind.trim().slice(0, 32);
+    }
     const rows = await AssessmentRecord.findAll({
-      where: { childId: req.params.childId },
+      where,
       order: [['createdAt', 'DESC']],
       limit: Math.min(Number(req.query.limit) || 20, 100),
     });
@@ -611,6 +659,76 @@ app.get('/api/assessments/:childId', requireAuth, async (req, res) => {
       rule_pack_version: r.rule_pack_version,
       createdAt: r.createdAt,
     })));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ── caregiver assessment draft (autosave / resume) ─────────────────────────
+/**
+ * The caregiver questionnaire is long and the parent may close the tab
+ * mid-way, so the client autosaves here after every screen. ONE ACTIVE DRAFT
+ * PER CHILD: upsert keyed on childId, latest write wins — no history table.
+ * On COMPLETE the client additionally POSTs /api/assessments (kind
+ * 'CAREGIVER') for the durable, idempotent record; the draft stays only a
+ * resume point.
+ *
+ * Ownership is exactly the /api/assessments pattern: resolve childId through
+ * childBelongsToUser and answer 404 (never 403) for a foreign id, so child
+ * ids cannot be probed.
+ */
+/** Serialised responses are capped at 512 KB — autosave payloads are answers,
+ *  not media; anything larger is a client bug. (The 1 MB express.json limit
+ *  still rejects whole bodies before this handler ever sees them.) */
+const DRAFT_MAX_BYTES = 512 * 1024;
+
+app.post('/api/caregiver/draft', requireAuth, requireConsent, async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!(await childBelongsToUser(b.childId, req.userEmail))) {
+      return res.status(404).json({ error: 'CHILD_NOT_FOUND', detail: 'No child with that id belongs to this account.' });
+    }
+    // TEXT columns hold JSON strings (same convention as User.moduleProgress
+    // and every *_results field here) — stringify once, guard on the string.
+    const responsesJson = JSON.stringify(b.responses ?? {});
+    if (Buffer.byteLength(responsesJson, 'utf8') >= DRAFT_MAX_BYTES) {
+      return res.status(413).json({
+        error: 'DRAFT_TOO_LARGE',
+        detail: 'responses must serialise to under 512 KB.',
+        bytes: Buffer.byteLength(responsesJson, 'utf8'),
+      });
+    }
+    const status = b.status === 'COMPLETE' ? 'COMPLETE' : 'IN_PROGRESS';
+    const clientRef = typeof b.clientRef === 'string' ? b.clientRef.trim().slice(0, 200) : null;
+    const childId = Number(b.childId);
+    // Upsert by childId: newest row wins (id DESC makes a raced duplicate
+    // harmless — the autosave below still updates the row GET will return).
+    const existing = await CaregiverDraft.findOne({ where: { childId }, order: [['id', 'DESC']] });
+    const row = existing
+      ? await existing.update({ clientRef, status, responsesJson })
+      : await CaregiverDraft.create({ childId, clientRef, status, responsesJson });
+    res.status(200).json({ ok: true, id: row.id, updatedAt: row.updatedAt });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.get('/api/caregiver/draft', requireAuth, async (req, res) => {
+  try {
+    const childId = Number(req.query.childId);
+    if (!Number.isInteger(childId) || childId <= 0) {
+      return res.status(400).json({ error: 'CHILD_ID_REQUIRED', detail: 'Pass ?childId=.' });
+    }
+    if (!(await childBelongsToUser(childId, req.userEmail))) {
+      return res.status(404).json({ error: 'CHILD_NOT_FOUND', detail: 'No child with that id belongs to this account.' });
+    }
+    const row = await CaregiverDraft.findOne({ where: { childId }, order: [['id', 'DESC']] });
+    if (!row) return res.json({ ok: true, draft: null });
+    res.json({
+      ok: true,
+      draft: {
+        clientRef: row.clientRef,
+        status: row.status,
+        responses: parseSafely(row.responsesJson, {}),
+        updatedAt: row.updatedAt,
+      },
+    });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -775,6 +893,32 @@ async function addAuthSpecColumns() {
     console.error('AUTHSPEC_MIGRATION_WARNING:', e.message);
   }
 }
+
+/**
+ * Additive-only migration for the caregiver-flow idempotency column.
+ *
+ * Same contract as addAuthSpecColumns() above and for the same reason:
+ * sequelize.sync() creates missing TABLES (which is all the brand-new
+ * CaregiverDrafts table needs) but never adds columns to an existing one,
+ * so a database created before this change would reject any POST that
+ * mentions clientRef. This only ever runs ADD COLUMN, only for names it
+ * does not find, and the column is nullable with no default — every
+ * pre-existing row keeps NULL and every old client keeps working.
+ */
+async function addClientRefColumns() {
+  const wanted = [['AssessmentRecords', 'clientRef', 'TEXT'], ['AssessmentRecords', 'observationJson', 'TEXT']];
+  try {
+    for (const [table, name, ddl] of wanted) {
+      const [cols] = await sequelize.query(`PRAGMA table_info(${table});`);
+      if (!cols || cols.length === 0) continue; // sync will create it complete
+      if (cols.some((c) => c.name === name)) continue;
+      await sequelize.query(`ALTER TABLE ${table} ADD COLUMN ${name} ${ddl};`);
+      console.log(`[migrate] added ${table}.${name}`);
+    }
+  } catch (e) {
+    console.error('CLIENTREF_MIGRATION_WARNING:', e.message);
+  }
+}
 bootReady = (blobsync.active
   ? blobsync.restore(String(sequelize.__storageResolved || sequelize.config.storage)).then((r) => {
       global.__blobsyncRestore = r;
@@ -785,6 +929,7 @@ bootReady = (blobsync.active
   console.log(`Database synced${process.env.DB_ALTER === 'true' ? ' (ALTER MODE)' : ''}`);
   await addPhase5Columns();
   await addAuthSpecColumns();
+  await addClientRefColumns();
   await purgeExpiredSessions();
   setInterval(purgeExpiredSessions, 1000 * 60 * 60).unref();
   if (require.main === module) {
