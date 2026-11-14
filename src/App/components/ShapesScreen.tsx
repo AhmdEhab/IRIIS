@@ -151,6 +151,7 @@ export function ShapesScreen() {
                             {selectedShape && (
                                 <div className="space-y-8">
                                     <SyndromeLearningCard
+                                        itemId={selectedShape.id}
                                         mainVisual={selectedShape.icon}
                                         nameAr={selectedShape.nameAr}
                                         nameEn={selectedShape.nameEn}

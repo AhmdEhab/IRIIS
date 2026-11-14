@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ObjectStudy } from './three/ObjectStudy';
+import { object3dFor } from '../data/object3d';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
 import { getLearningSequence, LearningStep } from '../utils/learningSequences';
@@ -28,6 +30,7 @@ export function SyndromeLearningCard({
 }: SyndromeLearningCardProps) {
     const { activeRules, childProfile, reportPerformance } = useApp();
     const { speak, playSound } = useAudio();
+    const studyEntry = object3dFor(itemId);
 
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [phase, setPhase] = useState<'intro' | 'learning' | 'feedback'>('intro');
@@ -252,29 +255,33 @@ export function SyndromeLearningCard({
                         exit={{ scale: 1.5, opacity: 0 }}
                         className="flex flex-col items-center gap-10"
                     >
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
-                            <motion.div
-                                animate={syndrome === 'williams' ? { scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] } : {}}
-                                transition={{ duration: 1.5, repeat: Infinity }}
-                                className="text-[150px] md:text-[200px] drop-shadow-[0_20px_20px_rgba(0,0,0,0.3)] select-none leading-none text-white font-black"
-                            >
-                                {mainVisual || '✨'}
-                            </motion.div>
-
-                            {(contextImage || fullItem?.contextImage) && (
+                        {studyEntry ? (
+                            <ObjectStudy entry={studyEntry} nameAr={nameAr} nameEn={nameEn} language={language} />
+                        ) : (
+                            <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
                                 <motion.div
-                                    initial={{ x: 50, opacity: 0, rotate: 10 }}
-                                    animate={{ x: 0, opacity: 1, rotate: 0 }}
-                                    className="size-56 md:size-72 rounded-brand-xl shadow-brand-lg overflow-hidden border-2 border-hairline/50 p-2 bg-surface"
+                                    animate={syndrome === 'williams' ? { scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] } : {}}
+                                    transition={{ duration: 1.5, repeat: Infinity }}
+                                    className="text-[150px] md:text-[200px] drop-shadow-[0_20px_20px_rgba(0,0,0,0.3)] select-none leading-none text-white font-black"
                                 >
-                                    <img
-                                        src={contextImage || fullItem?.contextImage}
-                                        alt={name}
-                                        className="w-full h-full object-cover rounded-brand-xl"
-                                    />
+                                    {mainVisual || '✨'}
                                 </motion.div>
-                            )}
-                        </div>
+
+                                {(contextImage || fullItem?.contextImage) && (
+                                    <motion.div
+                                        initial={{ x: 50, opacity: 0, rotate: 10 }}
+                                        animate={{ x: 0, opacity: 1, rotate: 0 }}
+                                        className="size-56 md:size-72 rounded-brand-xl shadow-brand-lg overflow-hidden border-2 border-hairline/50 p-2 bg-surface"
+                                    >
+                                        <img
+                                            src={contextImage || fullItem?.contextImage}
+                                            alt={name}
+                                            className="w-full h-full object-cover rounded-brand-xl"
+                                        />
+                                    </motion.div>
+                                )}
+                            </div>
+                        )}
 
                         <h2 className="t-title text-white text-center">{name}</h2>
                         {canInteract && (
