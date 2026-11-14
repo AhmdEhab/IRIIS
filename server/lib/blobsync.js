@@ -94,6 +94,9 @@ async function uploadNow() {
     return;
   }
   await blob.put(SNAPSHOT_KEY, buf, {
+    // The store is PRIVATE: every command must state access explicitly or
+    // the SDK rejects the call ("access must be private or public").
+    access: 'private',
     addRandomSuffix: false,
     allowOverwrite: true,
   });
