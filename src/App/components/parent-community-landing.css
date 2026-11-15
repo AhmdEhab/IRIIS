@@ -207,6 +207,50 @@
 /* ── spacing helpers inside main ──────────────────────────────────────────── */
 .pc-scope .pc-block { margin-top: 0; }
 
+/* ── the fetch, made visible ─────────────────────────────────────────────────
+   A screen that is still waiting must not look like a screen that found
+   nothing. The spinner is the only motion here and is the ONLY thing that
+   moves; the label carries the meaning, so the state survives reduced motion
+   and a screen reader alike (the disc itself is aria-hidden decoration). */
+.pc-scope .pc-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-block-start: 24px;
+  padding: 18px 22px;
+  border-radius: 26px;
+  border: 2px dashed var(--lc-border);
+  background: var(--lc-surface);
+}
+.pc-scope .pc-spin {
+  inline-size: 26px;
+  block-size: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(31, 103, 177, 0.2);
+  /* logical: the leading edge is the inline-start edge, which flips itself in
+     Arabic instead of being hard-coded to `border-left-color`. */
+  border-inline-start-color: var(--lc-blue);
+  animation: pcSpin 900ms linear infinite;
+}
+.pc-scope .pc-state-text {
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
+  font-weight: 800;
+  font-size: 14.5px;
+  color: var(--lc-muted);
+}
+@keyframes pcSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* The brand EmptyState sits on the same white plate language as the feed. */
+.pc-scope .pc-empty {
+  background: var(--lc-surface);
+  border: 2px solid var(--lc-border);
+  border-radius: 26px;
+}
+
 /* ── 390px / small screens: NEW grids collapse to one column ──────────────── */
 @media (max-width: 640px) {
   .pc-scope .pc-thread { grid-template-columns: 1fr; gap: 12px; }
@@ -220,4 +264,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pc-scope .pc-chip, .pc-scope .pc-chip:hover { transform: none; transition-duration: 1ms; }
+  /* the spinner holds still; the words still say what is happening */
+  .pc-scope .pc-spin { animation: none; }
 }

@@ -320,7 +320,7 @@ export function LadderItemCard({
             dir="auto"
             className={`rounded-brand-sm border-2 px-4 py-6 text-3xl font-black transition-colors
               focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue
-              ${picked === i ? 'bg-brand-green-wash border-brand-green' : 'bg-surface border-hairline'}`}
+              ${picked === i ? 'bg-brand-blue-wash border-brand-blue' : 'bg-surface border-hairline'}`}
           >
             {opt}
           </button>

@@ -133,7 +133,7 @@ export function FruitsScreen() {
                                         onClick={() => handleItemSelect(food)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : food.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-8xl mb-4 group-hover:scale-110 transition-transform">
+                                        <div className="text-8xl mb-4 group-hover:scale-110 transition-transform" aria-hidden="true">
                                             {food.emoji}
                                         </div>
                                         <h3 className="text-2xl font-bold text-white drop-shadow-brand">
@@ -183,7 +183,7 @@ export function FruitsScreen() {
                                             size="lg"
                                             className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
-                                            <RotateCcw className="size-8 me-3" />
+                                            <RotateCcw className="size-8 me-3" aria-hidden="true" />
                                             {language === 'ar' ? 'اختيار فاكهة أخرى' : 'Choose another fruit'}
                                         </Button>
                                     </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Home } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -7,7 +7,7 @@ import {
   listCommunityCategories, listCommunityPosts, listCommunityTips, isDemoDirectory,
   type CommunityCategory, type CommunityPost,
 } from '../../data/directory';
-import { BrandIcon, type BrandTone } from './ui/brand';
+import { BrandIcon, Button, EmptyState, ErrorState, type BrandTone } from './ui/brand';
 import { Star } from './ui/brand/Decor';
 import { ChromeActions } from './ui/ChromeActions';
 import { Blob, Sparkle } from '../landing/LandingDecor';
@@ -35,6 +35,15 @@ import '../parent-community-landing.css';
  * Real posts, when they exist, come from the authenticated /api/posts endpoint
  * via data/directory.ts — never from a file in the bundle.
  *
+ * ── WHY THERE ARE NOW THREE LOAD PHASES ──────────────────────────────────
+ * The directory calls used to sit in a bare `Promise.all(...).then(...)` with
+ * no `.catch` and no waiting state. A refused backend or a dead network left
+ * this screen holding an empty feed that silently claimed "nobody has posted
+ * here" — the worst possible reading for a parent deciding whether the space
+ * is alive. `phase` names the three states honestly: loading, ready, failed.
+ * Failure shows the brand ErrorState with a retry that re-runs the very same
+ * loader, and an empty result says it is empty instead of showing nothing.
+ *
  * Re-skinned in the landing / parent-home design language (lc-* classes):
  * same cream polka-dot ground, glass header, white hero plate, pastel
  * bubbles. Copy, order, handlers and every honesty label are unchanged —
@@ -49,21 +58,49 @@ export function IrisCommunity({ onBack }: { onBack: () => void }) {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [tips, setTips] = useState<Awaited<ReturnType<typeof listCommunityTips>>>([]);
   const [active, setActive] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
 
-  useEffect(() => {
+  /**
+   * Each attempt carries its own `alive` flag, and starting a new attempt
+   * cancels the previous one, so a slow retry can never overwrite a fresher
+   * result — and an unmount can never leave a pending `.then` calling setState
+   * on a screen that is already gone.
+   */
+  const cancelRef = useRef<() => void>(() => {});
+
+  const load = useCallback(() => {
+    cancelRef.current();
     let alive = true;
-    Promise.all([listCommunityCategories(), listCommunityPosts(), listCommunityTips()]).then(
-      ([c, p, t]) => {
+    cancelRef.current = () => { alive = false; };
+
+    setPhase('loading');
+    Promise.all([listCommunityCategories(), listCommunityPosts(), listCommunityTips()])
+      .then(([c, p, t]) => {
         if (!alive) return;
         setCategories(c); setPosts(p); setTips(t);
-      }
-    );
-    return () => { alive = false; };
+        setPhase('ready');
+      })
+      .catch(() => {
+        /* A rejected directory is a fact the parent is entitled to, not a
+           state to render as an empty room. */
+        if (alive) setPhase('error');
+      });
   }, []);
+
+  useEffect(() => {
+    load();
+    return () => { cancelRef.current(); };
+  }, [load]);
 
   const shown = useMemo(
     () => (active ? posts.filter((p) => p.category_id === active) : posts),
     [posts, active]
+  );
+
+  /** The label of the selected section, for the empty/loaded copy. */
+  const activeCategory = useMemo(
+    () => categories.find((c) => c.id === active) ?? null,
+    [categories, active]
   );
 
   const KIND_LABEL: Record<string, { ar: string; en: string; tone: BrandTone }> = {
@@ -137,141 +174,208 @@ export function IrisCommunity({ onBack }: { onBack: () => void }) {
           </div>
         </motion.section>
 
-        {/* Categories */}
-        <section className="lc-section">
-          <div className="lc-section-head">
-            <span className="lc-bubble lc-bubble--coral lc-bubble--head" aria-hidden="true">
-              <BrandIcon name="family" className="w-7 h-7" tone="transparent" />
-            </span>
-            <div>
-              <span className="pc-eyebrow pc-eyebrow--coral">{ar ? 'المواضيع' : 'Topics'}</span>
-              <h2 className="lc-section-title">{ar ? 'الأقسام' : 'Categories'}</h2>
-            </div>
-          </div>
-          <div className="pc-chips">
-            <button
-              type="button"
-              onClick={() => setActive(null)}
-              aria-pressed={active === null}
-              className={`pc-chip${active === null ? ' pc-chip--active' : ''}`}
-            >
-              {ar ? 'الكل' : 'All'}
-            </button>
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setActive(c.id)}
-                aria-pressed={active === c.id}
-                title={ar ? c.blurb_ar : c.blurb_en}
-                className={`pc-chip${active === c.id ? ' pc-chip--active' : ''}`}
-              >
-                <span aria-hidden="true">{c.icon}</span> {ar ? c.name_ar : c.name_en}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Tips strip */}
-        {tips.length > 0 && (
-          <div className="pc-plate pc-tips">
-            <h3 className="pc-tips-title">{ar ? 'أفكار سريعة' : 'Quick ideas'}</h3>
-            <ul className="pc-list">
-              {tips.map((t) => (
-                <li key={t.id} className="pc-li">
-                  <Star className="w-3.5 h-3.5 mt-1 shrink-0" />
-                  <span>{ar ? t.ar : t.en}</span>
-                </li>
-              ))}
-            </ul>
+        {/* ── Still fetching ─────────────────────────────────────────────────
+            Announced as a live region so a screen reader says the same thing a
+            sighted parent sees, and the feed below is marked aria-busy. */}
+        {phase === 'loading' && (
+          <div className="pc-state" role="status" aria-live="polite">
+            <span className="pc-spin" aria-hidden="true" />
+            <p className="pc-state-text">
+              {ar ? 'بنلمّ الأقسام والمشاركات…' : 'Gathering the topics and posts…'}
+            </p>
           </div>
         )}
 
-        {/* Feed */}
-        <section className="lc-section">
-          <div className="lc-section-head">
-            <span className="lc-bubble lc-bubble--blue lc-bubble--head" aria-hidden="true">
-              <BrandIcon name="chat" className="w-7 h-7" tone="transparent" />
-            </span>
-            <div>
-              <span className="pc-eyebrow pc-eyebrow--blue">{ar ? 'النقاشات' : 'Threads'}</span>
-              <h2 className="lc-section-title">{ar ? 'مشاركات توضيحية' : 'Example threads'}</h2>
-            </div>
-          </div>
+        {/* ── The fetch failed ─────────────────────────────────────────────── */}
+        {phase === 'error' && (
+          <ErrorState
+            title={ar ? 'مفيش اتصال بالمجتمع' : 'The community could not be reached'}
+            body={
+              ar
+                ? 'الخدمة أو الشبكة رفضوا دلوقتي. مفيش حاجة اتغيّرت من ناحيتك — جرّبي تاني.'
+                : 'The service or the network said no just now. Nothing of yours changed — try again.'
+            }
+            action={
+              <Button variant="secondary" size="sm" onClick={load}>
+                {ar ? 'حاولي تاني' : 'Try again'}
+              </Button>
+            }
+          />
+        )}
 
-          <div className="pc-stack">
-            {shown.map((p, i) => {
-              const kind = KIND_LABEL[p.kind];
-              const author = ar ? p.author_ar : p.author_en;
-              return (
-                <motion.article
-                  key={p.id}
-                  className="pc-plate pc-thread"
-                  initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={reduceMotion ? { duration: 0 } : { delay: i * 0.045 }}
+        {phase === 'ready' && (
+          <>
+            {/* Categories */}
+            <section className="lc-section">
+              <div className="lc-section-head">
+                <span className="lc-bubble lc-bubble--coral lc-bubble--head" aria-hidden="true">
+                  <BrandIcon name="family" className="w-7 h-7" tone="transparent" />
+                </span>
+                <div>
+                  <span className="pc-eyebrow pc-eyebrow--coral">{ar ? 'المواضيع' : 'Topics'}</span>
+                  <h2 className="lc-section-title">{ar ? 'الأقسام' : 'Categories'}</h2>
+                </div>
+              </div>
+              {/* A filter row of pressed buttons: the group is named, and each
+                  chip announces its own pressed state. */}
+              <div
+                className="pc-chips"
+                role="group"
+                aria-label={ar ? 'تصفية المشاركات حسب القسم' : 'Filter posts by section'}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActive(null)}
+                  aria-pressed={active === null}
+                  className={`pc-chip${active === null ? ' pc-chip--active' : ''}`}
                 >
-                  <span
-                    className={`lc-bubble pc-avatar lc-bubble--${kind.tone}`}
-                    aria-hidden="true"
+                  {ar ? 'الكل' : 'All'}
+                </button>
+                {categories.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setActive(c.id)}
+                    aria-pressed={active === c.id}
+                    title={ar ? c.blurb_ar : c.blurb_en}
+                    className={`pc-chip${active === c.id ? ' pc-chip--active' : ''}`}
                   >
-                    {author.trim().charAt(0)}
-                  </span>
+                    <span aria-hidden="true">{c.icon}</span> {ar ? c.name_ar : c.name_en}
+                  </button>
+                ))}
+              </div>
+            </section>
 
-                  <div>
-                    <div className="pc-row-head">
-                      <div>
-                        <h3 className="pc-title">{ar ? p.title_ar : p.title_en}</h3>
-                        <p className="pc-author">{author}</p>
-                      </div>
-                      <div className="pc-badge-row">
-                        <span className={`lc-card-chip pc-tag pc-tag--${kind.tone}`}>
-                          {ar ? kind.ar : kind.en}
+            {/* Tips strip */}
+            {tips.length > 0 && (
+              <div className="pc-plate pc-tips">
+                <h3 className="pc-tips-title">{ar ? 'أفكار سريعة' : 'Quick ideas'}</h3>
+                <ul className="pc-list" aria-label={ar ? 'أفكار سريعة للأهالي' : 'Quick ideas for parents'}>
+                  {tips.map((t) => (
+                    <li key={t.id} className="pc-li">
+                      <Star className="w-3.5 h-3.5 mt-1 shrink-0" />
+                      <span>{ar ? t.ar : t.en}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Feed */}
+            <section className="lc-section">
+              <div className="lc-section-head">
+                <span className="lc-bubble lc-bubble--blue lc-bubble--head" aria-hidden="true">
+                  <BrandIcon name="chat" className="w-7 h-7" tone="transparent" />
+                </span>
+                <div>
+                  <span className="pc-eyebrow pc-eyebrow--blue">{ar ? 'النقاشات' : 'Threads'}</span>
+                  <h2 className="lc-section-title">{ar ? 'مشاركات توضيحية' : 'Example threads'}</h2>
+                </div>
+              </div>
+
+              {shown.length === 0 ? (
+                /* Empty is a state, not the absence of one. The count is also
+                   stated in the heading area so the emptiness is unambiguous. */
+                <EmptyState
+                  className="pc-empty"
+                  illustration={<IrisBuddy mood="listening" />}
+                  title={ar ? 'القسم ده فاضي' : 'This section is quiet'}
+                  body={
+                    activeCategory
+                      ? ar
+                        ? 'لسه مفيش مشاركات في القسم ده — شارك أول حاجة'
+                        : 'No posts in this section yet — be the first to share.'
+                      : ar
+                        ? 'مفيش أي مشاركات في المساحة دي دلوقتي.'
+                        : 'There are no posts in this space right now.'
+                  }
+                />
+              ) : (
+                <div
+                  className="pc-stack"
+                  role="list"
+                  aria-label={
+                    activeCategory
+                      ? (ar ? `مشاركات قسم ${activeCategory.name_ar}` : `Posts in ${activeCategory.name_en}`)
+                      : (ar ? 'كل المشاركات' : 'All posts')
+                  }
+                >
+                  {shown.map((p, i) => {
+                    const kind = KIND_LABEL[p.kind];
+                    const author = ar ? p.author_ar : p.author_en;
+                    return (
+                      <motion.article
+                        key={p.id}
+                        role="listitem"
+                        className="pc-plate pc-thread"
+                        initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={reduceMotion ? { duration: 0 } : { delay: i * 0.045 }}
+                      >
+                        <span
+                          className={`lc-bubble pc-avatar lc-bubble--${kind.tone}`}
+                          aria-hidden="true"
+                        >
+                          {author.trim().charAt(0)}
                         </span>
-                        {/* The space is closed until moderation exists — said on
-                            every thread, not only in the banner. */}
-                        <span className="lc-card-chip lc-card-chip--soon">
-                          {ar ? 'مقفولة' : 'Closed'}
-                        </span>
-                      </div>
-                    </div>
 
-                    <p className="pc-text">{ar ? p.body_ar : p.body_en}</p>
+                        <div>
+                          <div className="pc-row-head">
+                            <div>
+                              <h3 className="pc-title">{ar ? p.title_ar : p.title_en}</h3>
+                              <p className="pc-author">{author}</p>
+                            </div>
+                            <div className="pc-badge-row">
+                              <span className={`lc-card-chip pc-tag pc-tag--${kind.tone}`}>
+                                {ar ? kind.ar : kind.en}
+                              </span>
+                              {/* The space is closed until moderation exists — said on
+                                  every thread, not only in the banner. */}
+                              <span className="lc-card-chip lc-card-chip--soon">
+                                {ar ? 'مقفولة' : 'Closed'}
+                              </span>
+                            </div>
+                          </div>
 
-                    <div className="pc-meta">
-                      {/* dir=ltr so numerals never render reversed under RTL bidi. */}
-                      <span dir="ltr" className="pc-count">💛 {p.reactions}</span>
-                      <span dir="ltr" className="pc-count">
-                        💬 {p.comments.length}
-                      </span>
-                    </div>
+                          <p className="pc-text">{ar ? p.body_ar : p.body_en}</p>
 
-                    {p.comments.length > 0 && (
-                      <ul className="pc-comments">
-                        {p.comments.map((c) => (
-                          <li
-                            key={c.id}
-                            className={`pc-comment${c.from_specialist ? ' pc-comment--spec' : ''}`}
-                          >
-                            <p className="pc-comment-author">
-                              {ar ? c.author_ar : c.author_en}
-                              {c.from_specialist && (
-                                <span className="pc-comment-note">
-                                  {ar ? '· نص توضيحي، مش رد من مختص حقيقي' : '· illustrative text, not a reply from a real specialist'}
-                                </span>
-                              )}
-                            </p>
-                            <p className="pc-text">{ar ? c.body_ar : c.body_en}</p>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </motion.article>
-              );
-            })}
-          </div>
-        </section>
+                          <div className="pc-meta">
+                            {/* dir=ltr so numerals never render reversed under RTL bidi. */}
+                            <span dir="ltr" className="pc-count">💛 {p.reactions}</span>
+                            <span dir="ltr" className="pc-count">
+                              💬 {p.comments.length}
+                            </span>
+                          </div>
+
+                          {p.comments.length > 0 && (
+                            <ul className="pc-comments" aria-label={ar ? 'تعليقات على المشاركة' : 'Replies to this post'}>
+                              {p.comments.map((c) => (
+                                <li
+                                  key={c.id}
+                                  className={`pc-comment${c.from_specialist ? ' pc-comment--spec' : ''}`}
+                                >
+                                  <p className="pc-comment-author">
+                                    {ar ? c.author_ar : c.author_en}
+                                    {c.from_specialist && (
+                                      <span className="pc-comment-note">
+                                        {ar ? '· نص توضيحي، مش رد من مختص حقيقي' : '· illustrative text, not a reply from a real specialist'}
+                                      </span>
+                                    )}
+                                  </p>
+                                  <p className="pc-text">{ar ? c.body_ar : c.body_en}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </motion.article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </>
+        )}
 
         <p className="lc-disclaimer">
           {ar

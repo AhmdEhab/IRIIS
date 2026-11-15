@@ -145,7 +145,7 @@ export function BodyPartsScreen() {
                                         onClick={() => handlePartSelect(part)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : part.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
+                                        <div className="text-7xl mb-4 group-hover:scale-110 transition-transform" aria-hidden="true">
                                             {part.emoji}
                                         </div>
                                         <h3 className="text-xl font-bold text-white drop-shadow-brand-sm">
@@ -182,7 +182,7 @@ export function BodyPartsScreen() {
                                             size="lg"
                                             className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
-                                            <RotateCcw className="size-8 me-3" />
+                                            <RotateCcw className="size-8 me-3" aria-hidden="true" />
                                             {language === 'ar' ? 'اختيار عضو آخر' : 'Choose another part'}
                                         </Button>
                                     </div>

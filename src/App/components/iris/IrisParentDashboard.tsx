@@ -15,12 +15,12 @@
  * header pills, white hero plate, pastel bubbles and cards) — the same
  * vocabulary IrisParentHome uses. Data paths, guards and copy are untouched.
  */
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Award, Home, LogOut } from 'lucide-react';
 import { useIris } from '../../contexts/IrisContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useApp } from '../../contexts/AppContext';
-import { BrandIcon } from './ui/brand';
+import { BrandIcon, Button, EmptyState, ErrorState } from './ui/brand';
 import { IrisBuddy } from './ui/IrisBuddy';
 import { ChromeActions } from './ui/ChromeActions';
 import { AdaptationTrail } from './ui/AdaptationTrail';
@@ -40,7 +40,21 @@ export function IrisParentDashboard({
   const { logoutUser, childProfile } = useApp();
   const ar = language === 'ar';
 
-  const handleLogout = async () => { await logoutUser(); onBack(); };
+  /**
+   * `logoutUser()` navigates to /login itself. The old code then called
+   * `onBack()` on the NEXT line, which sent the guard to the parent hub and
+   * the session-clearing navigation fought it — a logout that landed instead
+   * of leaving. The call is gone, not reordered.
+   */
+  const handleLogout = async () => { await logoutUser(); };
+
+  /**
+   * The adaptation trail is read from the server on mount, and the parent
+   * deserves to see that it is being read. `historyError` covers the case the
+   * context's own `historyError` cannot: a loader that rejects outright.
+   */
+  const [trailPending, setTrailPending] = useState(true);
+  const [trailRejected, setTrailRejected] = useState(false);
 
   /**
    * Pull the recorded adaptation trail whenever this screen opens.
@@ -50,7 +64,22 @@ export function IrisParentDashboard({
    * see the same record an auditor would — so the screen reads the server
    * rather than trusting whatever state happens to be in the page.
    */
-  React.useEffect(() => { void refreshAdaptationHistory(); }, [childDbId, refreshAdaptationHistory]);
+  const loadTrail = useCallback(() => {
+    let alive = true;
+    setTrailPending(true);
+    setTrailRejected(false);
+    Promise.resolve()
+      .then(() => refreshAdaptationHistory())
+      .catch(() => {
+        /* Nothing above this line renders an empty list on purpose; a
+           rejection has to be said, not shown as "your child did nothing". */
+        if (alive) setTrailRejected(true);
+      })
+      .finally(() => { if (alive) setTrailPending(false); });
+    return () => { alive = false; };
+  }, [refreshAdaptationHistory]);
+
+  React.useEffect(() => loadTrail(), [loadTrail]);
 
   /**
    * ── WHY THIS GUARD CHANGED ────────────────────────────────────────────────
@@ -218,14 +247,59 @@ export function IrisParentDashboard({
               <BrandIcon name="chart" className="w-7 h-7" tone="transparent" />
             </span>
             <h2 className="lc-section-title">{ar ? 'ما الذي تغيّر ولماذا' : 'What changed, and why'}</h2>
+            {/* A small live label beside the heading: the plate below is being
+                filled from the server, and "still reading" is not "nothing
+                happened". */}
+            {trailPending && (
+              <span className="pd-pending" role="status" aria-live="polite">
+                <span className="pd-pending-dot" aria-hidden="true" />
+                {ar ? 'بنقرأ السجل…' : 'Reading the record…'}
+              </span>
+            )}
           </div>
-          <div className="pd-plate">
+          <div className="pd-plate" aria-busy={trailPending}>
+            {trailRejected ? (
+              <ErrorState
+                title={ar ? 'السجل مجاش من السيرفر' : 'The record could not be loaded'}
+                body={
+                  ar
+                    ? 'الشبكة أو الخدمة رفضوا دلوقتي. اللي طفلك عمله محفوظ — إحنا مش قادرين نقرأه بس. جرّبي تاني.'
+                    : 'The network or the service said no just now. What your child did is still saved — we simply cannot read it. Try again.'
+                }
+                action={
+                  <Button variant="secondary" size="sm" onClick={loadTrail}>
+                    {ar ? 'حاولي تاني' : 'Try again'}
+                  </Button>
+                }
+              />
+            ) : trailPending ? (
+              /* The plate's own skeleton: the same footprint the trail will
+                 take, so nothing jumps when the rows arrive. */
+              <div className="pd-skeleton" aria-hidden="true">
+                <div className="pd-skeleton-row">
+                  <span className="pd-skeleton-disc" />
+                  <span className="pd-skeleton-line pd-skeleton-line--wide" />
+                  <span className="pd-skeleton-line pd-skeleton-line--short" />
+                </div>
+                <div className="pd-skeleton-row">
+                  <span className="pd-skeleton-disc" />
+                  <span className="pd-skeleton-line pd-skeleton-line--mid" />
+                  <span className="pd-skeleton-line pd-skeleton-line--short" />
+                </div>
+                <div className="pd-skeleton-row">
+                  <span className="pd-skeleton-disc" />
+                  <span className="pd-skeleton-line pd-skeleton-line--wide" />
+                  <span className="pd-skeleton-line pd-skeleton-line--short" />
+                </div>
+              </div>
+            ) : (
             <AdaptationTrail
               history={adaptationHistory}
               latest={lastAdaptation}
               ar={ar}
               error={historyError}
             />
+            )}
           </div>
         </section>
 
@@ -283,8 +357,12 @@ export function IrisParentDashboard({
           </section>
         )}
 
-        {/* Recent sessions — older pathway engine only. */}
-        {sessions.length > 0 && (
+        {/* Recent sessions — older pathway engine only.
+            The "no sessions yet" line used to live INSIDE a
+            `sessions.length > 0 &&` guard, so the one case it was written for
+            was the one case that could never render: a parent with no
+            sessions saw the heading and a blank plate. The section now always
+            renders and the empty case says so with the brand EmptyState. */}
         <section className="lc-section">
           <div className="lc-section-head">
             <span className="lc-bubble lc-bubble--blue lc-bubble--head" aria-hidden="true">
@@ -294,24 +372,42 @@ export function IrisParentDashboard({
           </div>
           <div className="pd-plate">
             {sessions.length === 0 ? (
-              <p className="pd-muted">{ar ? 'لا توجد جلسات بعد.' : 'No sessions yet.'}</p>
+              <EmptyState
+                className="pd-empty-state"
+                illustration={<IrisBuddy mood="idle" />}
+                title={ar ? 'مفيش جلسات بعد' : 'No sessions yet'}
+                body={
+                  ar
+                    ? 'أول ما يعمل أول نشاط، أول جلسة هتظهر هنا مع اللي حصل بعدها.'
+                    : 'As soon as they do their first activity, the first session will show up here with what happened after it.'
+                }
+              />
             ) : (
               <div className="pd-table-wrap">
                 <table className="pd-table">
+                  {/* The table's subject is not in any cell, and the caption
+                      is what makes the row numbers meaningful. */}
+                  <caption className="sr-only-iris">
+                    {ar
+                      ? 'آخر الجلسات: الهدف والمستوى والنسبة الصحيحة والاستقلالية والقرار اللي بعده'
+                      : 'Recent sessions: goal, level, correct share, unaided share, and the decision that followed'}
+                  </caption>
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>{ar ? 'الهدف' : 'Goal'}</th>
-                      <th>{ar ? 'المستوى' : 'Level'}</th>
-                      <th>{ar ? 'صحيح' : 'Correct'}</th>
-                      <th>{ar ? 'بدون مساعدة' : 'Unaided'}</th>
-                      <th>{ar ? 'ما حدث بعدها' : 'What happened next'}</th>
+                      <th scope="col">#</th>
+                      <th scope="col">{ar ? 'الهدف' : 'Goal'}</th>
+                      <th scope="col">{ar ? 'المستوى' : 'Level'}</th>
+                      <th scope="col">{ar ? 'صحيح' : 'Correct'}</th>
+                      <th scope="col">{ar ? 'بدون مساعدة' : 'Unaided'}</th>
+                      <th scope="col">{ar ? 'ما حدث بعدها' : 'What happened next'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sessions.slice(-8).map((s: any, i: number) => (
                       <tr key={i}>
-                        <td><span className="pd-num">{sessions.length - Math.min(8, sessions.length) + i + 1}</span></td>
+                        <td>
+                          <span className="pd-num">{sessions.length - Math.min(8, sessions.length) + i + 1}</span>
+                        </td>
                         <td className="pd-td-goal">{ar ? GOAL_BY_ID[s.goal_id]?.nameAr : GOAL_BY_ID[s.goal_id]?.nameEn}</td>
                         <td>{s.level}</td>
                         <td>
@@ -335,7 +431,6 @@ export function IrisParentDashboard({
             )}
           </div>
         </section>
-        )}
 
         {/* Mastered — older pathway engine only. */}
         {sessions.length > 0 && (

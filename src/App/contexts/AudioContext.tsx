@@ -223,27 +223,38 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
    * mastered down to about -32 LUFS with long fades at both ends, so it loops
    * without a click and sits far below narration.
    */
+  /* ── Time-based fades (audit P3) ─────────────────────────────────────────
+     Fixed-interval step ramps do their own rounding, keep running while the
+     tab is throttled, and never cancel each other. One rAF helper interpolates
+     volume from where it actually is to where it should be, over real time;
+     every call cancels the previous fade for the same element. */
+  const fadeRafs = useRef<Map<HTMLAudioElement, number>>(new Map());
+  const fadeVolume = useCallback((el: HTMLAudioElement, to: number, ms: number, onDone?: () => void) => {
+    const prev = fadeRafs.current.get(el);
+    if (prev) cancelAnimationFrame(prev);
+    const from = el.volume;
+    if (Math.abs(to - from) < 0.001) {
+      fadeRafs.current.delete(el);
+      try { el.volume = Math.max(0, Math.min(1, to)); } catch { /* detached */ }
+      onDone?.();
+      return;
+    }
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / ms);
+      try { el.volume = Math.max(0, Math.min(1, from + (to - from) * k)); }
+      catch { fadeRafs.current.delete(el); return; }
+      if (k < 1) fadeRafs.current.set(el, requestAnimationFrame(step));
+      else { fadeRafs.current.delete(el); onDone?.(); }
+    };
+    fadeRafs.current.set(el, requestAnimationFrame(step));
+  }, []);
   const stopMusicNodes = useCallback(() => {
     const el = musicElRef.current;
     if (!el) return;
     // Fade out over ~0.6s rather than cutting, then pause.
-    const startVol = el.volume;
-    const steps = 12;
-    let i = 0;
-    const timer = setInterval(() => {
-      i += 1;
-      try {
-        el.volume = Math.max(0, startVol * (1 - i / steps));
-        if (i >= steps) {
-          clearInterval(timer);
-          el.pause();
-          el.currentTime = 0;
-        }
-      } catch {
-        clearInterval(timer);
-      }
-    }, 50);
-  }, []);
+    fadeVolume(el, 0, 600, () => { el.pause(); el.currentTime = 0; });
+  }, [fadeVolume]);
 
   /** Target music volume, well under speech. Never autoplayed. */
   const musicTargetVolume = () => Math.max(0, Math.min(1, volumeRef.current)) * MUSIC_GAIN;
@@ -269,18 +280,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       // what browser autoplay policy requires — and what stops music from ever
       // starting unexpectedly.
       void el.play().then(() => {
-        const target = musicTargetVolume();
-        const steps = 20;
-        let i = 0;
-        const timer = setInterval(() => {
-          i += 1;
-          try {
-            el.volume = Math.min(target, target * (i / steps));
-            if (i >= steps) clearInterval(timer);
-          } catch {
-            clearInterval(timer);
-          }
-        }, 80);
+        fadeVolume(el, musicTargetVolume(), 1600);
       }).catch(() => {
         /* blocked or file missing — music simply stays off, nothing breaks */
       });
@@ -294,29 +294,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
    * rather than jumped, because an instant volume change is itself a "sudden"
    * audio event.
    */
-  const duckTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const duckMusic = useCallback((ducked: boolean) => {
     const el = musicElRef.current;
     if (!el || el.paused) return;
     const full = musicTargetVolume();
-    const target = ducked ? full * 0.12 : full;
-    if (duckTimerRef.current) clearInterval(duckTimerRef.current);
-    const from = el.volume;
-    const steps = 8;
-    let i = 0;
-    duckTimerRef.current = setInterval(() => {
-      i += 1;
-      try {
-        el.volume = Math.max(0, Math.min(1, from + (target - from) * (i / steps)));
-        if (i >= steps && duckTimerRef.current) {
-          clearInterval(duckTimerRef.current);
-          duckTimerRef.current = null;
-        }
-      } catch {
-        if (duckTimerRef.current) clearInterval(duckTimerRef.current);
-      }
-    }, 40);
-  }, []);
+    // Steep but stepped: speech ducks in ~0.3s, returns gently in ~0.8s.
+    fadeVolume(el, ducked ? full * 0.12 : full, ducked ? 320 : 800);
+  }, [fadeVolume]);
 
   /**
    * Play one of the real recorded cues. Reuses a single element per sound, so
@@ -748,7 +732,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         try { musicElRef.current.pause(); musicElRef.current.remove(); } catch { /* ignore */ }
         musicElRef.current = null;
       }
-      if (duckTimerRef.current) clearInterval(duckTimerRef.current);
+      fadeRafs.current.forEach((raf) => cancelAnimationFrame(raf));
+      fadeRafs.current.clear();
       if (ctxRef.current) {
         ctxRef.current.close().catch(() => {});
         ctxRef.current = null;

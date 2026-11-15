@@ -12,9 +12,13 @@ async function openLanding(page, lang, width) {
   await page.goto(origin, { waitUntil: 'networkidle' });
   await page.waitForSelector('.iris-landing');
   await page.evaluate(() => document.fonts.ready);
-  if (lang === 'en') {
-    await page.locator('button.lp-lang-round[data-language="en"]').click();
-    await page.waitForFunction(() => document.documentElement.lang === 'en');
+  // Language now persists across navigations (iris_lang), so ensure the
+  // requested language instead of assuming every load starts in Arabic.
+  const want = lang === 'en' ? 'en' : 'ar';
+  const current = await page.evaluate(() => document.documentElement.lang);
+  if (current !== want) {
+    await page.locator(`button.lp-lang-round[data-language="${want}"]`).click();
+    await page.waitForFunction(w => document.documentElement.lang === w, want);
   }
 }
 

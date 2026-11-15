@@ -312,10 +312,16 @@ export function EmailVerificationScreen() {
           size="lg"
           full
           onClick={() => { void confirm(); }}
-          disabled={busy || codeString.length !== 6}
+          disabled={busy || codeString.length !== 6 || phase === 'checking'}
           hint={ar ? 'تأكيد الدخول إلى IRIS' : 'Confirm and enter IRIS'}
         >
-          <span className="ir-auth-cta-inner">{ar ? 'تأكيد الكود' : 'Confirm code'}</span>
+          {/* Audit P2: 'checking' existed in state but nothing ever showed
+              it — the confirm press looked dead for the whole request. */}
+          <span className="ir-auth-cta-inner">
+            {phase === 'checking'
+              ? (ar ? 'جارٍ التحقق…' : 'Verifying…')
+              : (ar ? 'تأكيد الكود' : 'Confirm code')}
+          </span>
         </Button>
       </div>
     </AuthShell>

@@ -31,7 +31,10 @@
  * serif, so a failed display font degrades to "bold Quicksand/Cairo" — which
  * is exactly where the product was before Phase 10, i.e. a safe floor.
  */
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&family=Quicksand:wght@400;500;600;700&family=Baloo+2:wght@600;700;800&family=Baloo+Bhaijaan+2:wght@600;700;800&display=swap');
+/* The Google Fonts request lives in index.html as <link> tags with
+   preconnect — a CSS @import chained three serial round-trips
+   (main.css → fonts.googleapis.com → every woff2) before first paint.
+   Keep the families list in sync there. */
 
 :root {
   --iris-font-latin: 'Quicksand', 'Nunito', 'Segoe UI Variable Display', 'Segoe UI',

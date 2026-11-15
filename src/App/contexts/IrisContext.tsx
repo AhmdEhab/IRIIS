@@ -79,8 +79,20 @@ function useIrisState() {
    * they are computed from its outputs (submitSession's decision) purely to
    * decorate the child's experience. Nothing in src/iris/ reads them.
    */
-  const [avatar, setAvatar] = useState<string>('🦊');
-  const [stars, setStars] = useState<number>(0);
+  const [avatar, setAvatar] = useState<string>(() => {
+    try { return localStorage.getItem('iris_avatar_v1') || '🦊'; } catch { return '🦊'; }
+  });
+  React.useEffect(() => {
+    try { localStorage.setItem('iris_avatar_v1', avatar); } catch { /* private mode */ }
+  }, [avatar]);
+  /* Audit P2: stars and avatar are presentation, not engine state — but a
+     child who earned six stars and reloads to zero loses something real. */
+  const [stars, setStars] = useState<number>(() => {
+    try { return Math.max(0, Number(localStorage.getItem('iris_stars_v1') || 0) || 0); } catch { return 0; }
+  });
+  React.useEffect(() => {
+    try { localStorage.setItem('iris_stars_v1', String(stars)); } catch { /* private mode */ }
+  }, [stars]);
   const [showCelebration, setShowCelebration] = useState(false);
   const [assessment, setAssessment] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);

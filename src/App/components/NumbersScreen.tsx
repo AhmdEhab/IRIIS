@@ -9,6 +9,40 @@ import { BackButton } from './ui/BackButton';
 import { SyndromeLearningCard } from './SyndromeLearningCard';
 import './learning-screens-landing.css';
 
+/* Readable tile text — same WCAG-luminance rule as LettersScreen: white
+   only when the tile's painted colour is dark (luminance < 0.45),
+   otherwise ink. The ' ' colour placeholder means light bg-surface-sunk. */
+const BRAND_CLASS_HEX: Record<string, string> = {
+    'bg-brand-coral': '#f45b63',
+    'bg-brand-blue': '#1f67b1',
+    'bg-brand-green': '#49b87a',
+    'bg-brand-yellow': '#feca34',
+    'bg-brand-purple': '#8060b4',
+    'bg-brand-coral-solid': '#c84b51',
+    'bg-brand-blue-solid': '#1f67b1',
+    'bg-brand-green-solid': '#358458',
+    'bg-brand-purple-solid': '#8060b4',
+    'bg-brand-yellow-solid': '#feca34',
+};
+const INK_TEXT = '#1c2b3a';
+function relativeLuminance(hex: string): number {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const chan = (i: number) => {
+        const v = parseInt(full.slice(i * 2, i * 2 + 2), 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * chan(0) + 0.7152 * chan(1) + 0.0722 * chan(2);
+}
+function tileTextColor(color: string | undefined): string {
+    const c = (color || '').trim();
+    if (!c) return INK_TEXT;
+    if (c.includes('wash')) return INK_TEXT;
+    const hex = c.startsWith('#') ? c : BRAND_CLASS_HEX[c];
+    if (!hex) return INK_TEXT;
+    return relativeLuminance(hex) < 0.45 ? '#ffffff' : INK_TEXT;
+}
+
 interface NumberItem {
     id: string;
     val: number;
@@ -92,10 +126,10 @@ export function NumbersScreen() {
                                         onClick={() => handleNumSelect(num)}
                                         className={`w-full aspect-square rounded-brand-lg shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : num.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <span className="text-7xl font-black text-white drop-shadow-brand-sm">
+                                        <span className="text-7xl font-black drop-shadow-brand-sm" dir="ltr" style={{ color: tileTextColor(activeRules?.sensoryProfile === 'low-arousal' ? ' ' : num.color) }}>
                                             {num.val}
                                         </span>
-                                        <span className="text-xl font-bold text-white/90 mt-2">
+                                        <span className="text-xl font-bold mt-2" style={{ color: tileTextColor(activeRules?.sensoryProfile === 'low-arousal' ? ' ' : num.color), opacity: 0.92 }}>
                                             {language === 'ar' ? num.nameAr : num.nameEn}
                                         </span>
                                     </button>
@@ -128,7 +162,7 @@ export function NumbersScreen() {
                                             size="lg"
                                             className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
-                                            <RotateCcw className="size-8 me-3" />
+                                            <RotateCcw className="size-8 me-3" aria-hidden="true" />
                                             {language === 'ar' ? 'اختيار رقم آخر' : 'Choose another number'}
                                         </Button>
                                     </div>

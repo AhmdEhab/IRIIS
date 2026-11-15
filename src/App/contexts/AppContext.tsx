@@ -223,28 +223,58 @@ const TOKEN_KEY = AUTH_TOKEN_KEY;
 
 
 
-/* Public URLs (spec §16E). The app keeps its state router underneath; the
-   address bar mirrors the screens people may share or bookmark. Screens not
-   listed keep the current path — app internals are deliberately unaddressable
-   so protected routes cannot be deep-linked by guessing a URL. */
+/* Public URLs (spec 16E + the navigation overhaul). EVERY live screen is
+   now addressable so browser back/forward covers the whole app, refresh
+   lands where you left, and shared links boot through the same guards.
+   One source of truth: PATH_SCREENS is derived from SCREEN_PATHS below. */
 export const SCREEN_PATHS: Partial<Record<Screen, string>> = {
   marketing: '/',
   login: '/login',
   registration: '/register',
   'verify-email': '/verify',
   'iris-parent': '/parent',
-  'child-mode': '/play',
   'caregiver-profile': '/caregiver',
   'ladder-plan': '/plan',
   'iris-family-profile': '/family',
+  'iris-snapshot': '/snapshot',
+  'iris-progress': '/progress',
+  'iris-tips': '/tips',
+  'iris-parent-chat': '/chat',
+  'iris-community': '/community',
+  'iris-specialists': '/specialists',
+  'parent-settings': '/settings',
+  'iris-ladder-assessment': '/assessment',
+  'iris-ladder-practice': '/practice',
+  'child-mode': '/play',
+  stories: '/play/stories',
+  animals: '/play/animals',
+  letters: '/play/letters',
+  numbers: '/play/numbers',
+  colors: '/play/colors',
+  'life-skills': '/play/life-skills',
+  songs: '/play/songs',
+  drawing: '/play/drawing',
+  shapes: '/play/shapes',
+  fruits: '/play/fruits',
+  vehicles: '/play/vehicles',
+  'body-parts': '/play/body-parts',
+  emotions: '/play/emotions',
+  rewards: '/play/rewards',
+  'games-hub': '/play/games',
+  'memory-game': '/play/games/memory',
+  'balloon-pop': '/play/games/balloon',
+  'shadow-match': '/play/games/shadow',
 };
-const PATH_SCREENS: Record<string, Screen> = {
-  '/': 'marketing', '/login': 'login',
-  '/register': 'registration', '/verify': 'verify-email',
-  '/parent': 'iris-parent', '/play': 'child-mode',
-  '/caregiver': 'caregiver-profile', '/plan': 'ladder-plan',
-  '/family': 'iris-family-profile',
-};
+const PATH_SCREENS: Record<string, Screen> = Object.fromEntries(
+  Object.entries(SCREEN_PATHS).map(([screen, path]) => [path, screen as Screen]),
+);
+/* The orphan legacy cluster (splash/mode-selection/ai-assessment/parent-
+   dashboard/family-guidance/community-sessions/teaching-demo) intentionally
+   has NO paths: direct URLs for them hit the guard and land on the hub or
+   login. Their router cases are gone from App.tsx, so they ship zero bytes. */
+/** Pending startTransition timer, shared so navigation can cancel it. A
+    transition must NEVER yank the user after they (or the back button) left. */
+const transitionHold: { timer: ReturnType<typeof setTimeout> | number } = { timer: 0 };
 
 /**
  * Performance-driven sensory adaptation (the repo-1 mechanism, restored).
@@ -624,6 +654,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch { /* offline keeps the last known value; the router gates on it */ }
   }, [authToken]);
+  /* Boot safety net (audit P1): if we hold a token but the rehydrator could
+     not run (missing email mirror) the guards must never sit on a permanent
+     null. Ask the server the moment a null + token pair appears. */
+  useEffect(() => {
+    if (authToken && emailVerified === null) void refreshVerifyStatus();
+  }, [authToken, emailVerified, refreshVerifyStatus]);
   /* ── Research framework: the Family Profile (caregiver questionnaire) ────
      Server is the durable source; localStorage is a per-child MIRROR so the
      hub/plan screens work offline between hydrations. Keyed by the Child ROW
@@ -647,6 +683,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return map[String(childId ?? 'current')] ?? map['current'] ?? null;
   }, [readFamilyMap]);
   const navigateTo = useCallback((screen: Screen) => {
+    clearTimeout(transitionHold.timer as ReturnType<typeof setTimeout>);
     setCurrentScreen(screen);
     try {
       const path = SCREEN_PATHS[screen];
@@ -655,9 +692,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
+      clearTimeout(transitionHold.timer as ReturnType<typeof setTimeout>);
       const fromState = (e.state as { screen?: Screen } | null)?.screen;
       const next = fromState ?? PATH_SCREENS[window.location.pathname];
-      if (next) setCurrentScreen(next);
+      // Unknown history entries (typed paths, hand-made bookmarks) must not
+      // leave the screen frozen under a changed URL: fall back to marketing
+      // and let the App guard rewrite the bar to a canonical route.
+      setCurrentScreen(next ?? 'marketing');
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -747,7 +788,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const startTransition = useCallback((message: string, nextScreen: Screen, duration: number = 3000) => {
     setTransitionState({ message, nextScreen, duration });
     setCurrentScreen('transition');
-    setTimeout(() => {
+    // The address bar moves to the DESTINATION immediately (replace, so the
+    // interstitial adds no history entry): back from here leaves the flow,
+    // and navigateTo/popstate cancel this timer — no blind yank mid-navigation.
+    try {
+      const dest = SCREEN_PATHS[nextScreen];
+      if (dest) window.history.replaceState({ screen: nextScreen }, '', dest);
+    } catch { /* sandboxed iframes */ }
+    clearTimeout(transitionHold.timer as ReturnType<typeof setTimeout>);
+    transitionHold.timer = setTimeout(() => {
       setCurrentScreen(nextScreen);
     }, duration);
   }, []);
@@ -792,7 +841,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{
+      value={useMemo(() => ({
         motionPreference, setMotionPreference,
         currentScreen,
         navigateTo,
@@ -840,9 +889,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentSession,
         startDailySession,
         reportPerformance
-      }}
-
-
+      }), [
+        motionPreference,
+        setMotionPreference,
+        currentScreen,
+        navigateTo,
+        childProfile,
+        setChildProfile,
+        assessmentResult,
+        setAssessmentResult,
+        isParentModeUnlocked,
+        unlockParentMode,
+        isReturningUser,
+        setIsReturningUser,
+        earnedBadges,
+        unlockBadge,
+        moduleProgress,
+        incrementProgress,
+        resetProgress,
+        activities,
+        logActivity,
+        loginUser,
+        registerUser,
+        logoutUser,
+        emailVerified,
+        registerEmailSent,
+        setEmailVerified,
+        refreshVerifyStatus,
+        caregiver,
+        setCaregiver,
+        caregiverForChild,
+        authErrorCode,
+        clearAuthError,
+        authToken,
+        updateUser,
+        addTime,
+        irisProfile,
+        setIrisProfile,
+        reconstructIrisProfile,
+        getAiRecommendations,
+        parentChatHistory,
+        sendParentMessage,
+        activeRules,
+        transitionState,
+        startTransition,
+        currentSession,
+        startDailySession,
+        reportPerformance,
+      ])}
     >
       {children}
     </AppContext.Provider>

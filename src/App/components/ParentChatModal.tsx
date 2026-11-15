@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, Brain, User, Sparkles } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
@@ -35,7 +36,7 @@ export function ParentChatModal({ isOpen, onClose }: ParentChatModalProps) {
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal((
         <AnimatePresence>
             <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                 <motion.div
@@ -134,5 +135,5 @@ export function ParentChatModal({ isOpen, onClose }: ParentChatModalProps) {
                 </motion.div>
             </div>
         </AnimatePresence>
-    );
+    ), document.body);
 }

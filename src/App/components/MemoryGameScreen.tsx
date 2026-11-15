@@ -179,6 +179,15 @@ export function MemoryGameScreen() {
                                     onClick={() => handleCardClick(card.id)}
                                     whileHover={{ scale: phase === 'playing' && !card.isFlipped && !card.isMatched ? 1.05 : 1 }}
                                     whileTap={{ scale: 0.95 }}
+                                    aria-label={
+                                        card.isMatched
+                                            ? (language === 'ar' ? 'زوج مكتمل' : 'Completed pair')
+                                            : phase === 'peek'
+                                                ? (language === 'ar' ? 'كارت مفتوح للمعاينة' : 'Face-up preview card')
+                                                : card.isFlipped
+                                                    ? (language === 'ar' ? 'كارت مقلوب' : 'Flipped card')
+                                                    : (language === 'ar' ? 'كارت مقفل — اضغط للقلب' : 'Hidden card — tap to flip')
+                                    }
                                     className="aspect-square relative perspective-1000 group"
                                 >
                                     <motion.div
@@ -193,11 +202,11 @@ export function MemoryGameScreen() {
                                             flex items-center justify-center rounded-brand-xl
                                             group-hover:shadow-brand/50 transition-shadow
                                         `}>
-                                            <Brain className={`size-20 motion-safe:animate-pulse motion-reduce:animate-none ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-white/40'}`} />
+                                            <Brain aria-hidden="true" className={`size-20 motion-safe:animate-pulse motion-reduce:animate-none ${activeRules?.sensoryProfile === 'low-arousal' ? 'text-ink-muted' : 'text-white/40'}`} />
 
                                             {/* Visual Hint (Ghosting) for Syndrome Support */}
                                             {activeRules?.gameAdjustments?.memoryGameHints && !card.isMatched && (
-                                                <div className="absolute inset-0 flex items-center justify-center opacity-[0.05] pointer-events-none">
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-[0.05] pointer-events-none" aria-hidden="true">
                                                     <span className="text-[6rem] grayscale">
                                                         {card.emoji}
                                                     </span>
@@ -212,14 +221,15 @@ export function MemoryGameScreen() {
                                             rotate-y-180 transition-colors
                                             ${card.isMatched ? (activeRules?.sensoryProfile === 'low-arousal' ? 'bg-ground-tint border-hairline' : 'bg-brand-green-wash border-brand-green') : ''}
                                         `}>
-                                            <span className={`text-[6rem] sm:text-[8rem] ${card.isMatched ? 'scale-110 drop-shadow-brand' : ''}`}>
+                                            <span className={`text-[6rem] sm:text-[8rem] ${card.isMatched ? 'scale-110 drop-shadow-brand' : ''}`} aria-hidden="true">
                                                 {card.emoji}
                                             </span>
                                             {card.isMatched && (
                                                 <motion.div
                                                     initial={{ scale: 0 }}
                                                     animate={{ scale: 1 }}
-                                                    className="absolute -top-4 -right-4 bg-brand-green-solid text-white p-2 rounded-full shadow-brand"
+                                                    className="absolute -top-4 -end-4 bg-brand-green-solid text-white p-2 rounded-full shadow-brand"
+                                                    aria-hidden="true"
                                                 >
                                                     <Sparkles className="size-6" />
                                                 </motion.div>
@@ -237,7 +247,7 @@ export function MemoryGameScreen() {
                                     onClick={startPlay}
                                     className="mg-start-pill"
                                 >
-                                    <Sparkles className="size-6" />
+                                    <Sparkles className="size-6" aria-hidden="true" />
                                     {language === 'ar' ? 'اقلب الكروت وابدأ اللعب' : 'Flip the cards & start!'}
                                 </motion.button>
                             </div>
@@ -255,10 +265,11 @@ export function MemoryGameScreen() {
                                     animate={{ rotate: 360 }}
                                     transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
                                     className="absolute -inset-20 text-8xl flex justify-around items-center opacity-30"
+                                    aria-hidden="true"
                                 >
                                     <span>✨</span><span>🌟</span><span>✨</span><span>🌟</span>
                                 </motion.div>
-                                <div className="text-[12rem] bg-surface rounded-brand-xl p-16 shadow-brand-lg border-8 border-brand-green relative z-10">
+                                <div className="text-[12rem] bg-surface rounded-brand-xl p-16 shadow-brand-lg border-8 border-brand-green relative z-10" aria-hidden="true">
                                     🏆
                                 </div>
                             </div>
@@ -279,7 +290,7 @@ export function MemoryGameScreen() {
                                     onClick={initGame}
                                     className="bg-brand-green-solid hover:bg-brand-green-solid text-white text-3xl font-black px-16 py-8 rounded-brand-lg shadow-brand-lg flex items-center gap-4 transition-colors"
                                 >
-                                    <RotateCcw className="size-10" />
+                                    <RotateCcw className="size-10" aria-hidden="true" />
                                     {language === 'ar' ? 'مرة أخرى' : 'Play Again'}
                                 </motion.button>
 

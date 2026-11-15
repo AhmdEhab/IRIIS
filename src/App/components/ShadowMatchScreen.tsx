@@ -129,7 +129,7 @@ export function ShadowMatchScreen() {
                     <div className="grid lg:grid-cols-2 gap-6 items-center">
                         <motion.div key={round + 'shadow'} initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex flex-col items-center">
                             <Card className="w-full aspect-square max-w-md bg-surface border-2 border-hairline shadow-brand-lg rounded-brand-xl flex flex-col items-center justify-center p-12 relative overflow-hidden">
-                                <div className="absolute top-6 left-6 opacity-10">
+                                <div className="absolute top-6 start-6 opacity-10" aria-hidden="true">
                                     <HelpCircle className="size-20 text-brand-blue-ink" />
                                 </div>
                                 <motion.div
@@ -139,6 +139,7 @@ export function ShadowMatchScreen() {
                                     }}
                                     transition={{ duration: 3, repeat: Infinity }}
                                     className={`text-[15rem] transition-all duration-500 ${activeRules?.gestaltInstruction ? 'opacity-100' : 'opacity-80'}`}
+                                    aria-hidden="true"
                                 >
                                     {currentItem?.emoji}
                                 </motion.div>
@@ -161,6 +162,7 @@ export function ShadowMatchScreen() {
                                     disabled={selectedId !== null}
                                     whileHover={{ scale: selectedId === null ? 1.05 : 1 }}
                                     whileTap={{ scale: 0.95 }}
+                                    aria-label={language === 'ar' ? option.nameAr : option.nameEn}
                                     className={`
                                         aspect-square rounded-brand-xl border-8 shadow-brand relative flex items-center justify-center text-8xl transition-all duration-300 
                                         ${selectedId === option.id
@@ -172,8 +174,8 @@ export function ShadowMatchScreen() {
                                         
                                     `}
                                 >
-                                    <span className={selectedId !== null && option.id !== currentItem?.id ? 'filter grayscale' : ''}>{option.emoji}</span>
-                                    {selectedId === option.id && isCorrect && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute inset-0 flex items-center justify-center bg-brand-green/20 rounded-brand-xl"><Check className="size-24 text-brand-green-ink" /></motion.div>}
+                                    <span className={selectedId !== null && option.id !== currentItem?.id ? 'filter grayscale' : ''} aria-hidden="true">{option.emoji}</span>
+                                    {selectedId === option.id && isCorrect && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute inset-0 flex items-center justify-center bg-brand-green/20 rounded-brand-xl" aria-hidden="true"><Check className="size-24 text-brand-green-ink" /></motion.div>}
                                 </motion.button>
                             ))}
                         </div>
@@ -181,8 +183,8 @@ export function ShadowMatchScreen() {
                 ) : (
                     <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center space-y-8">
                         <div className="relative inline-block">
-                            <Trophy className="size-40 text-brand-yellow-ink mx-auto" />
-                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute inset-x-0 -top-4 text-4xl">✨ ✨ ✨</motion.div>
+                            <Trophy className="size-40 text-brand-yellow-ink mx-auto" aria-hidden="true" />
+                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute inset-x-0 -top-4 text-4xl" aria-hidden="true">✨ ✨ ✨</motion.div>
                         </div>
                         <div className="space-y-2">
                             <h2 className="t-title text-brand-blue-ink">{language === 'ar' ? 'عمل رائع يا محقق!' : 'Great Job Detective!'}</h2>
@@ -190,7 +192,7 @@ export function ShadowMatchScreen() {
                         </div>
                         <div className="flex justify-center gap-6">
                             <Button onClick={() => { setScore(0); setRound(1); setIsGameOver(false); playSound('celebration'); }} size="lg" className="bg-brand-blue hover:bg-brand-blue text-2xl px-12 py-8 rounded-full shadow-brand-lg">
-                                <RotateCcw className="size-8 me-3" />
+                                <RotateCcw className="size-8 me-3" aria-hidden="true" />
                                 {language === 'ar' ? 'العب ثانية' : 'Play Again'}
                             </Button>
                             <Button onClick={handleBack} variant="outline" size="lg" className="bg-surface text-2xl px-12 py-8 rounded-full border-4 shadow-brand">{language === 'ar' ? 'صالة الألعاب' : 'Games Hub'}</Button>

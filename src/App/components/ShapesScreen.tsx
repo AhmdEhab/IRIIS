@@ -130,7 +130,7 @@ export function ShapesScreen() {
                                         onClick={() => handleShapeSelect(shape)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : shape.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-brand-sm">
+                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-brand-sm" aria-hidden="true">
                                             {shape.icon}
                                         </div>
                                         <h3 className="text-3xl font-bold text-white drop-shadow-brand">
@@ -167,7 +167,7 @@ export function ShapesScreen() {
                                             size="lg"
                                             className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
-                                            <RotateCcw className="size-8 me-3" />
+                                            <RotateCcw className="size-8 me-3" aria-hidden="true" />
                                             {language === 'ar' ? 'اختيار شكل آخر' : 'Choose another shape'}
                                         </Button>
                                     </div>

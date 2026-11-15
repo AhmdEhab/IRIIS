@@ -8,6 +8,42 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { BackButton } from './ui/BackButton';
 
+/* Readable tile text — same rule as LettersScreen: for the tile's colour
+   (a brand utility class, a raw hex, or ' ' meaning the light
+   bg-surface-sunk plate) compute WCAG relative luminance; white text only
+   when luminance < 0.45, otherwise ink #1c2b3a. Washes / unresolvable
+   values are treated as light → ink. */
+const BRAND_CLASS_HEX: Record<string, string> = {
+    'bg-brand-coral': '#f45b63',
+    'bg-brand-blue': '#1f67b1',
+    'bg-brand-green': '#49b87a',
+    'bg-brand-yellow': '#feca34',
+    'bg-brand-purple': '#8060b4',
+    'bg-brand-coral-solid': '#c84b51',
+    'bg-brand-blue-solid': '#1f67b1',
+    'bg-brand-green-solid': '#358458',
+    'bg-brand-purple-solid': '#8060b4',
+    'bg-brand-yellow-solid': '#feca34',
+};
+const INK_TEXT = '#1c2b3a';
+function relativeLuminance(hex: string): number {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const chan = (i: number) => {
+        const v = parseInt(full.slice(i * 2, i * 2 + 2), 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * chan(0) + 0.7152 * chan(1) + 0.0722 * chan(2);
+}
+function tileTextColor(color: string | undefined): string {
+    const c = (color || '').trim();
+    if (!c) return INK_TEXT;
+    if (c.includes('wash')) return INK_TEXT;
+    const hex = c.startsWith('#') ? c : BRAND_CLASS_HEX[c];
+    if (!hex) return INK_TEXT;
+    return relativeLuminance(hex) < 0.45 ? '#ffffff' : INK_TEXT;
+}
+
 interface SkillStep {
     textAr: string;
     textEn: string;
@@ -196,7 +232,7 @@ export function LifeSkillsScreen() {
                         {skills.map((skill, index) => (
                             <motion.div key={skill.id} initial={{ x: index % 2 === 0 ? -100 : 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: index * 0.1, type: 'spring' }} whileHover={{ scale: 1.02 }}>
                                 <button onClick={() => handleSkillSelect(skill)} className={`w-full ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-surface'} rounded-brand-xl shadow-brand-lg overflow-hidden flex items-center p-8 gap-8 border-2 border-hairline transition-all hover:shadow-brand-lg group`}>
-                                    <div className={`size-24 rounded-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : skill.color} flex items-center justify-center text-5xl  flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                                    <div className={`size-24 rounded-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : skill.color} flex items-center justify-center text-5xl  flex-shrink-0 group-hover:scale-110 transition-transform`} aria-hidden="true">
                                         {skill.emoji}
                                     </div>
                                     <div className="text-left flex-1">
@@ -207,7 +243,7 @@ export function LifeSkillsScreen() {
                                             {language === 'ar' ? 'تعلم كيف تفعل ذلك بسهولة!' : 'Learn how to do it easily!'}
                                         </p>
                                     </div>
-                                    <div className={`text-4xl ${dir === 'rtl' ? 'rotate-180' : ''} text-ink-muted group-hover:text-brand-blue-ink transition-colors`}>
+                                    <div className={`text-4xl ${dir === 'rtl' ? 'rotate-180' : ''} text-ink-muted group-hover:text-brand-blue-ink transition-colors`} aria-hidden="true">
                                         ➡️
                                     </div>
                                 </button>
@@ -218,8 +254,8 @@ export function LifeSkillsScreen() {
                     <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-4xl mx-auto">
                         {selectedSkill && (
                             <Card className={`overflow-hidden rounded-brand-xl shadow-brand-lg border-2 border-hairline ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-surface'}`}>
-                                <div className={`bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color} p-12 text-center text-white relative`}>
-                                    <motion.div animate={{ scale: isPlaying ? [1, 1.1, 1] : 1 }} transition={{ duration: 2, repeat: isPlaying ? Infinity : 0 }} className="text-[8rem] mb-6 drop-shadow-brand-lg">
+                                <div className={`bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color} p-12 text-center relative`} style={{ color: tileTextColor(activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color) }}>
+                                    <motion.div animate={{ scale: isPlaying ? [1, 1.1, 1] : 1 }} transition={{ duration: 2, repeat: isPlaying ? Infinity : 0 }} className="text-[8rem] mb-6 drop-shadow-brand-lg" aria-hidden="true">
                                         {selectedSkill.emoji}
                                     </motion.div>
                                     <h2 className="t-title ">
@@ -240,7 +276,7 @@ export function LifeSkillsScreen() {
                                                     transition={{ delay: 0.1 * i }}
                                                     className={`flex items-start gap-6 p-6 rounded-brand-lg border-2 shadow-brand-sm text-left hover:bg-brand-blue-wash transition-colors w-full ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk border-hairline-soft' : 'bg-surface-sunk border-hairline-soft'}`}
                                                 >
-                                                    <div className={`size-12 rounded-full bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color} flex items-center justify-center text-2xl font-black text-white shadow-brand-sm flex-shrink-0`}>
+                                                    <div className={`size-12 rounded-full bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color} flex items-center justify-center text-2xl font-black shadow-brand-sm flex-shrink-0`} style={{ color: tileTextColor(activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color) }} aria-hidden="true">
                                                         {i + 1}
                                                     </div>
                                                     <p className="text-2xl font-bold text-ink leading-relaxed">
@@ -274,8 +310,8 @@ export function LifeSkillsScreen() {
                                         </Button>
                                     )}
 
-                                    <Button onClick={handlePlayInstructions} size="lg" className={`px-12 py-10 rounded-full text-2xl font-black shadow-brand border-2 border-hairline bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color} text-white`}>
-                                        {isPlaying ? <Pause className="size-8 me-3" /> : <Play className="size-8 me-3" />}
+                                    <Button onClick={handlePlayInstructions} size="lg" className={`px-12 py-10 rounded-full text-2xl font-black shadow-brand border-2 border-hairline bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color}`} style={{ color: tileTextColor(activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color) }}>
+                                        {isPlaying ? <Pause className="size-8 me-3" aria-hidden="true" /> : <Play className="size-8 me-3" aria-hidden="true" />}
                                         {isPlaying ? (language === 'ar' ? 'إيقاف' : 'Stop') : (language === 'ar' ? 'استمع' : 'Listen')}
                                     </Button>
 
@@ -288,6 +324,7 @@ export function LifeSkillsScreen() {
                                     {journeyStep === -1 && (
                                         <Button onClick={() => { playSound('success'); incrementProgress('life-skills'); speak(language === 'ar' ? 'أحسنتم! لقد تعلمت مهارة جديدة.' : 'Well done! You learned a new skill.', language); setTimeout(() => navigateTo('child-mode'), 1500); }} size="lg" className="bg-brand-green-solid hover:bg-brand-green-solid text-white text-2xl px-10 py-10 rounded-full shadow-brand border-2 border-hairline">
                                             <CheckCircle2 className="size-8 me-3" />
+                                        {/* icon stays decorative; the visible label carries the name */}
                                             {language === 'ar' ? 'تم الانتهاء' : 'Done'}
                                         </Button>
                                     )}

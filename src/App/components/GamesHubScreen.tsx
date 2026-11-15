@@ -10,7 +10,7 @@ import './games-hub-landing.css';
 
 export function GamesHubScreen() {
     const { navigateTo, activeRules } = useApp();
-    const { playSound, speak } = useAudio();
+    const { playSound } = useAudio();
     const { t, language } = useLanguage();
 
     const games = [
@@ -21,9 +21,7 @@ export function GamesHubScreen() {
             descAr: 'اختبر قوة تركيزك وجد كل الصور المتشابهة!',
             descEn: 'Test your focus and find all matching pairs!',
             icon: '🧩',
-            color: ' ',
-            badge: language === 'ar' ? 'الأكثر لعباً' : 'Most Played',
-            comingSoon: false
+            color: ' '
         },
         {
             id: 'balloon-pop',
@@ -32,9 +30,7 @@ export function GamesHubScreen() {
             descAr: 'فرقع البالونات الملونة واجمع الكثير من النقاط!',
             descEn: 'Pop the colorful balloons and collect lots of points!',
             icon: '🎈',
-            color: ' ',
-            badge: language === 'ar' ? 'جديد' : 'New',
-            comingSoon: false
+            color: ' '
         },
         {
             id: 'shadow-match',
@@ -43,8 +39,7 @@ export function GamesHubScreen() {
             descAr: 'هل يمكنك معرفة صاحب هذا الظل؟ اختر الصورة الصحيحة!',
             descEn: 'Can you recognize the shadow? Choose the correct image!',
             icon: '👤',
-            color: ' ',
-            comingSoon: false
+            color: ' '
         }
     ];
 
@@ -54,12 +49,6 @@ export function GamesHubScreen() {
     };
 
     const handleGameSelect = (game: any) => {
-        if (game.comingSoon) {
-            playSound('error');
-            speak(language === 'ar' ? 'هذه اللعبة قادمة قريباً!' : 'This game is coming soon!', language);
-            return;
-        }
-
         playSound('tap');
         navigateTo(game.id);
     };
@@ -94,13 +83,10 @@ export function GamesHubScreen() {
                         >
                             <button
                                 onClick={() => handleGameSelect(game)}
-                                className={`
-                  w-full text-left group relative
-                  ${game.comingSoon ? 'cursor-not-allowed grayscale-[0.8]' : 'hover:scale-105 active:scale-95'}
-                `}
+                                className="w-full text-left group relative hover:scale-105 active:scale-95"
                             >
                                 <Card className="p-0 overflow-hidden rounded-brand-xl border-2 border-hairline shadow-brand-lg h-full transition-shadow hover:shadow-brand">
-                                    <div className={`h-48 bg-surface-sunk ${game.color} flex items-center justify-center relative overflow-hidden`}>
+                                    <div className={`h-48 bg-surface-sunk ${game.color} flex items-center justify-center relative overflow-hidden`} aria-hidden="true">
                                         <motion.div
                                             animate={{
                                                 scale: [1, 1.2, 1],
@@ -112,33 +98,19 @@ export function GamesHubScreen() {
                                             {game.icon}
                                         </motion.div>
 
-                                        {/* Decorative shapes */}
-                                        <div className="absolute top-0 right-0 p-4 opacity-20">
+                                        {/* Decorative shapes — logical inset so the corner mirrors in RTL */}
+                                        <div className="absolute top-0 end-0 p-4 opacity-20">
                                             <Sparkles className="size-20 text-white" />
                                         </div>
-
-                                        {game.badge && (
-                                            <div className="absolute top-6 left-6 bg-surface px-4 py-1 rounded-full text-xs font-black text-white uppercase tracking-widest border border-hairline/40">
-                                                {game.badge}
-                                            </div>
-                                        )}
                                     </div>
 
                                     <div className="p-8 bg-surface relative">
-                                        {game.comingSoon && (
-                                            <div className="absolute inset-0 bg-surface/60 flex items-center justify-center backdrop-blur-[2px] z-20">
-                                                <div className="bg-ink text-white px-6 py-2 rounded-full font-black text-sm uppercase tracking-widest">
-                                                    {language === 'ar' ? 'قريباً' : 'Coming Soon'}
-                                                </div>
-                                            </div>
-                                        )}
-
                                         <div className="flex justify-between items-start mb-4">
                                             <h3 className="text-3xl font-black text-ink">
                                                 {language === 'ar' ? game.nameAr : game.nameEn}
                                             </h3>
                                             <div className={`p-2 rounded-brand-sm bg-surface-sunk ${game.color} text-white shadow-brand`}>
-                                                <Zap className="size-6" />
+                                                <Zap className="size-6" aria-hidden="true" />
                                             </div>
                                         </div>
                                         <p className="text-lg font-medium text-ink-muted leading-snug">

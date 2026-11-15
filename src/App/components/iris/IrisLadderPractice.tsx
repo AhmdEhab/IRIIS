@@ -180,7 +180,7 @@ export function IrisLadderPractice({ onFinish }: { onFinish: () => void }) {
 
   // ── practising ───────────────────────────────────────────────────────────
   return (
-    <Shell ar={ar} companion={busy ? 'thinking' : 'listening'}>
+    <Shell ar={ar} companion={busy ? 'thinking' : 'listening'} onBack={onFinish}>
       <div className="ps-practice-head">
         <div className="min-w-0">
           <p className="ps-kicker">{ar ? 'تدريب' : 'Practice'}</p>
@@ -195,6 +195,16 @@ export function IrisLadderPractice({ onFinish }: { onFinish: () => void }) {
         <LadderProgress current={itemIndex + 1} total={items.length} ar={ar} label={ar ? 'النشاط' : 'This activity'} />
       </div>
 
+      {!item && (
+        <div className="ps-plate">
+          <p className="ps-kicker">{ar ? 'النشاط' : 'This activity'}</p>
+          <h3>{ar ? 'خلصنا حاجات النشاط ده كله' : 'We finished everything this activity had'}</h3>
+          <p className="ps-note">{ar ? 'نرتاح شوية أو نبدأ حاجة تانية — كل حاجة اتعلمناها متسجلة.' : 'Take a breather or start something new — everything learned is saved.'}</p>
+          <button type="button" className="lc-pill lc-pill--blue" style={{ marginTop: 10 }} onClick={() => onFinish()}>
+            {ar ? 'يلا نرجع' : 'Back we go'}
+          </button>
+        </div>
+      )}
       {item && (
         <div className="ps-plate">
           <LadderItemCard

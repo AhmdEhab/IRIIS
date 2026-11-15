@@ -54,7 +54,11 @@ import './caregiver-profile.css';
 
 export interface CaregiverProfileScreenProps {
   /** "حفظ وخروج مؤقت" — the draft is already saved; hand back to a safe screen. */
-  onSuspend: () => void;
+  onSuspend?: () => void;
+  /** Forced onboarding gate: the hub is not reachable until the file is
+      done, so a suspend affordance here would only loop back into itself.
+      Rendered without one — the honest control set is "Start". */
+  forced?: boolean;
   /** After the final submit: the raw answers and the engine's scored profile. */
   onComplete: (responses: object, scored: object) => void;
   /** Reserved for the orchestrator's deterministic demo wiring; unused here. */
@@ -446,7 +450,7 @@ const Chip = ({ active, onPress, children }: { active: boolean; onPress: () => v
    The screen
    ══════════════════════════════════════════════════════════════════════════ */
 
-export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: CaregiverProfileScreenProps) {
+export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced = false }: CaregiverProfileScreenProps) {
   void demoSeed; // reserved: the bank is already deterministic, nothing to seed
 
   const { childProfile } = useApp();
@@ -572,8 +576,9 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
     if (bootRef.current) return;
     bootRef.current = true;
 
-    let local: { responses?: Answers; itemId?: string | null; updatedAt?: string; clientRef?: string; bankVersion?: string } | null = null;
-    try { local = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { local = null; }
+    let local: any = null;
+
+        try { local = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { local = null; }
     if (local?.clientRef) setClientRef(local.clientRef);
     if (Object.keys(local?.responses || {}).length) {
       const stamped = local?.bankVersion === CAREGIVER_BANK_VERSION || local?.bankVersion === CAREGIVER_V2_VERSION
@@ -821,10 +826,12 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
   const head = (
     <header className="cp-head" dir={ar ? 'rtl' : 'ltr'}>
       <div className="cp-head-row">
-        <button type="button" className="cp-home" onClick={onSuspend} data-sfx="tap">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <span>{T('suspend')}</span>
-        </button>
+        {!forced && onSuspend ? (
+          <button type="button" className="cp-home" onClick={onSuspend} data-sfx="tap">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span>{T('suspend')}</span>
+          </button>
+        ) : <span className="cp-home cp-home--spacer" aria-hidden="true" />}
         <span className={cx('cp-save', `cp-save--${saveState}`)} role="status" aria-live="polite">
           {saveState === 'server' ? T('savedServer') : saveState === 'local' || saveState === 'offline' ? T('savedLocal') : ''}
         </span>
@@ -1021,7 +1028,9 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed }: Care
               <p className="cp-note cp-note--warm">{T('resume')}</p>
             )}
             <div className="cp-nav cp-nav--end">
-              <button type="button" className="cp-ghost" onClick={onSuspend} data-sfx="tap">{T('suspend')}</button>
+              {!forced && onSuspend ? (
+                <button type="button" className="cp-ghost" onClick={onSuspend} data-sfx="tap">{T('suspend')}</button>
+              ) : null}
               <button type="button" className="cp-cta cp-cta--start"
                 onClick={() => {
                   if (!startAtRef.current) startAtRef.current = Date.now();

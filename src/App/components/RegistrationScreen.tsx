@@ -49,6 +49,9 @@ export function RegistrationScreen() {
   };
 
   const [step, setStep] = useState(1);
+  /* Audit P2: client validation was TTS-only — a silent form refusal for a
+     muted or Deaf parent. The same message now appears in the error banner. */
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,13 +84,18 @@ export function RegistrationScreen() {
   const validateStep1 = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      speak(language === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email', language);
+      const msg = language === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email';
+      setFieldError(msg);
+      speak(msg, language);
       return false;
     }
     if (password.length < 8) {
-      speak(language === 'ar' ? 'يجب أن تكون كلمة المرور 8 أحرف على الأقل' : 'Password must be at least 8 characters', language);
+      const msg = language === 'ar' ? 'يجب أن تكون كلمة المرور 8 أحرف على الأقل' : 'Password must be at least 8 characters';
+      setFieldError(msg);
+      speak(msg, language);
       return false;
     }
+    setFieldError(null);
     return true;
   };
 
@@ -447,11 +455,11 @@ export function RegistrationScreen() {
           email from a short password from an invalid address; all three used
           to be spoken only and otherwise looked like the form silently
           refusing to submit. */}
-      {authError && (
+      {(authError || fieldError) && (
         <div className="ir-auth-error">
           <div role="alert">
             <span aria-hidden="true" className="ir-auth-error-mark">⚠️</span>
-            <span>{authMessage(authError, language === 'ar' ? 'ar' : 'en')}</span>
+            <span>{authError ? authMessage(authError, language === 'ar' ? 'ar' : 'en') : fieldError}</span>
           </div>
         </div>
       )}

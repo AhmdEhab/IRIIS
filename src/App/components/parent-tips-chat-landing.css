@@ -160,6 +160,28 @@
 .tc-chat .tc-suggest:hover { transform: translateY(-2px); filter: saturate(1.15); }
 .tc-chat .tc-suggest:focus-visible { outline: 3px solid var(--lc-blue); outline-offset: 3px; }
 
+/* ── The composing beat ────────────────────────────────────────────────────
+   The turn IRIS is still writing. Three dots sit on the same plate as a
+   finished reply so the thread does not jump when the answer lands. The dots
+   are decoration — the words "IRIS is thinking" carry the state, which is
+   what survives reduced motion and a screen reader. */
+.tc-chat .tc-thinking { display: flex; align-items: center; gap: 10px; }
+.tc-typing { display: inline-flex; align-items: center; gap: 5px; }
+.tc-typing i {
+  display: block;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 999px;
+  background: rgba(108, 79, 168, 0.55);
+  animation: tcTyping 900ms ease-in-out infinite;
+}
+.tc-typing i:nth-child(2) { animation-delay: 150ms; }
+.tc-typing i:nth-child(3) { animation-delay: 300ms; }
+@keyframes tcTyping {
+  0%, 100% { transform: translateY(0); opacity: 0.45; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
 /* ── Composer ─────────────────────────────────────────────────────────────── */
 .tc-composer {
   padding: 14px 16px 12px;
@@ -176,8 +198,16 @@
   transition: border-color 170ms ease, box-shadow 170ms ease;
 }
 .tc-field::placeholder { color: var(--lc-muted); opacity: 0.85; font-weight: 600; }
-.tc-field:focus { outline: none; border-color: var(--lc-blue); box-shadow: 0 0 0 4px rgba(31, 103, 177, 0.18); }
+/* THE `outline: none` OVERRIDE IS GONE.
+   This rule used to read `.tc-field:focus { outline: none; … }` — it removed
+   the brand's keyboard ring and it fired on every focus, programmatic ones
+   included. The field keeps its blue edge; the ring now belongs to the global
+   :focus-visible rule in styles/iris.css, the only place a focus indicator
+   should be decided. */
+.tc-field:focus-visible { border-color: var(--lc-blue); }
 .tc-chat .tc-send { flex-shrink: 0; width: 52px; height: 52px; min-height: 52px; padding: 0; }
+/* Send holds still while IRIS is composing (see IrisParentChat). */
+.tc-chat .tc-send:disabled { cursor: default; opacity: 0.55; }
 .tc-chat .tc-notice { margin: 10px 0 0; text-align: center; }
 
 /* ── Responsive collapse ──────────────────────────────────────────────────── */
@@ -201,4 +231,6 @@
   .tc-step:nth-child(odd), .tc-step:nth-child(even),
   .tc-tips .tc-tip-figure, .tc-tips .tc-minutes { transform: none; }
   .tc-chat .tc-suggest:hover { transform: none; }
+  /* the dots hold still; the reply still arrives on the same beat */
+  .tc-typing i { animation: none; opacity: 0.75; }
 }

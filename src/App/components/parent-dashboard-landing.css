@@ -24,6 +24,56 @@
 }
 .pd-scope .pd-note { font-size: 12px; color: var(--lc-muted); margin-top: 2px; }
 
+/* ── The record is being read ──────────────────────────────────────────────
+   "Still loading" and "nothing has happened" have to look different, or a
+   parent reads an empty plate as an empty child. The dot is decoration; the
+   words next to it are the announcement (role="status" on the wrapper). */
+.pd-scope .pd-pending {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 700; color: var(--lc-muted);
+  white-space: nowrap;
+}
+.pd-scope .pd-pending-dot {
+  inline-size: 10px; block-size: 10px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 2.5px solid rgba(31, 103, 177, 0.22);
+  /* the leading edge flips itself with the writing direction */
+  border-inline-start-color: var(--lc-blue);
+  animation: pdPending 900ms linear infinite;
+}
+@keyframes pdPending { to { transform: rotate(360deg); } }
+
+/* ── "What changed, and why" plate skeleton ────────────────────────────────
+   Three rows at the footprint the trail will occupy, so nothing jumps when
+   the real records land. aria-hidden on the wrapper: a skeleton says nothing
+   a screen reader should read out. */
+.pd-scope .pd-skeleton { display: flex; flex-direction: column; gap: 16px; }
+.pd-scope .pd-skeleton-row { display: flex; align-items: center; gap: 12px; }
+.pd-scope .pd-skeleton-disc,
+.pd-scope .pd-skeleton-line {
+  background: linear-gradient(
+    100deg,
+    rgba(31, 103, 177, 0.07) 20%,
+    rgba(31, 103, 177, 0.16) 42%,
+    rgba(31, 103, 177, 0.07) 64%
+  );
+  background-size: 240% 100%;
+  animation: pdShimmer 1.4s ease-in-out infinite;
+}
+.pd-scope .pd-skeleton-disc { inline-size: 38px; block-size: 38px; border-radius: 14px; flex-shrink: 0; }
+.pd-scope .pd-skeleton-line { block-size: 13px; border-radius: 999px; }
+/* logical widths: the row reads from the inline-start edge in both scripts */
+.pd-scope .pd-skeleton-line--wide  { inline-size: min(62%, 420px); }
+.pd-scope .pd-skeleton-line--mid   { inline-size: min(48%, 320px); }
+.pd-scope .pd-skeleton-line--short { inline-size: min(22%, 130px); }
+@keyframes pdShimmer {
+  from { background-position: 120% 0; }
+  to   { background-position: -120% 0; }
+}
+
+/* The brand EmptyState, on this screen's plate language. */
+.pd-scope .pd-empty-state { border-radius: 20px; }
+
 /* ── Dashboard hero: pastel stat tiles ─────────────────────────────── */
 .pd-scope .pd-stats {
   width: 100%; margin-top: 4px;
@@ -118,7 +168,12 @@
   color: var(--lc-ink); font: inherit; font-size: 16px; font-weight: 600;
   transition: border-color 170ms ease, box-shadow 170ms ease;
 }
-.pd-scope .ps-input:focus { outline: none; border-color: var(--lc-blue); box-shadow: 0 0 0 4px rgba(31, 103, 177, 0.18); }
+/* THE `outline: none` IS GONE, and the rule is scoped to `:focus-visible`.
+   Killing the outline took the brand's keyboard ring away. A text field
+   matches `:focus-visible` on mouse focus too, so the blue edge behaves
+   exactly as before — the ring itself is now left to the global
+   :focus-visible rule in styles/iris.css. */
+.pd-scope .ps-input:focus-visible { border-color: var(--lc-blue); }
 .pd-scope .ps-input::placeholder { color: rgba(107, 101, 93, 0.6); }
 
 /* volume slider — pastel track, blue bubble thumb */
@@ -198,6 +253,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* the skeleton and the pending dot hold still; the words still say it */
+  .pd-scope .pd-pending-dot,
+  .pd-scope .pd-skeleton-disc,
+  .pd-scope .pd-skeleton-line { animation: none; }
   .pd-scope .pd-card-static,
   .pd-scope .pd-grid-cards > *:nth-child(odd) > .pd-card-static,
   .pd-scope .pd-grid-cards > *:nth-child(even) > .pd-card-static { transform: none; }

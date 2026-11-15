@@ -4,6 +4,7 @@ import { RotateCcw, Play, Pause, Trophy, Sparkles } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { Button } from './ui/button';
 import { BackButton } from './ui/BackButton';
 import './learning-screens-landing.css';
@@ -28,12 +29,18 @@ export function BalloonPopScreen() {
     const { navigateTo, unlockBadge, incrementProgress, activeRules } = useApp();
     const { playSound, speak } = useAudio();
     const { t, language } = useLanguage();
+    const reducedMotion = useReducedMotion();
 
     const [balloons, setBalloons] = useState<Balloon[]>([]);
     const [score, setScore] = useState(0);
     const [gameStarted, setGameStarted] = useState(false);
     const [timeLeft, setTimeLeft] = useState(30);
     const [isGameOver, setIsGameOver] = useState(false);
+    /* Reduced-motion mode: no spawn interval and no rising animation. Six
+       static balloons are dealt out at start (staggered entrance), and each
+       pop is a short transform-only CSS animation. The 30s clock, scoring,
+       speech and win logic stay exactly the same. */
+    const [poppingIds, setPoppingIds] = useState<number[]>([]);
 
     const spawnBalloon = useCallback(() => {
         const id = Date.now();
@@ -52,14 +59,43 @@ export function BalloonPopScreen() {
         setBalloons(prev => [...prev, { id, x, color, speed, size, label }]);
     }, [activeRules]);
 
+    const makeStaticBalloons = useCallback((): Balloon[] => {
+        const hitbox = activeRules?.gameAdjustments?.hitboxScaling || 1;
+        return [0, 1, 2, 3, 4, 5].map((i) => ({
+            id: Date.now() + i,
+            x: 14 + i * 14,
+            color: BALLOON_COLORS[i % BALLOON_COLORS.length],
+            speed: 0,
+            size: (68 + (i % 3) * 12) * hitbox,
+            label: i % 2 === 0
+                ? String.fromCharCode(65 + ((i * 7 + 3) % 26))
+                : String((i * 3 + 1) % 10),
+        }));
+    }, [activeRules]);
+
+    const handleStaticPop = (balloon: Balloon) => {
+        playSound('tap');
+        setScore(prev => prev + 10);
+        speak(balloon.label, language);
+        setPoppingIds(prev => prev.concat(balloon.id));
+        window.setTimeout(() => {
+            setPoppingIds(prev => prev.filter(x => x !== balloon.id));
+            setBalloons(prev => prev.filter(b => b.id !== balloon.id));
+        }, 260);
+    };
+
     useEffect(() => {
         let spawnInterval: NodeJS.Timeout;
         let timerInterval: NodeJS.Timeout;
 
         if (gameStarted && !isGameOver) {
-            // Slower spawning for low-arousal sensory profiles
-            const spawnRate = activeRules?.sensoryProfile === 'low-arousal' ? 1500 : 1000;
-            spawnInterval = setInterval(spawnBalloon, spawnRate);
+            // Slower spawning for low-arousal sensory profiles. Under
+            // reduced motion the interval churn stops entirely — the six
+            // dealt balloons are the game.
+            if (!reducedMotion) {
+                const spawnRate = activeRules?.sensoryProfile === 'low-arousal' ? 1500 : 1000;
+                spawnInterval = setInterval(spawnBalloon, spawnRate);
+            }
             timerInterval = setInterval(() => {
                 setTimeLeft(prev => {
                     if (prev <= 1) {
@@ -75,7 +111,7 @@ export function BalloonPopScreen() {
             clearInterval(spawnInterval);
             clearInterval(timerInterval);
         };
-    }, [gameStarted, isGameOver, spawnBalloon, activeRules]);
+    }, [gameStarted, isGameOver, spawnBalloon, makeStaticBalloons, reducedMotion, activeRules]);
 
     const handlePop = (id: number, label: string) => {
         // Different sound for different syndromes
@@ -95,7 +131,8 @@ export function BalloonPopScreen() {
         setTimeLeft(30);
         setIsGameOver(false);
         setGameStarted(true);
-        setBalloons([]);
+        setPoppingIds([]);
+        setBalloons(reducedMotion ? makeStaticBalloons() : []);
         playSound('celebration');
         speak(language === 'ar' ? 'أمسك البالونات!' : 'Pop the balloons!', language);
     };
@@ -137,6 +174,32 @@ export function BalloonPopScreen() {
             </div>
 
             <div className="h-screen w-full relative pt-24 overflow-hidden">
+                {reducedMotion ? (
+                    <div className="bp-static">
+                        {balloons.map((balloon, i) => {
+                            const isPopping = poppingIds.includes(balloon.id);
+                            return (
+                                <button
+                                    key={balloon.id}
+                                    type="button"
+                                    onClick={() => handleStaticPop(balloon)}
+                                    aria-label={language === 'ar' ? `بالونة عليها ${balloon.label}` : `Balloon showing ${balloon.label}`}
+                                    className={`bp-static-balloon ${balloon.color} ${isPopping ? 'bp-popping' : ''}`}
+                                    style={{
+                                        left: `${balloon.x}vw`,
+                                        bottom: '14%',
+                                        width: balloon.size,
+                                        height: balloon.size * 1.2,
+                                        animationDelay: isPopping ? '0s' : `${i * 0.14}s`,
+                                    }}
+                                >
+                                    <span className="bp-string" aria-hidden="true" />
+                                    <span className="bp-label" dir="ltr">{balloon.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                ) : (
                 <AnimatePresence>
                     {balloons.map((balloon) => (
                         <motion.button
@@ -162,13 +225,14 @@ export function BalloonPopScreen() {
                                 left: `${balloon.x}vw`,
                             }}
                         >
-                            <div className="absolute h-16 w-0.5 bg-hairline bottom-[-64px] left-1/2 -translate-x-1/2 origin-top transform rotate-2 pointer-events-none" />
+                            <div className="absolute h-16 w-0.5 bg-hairline bottom-[-64px] left-1/2 -translate-x-1/2 origin-top transform rotate-2 pointer-events-none" aria-hidden="true" />
                             <span className="text-3xl font-black text-white drop-shadow-brand-sm select-none pointer-events-none">
                                 {balloon.label}
                             </span>
                         </motion.button>
                     ))}
                 </AnimatePresence>
+                )}
             </div>
 
             <AnimatePresence>
@@ -187,9 +251,9 @@ export function BalloonPopScreen() {
                             {isGameOver ? (
                                 <>
                                     <div className="relative inline-block mb-6">
-                                        <Trophy className="size-24 text-brand-yellow-ink mx-auto" />
-                                        <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute -top-4 -right-4">
-                                            <Sparkles className="size-10 text-brand-yellow-ink" />
+                                        <Trophy className="size-24 text-brand-yellow-ink mx-auto" aria-hidden="true" />
+                                        <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute -top-4 -end-4" aria-hidden="true">
+                                            <Sparkles className="size-10 text-brand-yellow-ink" aria-hidden="true" />
                                         </motion.div>
                                     </div>
                                     <h2 className="t-title text-brand-blue-ink mb-2">
@@ -201,7 +265,7 @@ export function BalloonPopScreen() {
                                 </>
                             ) : (
                                 <>
-                                    <div className="text-9xl mb-8 motion-safe:animate-bounce motion-reduce:animate-none">🎈</div>
+                                    <div className="text-9xl mb-8 motion-safe:animate-bounce motion-reduce:animate-none" aria-hidden="true">🎈</div>
                                     <h2 className="t-title text-brand-blue-ink mb-4">
  {t.balloonPop}
  </h2>
@@ -213,7 +277,7 @@ export function BalloonPopScreen() {
 
                             <div className="flex flex-col gap-4">
                                 <Button onClick={handleStart} size="lg" className="bg-brand-blue-ink text-white hover:brightness-110 text-3xl py-10 rounded-full shadow-brand">
-                                    {isGameOver ? <><RotateCcw className="size-8 me-3" />{language === 'ar' ? 'حاول مرة أخرى' : 'Try Again'}</> : <><Play className="size-8 me-3" />{language === 'ar' ? 'ابدأ اللعب!' : 'Start Play!'}</>}
+                                    {isGameOver ? <><RotateCcw className="size-8 me-3" aria-hidden="true" />{language === 'ar' ? 'حاول مرة أخرى' : 'Try Again'}</> : <><Play className="size-8 me-3" aria-hidden="true" />{language === 'ar' ? 'ابدأ اللعب!' : 'Start Play!'}</>}
                                 </Button>
 
                                 <Button onClick={handleBack} variant="outline" size="lg" className="text-2xl py-8 rounded-full border-4">
@@ -224,6 +288,37 @@ export function BalloonPopScreen() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Scoped styles for the reduced-motion balloons — transform-only
+                entrance and pop, no continuous motion. */}
+            <style>{`
+                .bp-static { position: absolute; inset: 0; }
+                .bp-static-balloon {
+                    position: absolute; display: flex; align-items: center; justify-content: center;
+                    border: 2px solid rgba(0,0,0,0.06); border-radius: 50% 50% 50% 50% / 45% 45% 55% 55%;
+                    box-shadow: 0 10px 24px -12px rgba(42, 33, 24, 0.35);
+                    cursor: pointer; z-index: 20; touch-action: none;
+                    opacity: 0; animation: bp-appear 240ms ease-out forwards;
+                }
+                .bp-static-balloon.bp-popping { animation: bp-pop 260ms ease-out forwards; }
+                .bp-string {
+                    position: absolute; height: 64px; width: 2px; bottom: -64px; left: 50%;
+                    transform: translateX(-50%) rotate(2deg); transform-origin: top;
+                    background: rgba(42, 33, 24, 0.18); pointer-events: none;
+                }
+                .bp-label {
+                    font-size: 30px; font-weight: 900; color: #fff; user-select: none;
+                    pointer-events: none; text-shadow: 0 2px 4px rgba(42, 33, 24, 0.25);
+                }
+                @keyframes bp-appear {
+                    from { opacity: 0; transform: scale(0.6); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                @keyframes bp-pop {
+                    from { opacity: 1; transform: scale(1); }
+                    to { opacity: 0; transform: scale(1.35); }
+                }
+            `}</style>
         </div>
     );
 }

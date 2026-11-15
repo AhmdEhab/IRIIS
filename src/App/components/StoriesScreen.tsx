@@ -165,14 +165,14 @@ export function StoriesScreen() {
                     onClick={() => handleStorySelect(story)}
                     className={`w-full bg-surface rounded-brand-xl shadow-brand overflow-hidden border-2 border-hairline flex group hover:shadow-brand-lg transition-all duration-300`}
                   >
-                    <div className={`w-1/3 bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : story.color} flex items-center justify-center text-7xl`}>
+                    <div className={`w-1/3 bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : story.color} flex items-center justify-center text-7xl`} aria-hidden="true">
                       {story.emoji}
                     </div>
                     <div className="flex-1 p-8 text-start">
                       <h3 className="text-3xl font-black text-ink mb-2">{language === 'ar' ? story.titleAr : story.titleEn}</h3>
                       <div className="flex items-center gap-2 text-brand-purple-ink font-bold">
                         <Star className="size-5 fill-brand-purple" />
-                        <span>{story.duration}</span>
+                        <span dir="ltr">{story.duration}</span>
                       </div>
                       <p className="text-ink-muted mt-4 line-clamp-2 italic">
                         {language === 'ar' ? story.contentAr : story.contentEn}
@@ -222,7 +222,7 @@ export function StoriesScreen() {
                   </AnimatePresence>
 
                   <div className={`aspect-[21/9] bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedStory.color} relative overflow-hidden flex items-center justify-center`}>
-                    <motion.div animate={{ scale: isPlaying ? [1, 1.05, 1] : 1 }} transition={{ duration: 4, repeat: Infinity }} className="text-[12rem] drop-shadow-brand-lg z-10">
+                    <motion.div animate={{ scale: isPlaying ? [1, 1.05, 1] : 1 }} transition={{ duration: 4, repeat: Infinity }} className="text-[12rem] drop-shadow-brand-lg z-10" aria-hidden="true">
                       {selectedStory.emoji}
                     </motion.div>
                     {/* Decorative only (alt=""), and loaded from a remote host —
@@ -258,7 +258,7 @@ export function StoriesScreen() {
                         size="lg"
                         className={`px-16 py-10 rounded-full text-3xl font-black shadow-brand border-2 border-hairline transition-all transform hover:scale-105 ${isPlaying ? 'bg-brand-coral' : 'bg-brand-purple'}`}
                       >
-                        {isPlaying ? <><Pause className="size-10 me-3" /> {language === 'ar' ? 'إيقاف' : 'Pause'}</> : <><Play className="size-10 me-3" /> {language === 'ar' ? 'استمع' : 'Listen'}</>}
+                        {isPlaying ? <><Pause className="size-10 me-3" aria-hidden="true" /> {language === 'ar' ? 'إيقاف' : 'Pause'}</> : <><Play className="size-10 me-3" aria-hidden="true" /> {language === 'ar' ? 'استمع' : 'Listen'}</>}
                       </Button>
 
                       <Button
@@ -266,7 +266,7 @@ export function StoriesScreen() {
                         size="lg"
                         className="bg-brand-green-solid hover:bg-brand-green-solid text-white text-2xl px-12 rounded-full border-2 border-hairline shadow-brand"
                       >
-                        <CheckCircle2 className="size-10 me-3" />
+                        <CheckCircle2 className="size-10 me-3" aria-hidden="true" />
                         {language === 'ar' ? 'لقد انتهيت' : 'I\'m Done'}
                       </Button>
 
@@ -276,7 +276,7 @@ export function StoriesScreen() {
                         size="lg"
                         className="bg-surface text-2xl px-12 rounded-full border-4 border-hairline-soft shadow-brand"
                       >
-                        <RotateCcw className="size-8 me-3" />
+                        <RotateCcw className="size-8 me-3" aria-hidden="true" />
                         {language === 'ar' ? 'قصة أخرى' : 'Another story'}
                       </Button>
                     </div>

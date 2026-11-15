@@ -21,6 +21,21 @@
   font-family: var(--iris-font-body, 'Cairo', system-ui, sans-serif);
   color: var(--lc-ink);
 }
+/* Token-only scope for dialogs PORTALED to document.body (grown-up gate,
+   kid break overlays). Position:fixed children must escape the animated
+   page wrapper — any transform on it (even framer's forwards-filled
+   identity) silently re-parents fixed positioning to a 2245px-tall block.
+   The portal root carries these vars so the shared tokens still resolve. */
+.lc-token-scope {
+  --lc-border: rgba(31, 103, 177, 0.16);
+  --lc-blue: #1F67B1;
+  --lc-blue-ink: #18508A;
+  --lc-surface: #FFFDF6;
+  --lc-ink: #2A2118;
+  --lc-muted: #6B655D;
+  font-family: var(--iris-font-body, 'Cairo', system-ui, sans-serif);
+  color: var(--lc-ink);
+}
 .lc-root svg { width: 22px; height: 22px; }
 /* ambient decor like the landing's corner blobs */
 .lc-decor { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
@@ -114,9 +129,6 @@
 .lc-card:active { transform: translateY(1px) scale(0.99); }
 .lc-card:focus-visible { outline: 3px solid var(--lc-blue); outline-offset: 3px; }
 .lc-card-emoji { font-size: 34px; line-height: 1; }
-.lc-card-lock { position: absolute; width: 20px; height: 20px; color: #D2464E; background: #fff; border-radius: 50%; padding: 3px; top: -6px; inset-inline-end: -6px; box-shadow: 0 4px 10px rgba(42, 33, 24, 0.2); }
-.lc-card--locked { opacity: 0.45; filter: grayscale(0.7); cursor: not-allowed; }
-.lc-card--locked:hover { transform: none; box-shadow: 0 12px 28px -16px rgba(42, 33, 24, 0.24); border-color: var(--lc-border); }
 .lc-card-name { font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; font-weight: 800; font-size: 17px; line-height: 1.4; }
 .lc-card-chip {
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px;
@@ -127,6 +139,18 @@
 .lc-card-chip svg { width: 13px; height: 13px; }
 .lc-chevron-flip, .lc-card-chevron.lc-chevron-flip { transform: rotate(180deg); }
 .lc-pill svg { width: 18px; height: 18px; }
+
+/* Tile press feedback — LandingChildMode adds `is-pressed` for 140ms.
+   !important wins over the sticker-tilt / hover transforms above; scale
+   only, transform-based (no layout thrash, no new deps). */
+.lc-card.is-pressed { transform: scale(0.96) !important; transition-duration: 60ms; }
+
+/* Tiny progress ring inside the wash chip — ink stroke from the chip's
+   own currentColor (blue-ink), never white on a light chip. */
+.lc-root .lc-progress-ring { width: 15px; height: 15px; flex-shrink: 0; }
+.lc-progress-ring circle { fill: none; stroke-width: 3; }
+.lc-progress-bg { stroke: rgba(31, 103, 177, 0.25); }
+.lc-progress-fg { stroke: currentColor; stroke-linecap: round; }
 
 @media (max-width: 640px) {
   .lc-hero { padding: 26px 18px; }
@@ -139,6 +163,7 @@
 @media (prefers-reduced-motion: reduce) {
   .lc-card, .lc-pill, .lc-hero { transition-duration: 1ms; }
   .lc-card:hover, .lc-pill:hover { transform: none; }
+  .lc-card.is-pressed { transform: none !important; border-color: var(--lc-blue); }
 }
 
 /* ── Playful pass: sticker tilt, confetti, swash — still landing tokens ── */
@@ -205,6 +230,7 @@
 @media (prefers-reduced-motion: reduce) {
   .lc-card, .lc-grid > *:nth-child(odd) > .lc-card, .lc-grid > *:nth-child(even) > .lc-card { transform: none; }
   .lc-hero-mascot > div, .lc-hero-mascot svg { transform: none; }
+  .lc-card.is-pressed { transform: none !important; border-color: var(--lc-blue); }
 }
 
 /* ── Parent home in the same language ─────────────────────────────── */
@@ -226,3 +252,42 @@
   border-radius: 18px; font-size: 13.5px; color: var(--lc-muted); font-weight: 600;
 }
 @media (max-width: 640px) { .lc-card-desc { min-height: 0; } .lc-header-side--parent { gap: 8px; } }
+
+/* ── Grown-up gate (ParentGate in LandingChildMode) ──────────────────
+   Same white-plate language as the cards; the hold ring is an SVG
+   strokeDashoffset progress, direction-independent so it works in RTL. */
+.lc-gate { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; padding: 20px; }
+.lc-gate-backdrop { position: absolute; inset: 0; border: 0; padding: 0; cursor: pointer; background: rgba(42, 33, 24, 0.45); }
+.lc-gate-card {
+  position: relative; width: min(440px, 92vw);
+  background: var(--lc-surface); border: 2px solid var(--lc-border); border-radius: 26px;
+  box-shadow: 0 26px 60px -32px rgba(42, 33, 24, 0.34), 0 6px 18px -8px rgba(31, 103, 177, 0.1);
+  padding: 26px 24px; display: flex; flex-direction: column; align-items: center; gap: 16px;
+  text-align: center; color: var(--lc-ink);
+}
+.lc-gate-title { font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; font-weight: 800; font-size: 18px; line-height: 1.6; max-width: 30ch; }
+.lc-gate-hold {
+  position: relative; width: 96px; height: 96px; border-radius: 50%; border: 0;
+  background: rgba(201, 229, 247, 0.5); color: var(--lc-blue-ink);
+  display: grid; place-items: center; cursor: pointer; touch-action: none; padding: 0;
+  min-height: 56px;
+}
+.lc-gate-hold:focus-visible { outline: 3px solid var(--lc-blue); outline-offset: 3px; }
+.lc-root .lc-gate-hold .lc-gate-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lc-gate-ring-bg { fill: none; stroke: rgba(31, 103, 177, 0.22); stroke-width: 6; }
+.lc-gate-ring-fg { fill: none; stroke: var(--lc-blue); stroke-width: 6; stroke-linecap: round; }
+.lc-root .lc-gate-hold .lc-gate-home { position: relative; width: 26px; height: 26px; }
+.lc-gate-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.lc-gate-code { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; font-weight: 700; color: var(--lc-muted); }
+.lc-gate-code-num {
+  display: inline-block; padding: 6px 14px; border-radius: 14px;
+  background: rgba(251, 231, 184, 0.7); color: #8A5A00;
+  font-weight: 800; font-size: 22px; letter-spacing: 4px;
+}
+.lc-gate-input {
+  width: 96px; min-height: 48px; padding: 6px 12px; border-radius: 14px;
+  border: 2px solid var(--lc-border); background: #fff; color: var(--lc-ink);
+  font: inherit; font-weight: 800; text-align: center; letter-spacing: 3px;
+}
+.lc-gate-input:focus-visible { outline: 3px solid var(--lc-blue); outline-offset: 2px; }
+.lc-gate-error { color: #D2464E; font-weight: 700; font-size: 14px; margin: 0; }

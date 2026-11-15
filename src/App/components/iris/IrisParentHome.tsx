@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Home, Award, ChevronRight, Settings, LogOut, Sparkles } from 'lucide-react';
+import { Home, Award, Settings, LogOut, Sparkles } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useIris } from '../../contexts/IrisContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -16,8 +16,15 @@ import '../landing-child.css';
  *
  * Re-skinned in the landing-page / child-mode design language: the same
  * cream polka-dot ground, floating blobs, glass header pills, a white
- * hero plate with the buddy, and pastel bubble cards. Copy, order and the
- * honest "Soon" badges are unchanged from the brochure — styling only.
+ * hero plate with the buddy, and pastel bubble cards.
+ *
+ * ── THE CHIPS SAY WHAT THE CARD IS, NOT WHAT THE FEATURE IS ──────────────
+ * Parent Community and Connect with Specialists used to carry a "Soon" chip
+ * while both `onClick` handlers opened a working screen. A parent read that
+ * as "tapping this does nothing", did not tap it, and the part of the product
+ * that does exist went unseen. "Soon" is now reserved for a card with no
+ * destination at all; these two read `Preview` — the space really is closed,
+ * the screen really does open, and both stay true at once.
  */
 export function IrisParentHome({
   onProgress,
@@ -128,8 +135,10 @@ export function IrisParentHome({
       tone: 'coral',
       titleAr: 'مجتمع الأهالي',
       titleEn: 'Parent Community',
-      descAr: 'مساحة للأهالي — لسه مش مفتوحة.',
-      descEn: 'A space for families — not open yet.',
+      // The card opens, so the copy says what is inside: a labelled demo of a
+      // space that is genuinely still closed. Both halves are true.
+      descAr: 'معاينة لشكل المساحة — المجتمع نفسه لسه مقفول.',
+      descEn: 'A preview of the space — the community itself is still closed.',
       onClick: onCommunity,
       ready: false,
     },
@@ -139,8 +148,8 @@ export function IrisParentHome({
       tone: 'blue',
       titleAr: 'التواصل مع المختصين',
       titleEn: 'Connect with Specialists',
-      descAr: 'الطريق للمراجعة المهنية — لسه مش متاح.',
-      descEn: 'The route to professional review — not available yet.',
+      descAr: 'معاينة للطريق للمراجعة المهنية — مفيش مختصين حقيقيين بعد.',
+      descEn: 'A preview of the route to professional review — no real practitioners yet.',
       onClick: onSpecialists,
       ready: false,
     },
@@ -240,16 +249,17 @@ export function IrisParentHome({
                   </span>
                   <span className="lc-card-name">{ar ? s.titleAr : s.titleEn}</span>
                   <span className="lc-card-desc">{ar ? s.descAr : s.descEn}</span>
-                  {s.ready ? (
-                    <span className="lc-card-chip">
-                      <span>{ar ? 'افتحي' : 'Open'}</span>
-                      <ChevronRight aria-hidden="true" style={{ transform: ar ? 'scaleX(-1)' : undefined }} />
-                    </span>
-                  ) : (
-                    <span className="lc-card-chip lc-card-chip--soon">
-                      <span>{ar ? 'قريبًا' : 'Soon'}</span>
-                    </span>
-                  )}
+                  {/* Every card in this grid has a working destination, so all
+                      of them show the open affordance. `ready` is now purely
+                      about wording: a live section says Open, a demo section
+                      says Preview and keeps the yellow "not the real thing"
+                      colour. Nothing here may say Soon unless the card has
+                      nowhere to go. */}
+                  <span className={`lc-card-chip${s.ready ? '' : ' lc-card-chip--soon'}`}>
+                    <span>{ar ? (s.ready ? 'افتحي' : 'معاينة') : (s.ready ? 'Open' : 'Preview')}</span>
+                    {/* Direction, not geometry: in Arabic "forward" points left. */}
+                    <BrandIcon name={ar ? 'back' : 'forward'} className="w-3.5 h-3.5" tone="transparent" />
+                  </span>
                 </button>
               </motion.div>
             ))}

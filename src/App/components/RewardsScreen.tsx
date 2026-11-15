@@ -15,6 +15,13 @@ export function RewardsScreen() {
     const iris = useIris();
     const { playSound, speak } = useAudio();
     const { t, language } = useLanguage();
+    /* Tapping a locked badge no longer scolds the child with an error
+       sound — it quietly shows a one-line ink note under that badge. */
+    const [hintBadge, setHintBadge] = React.useState<string | null>(null);
+    const hintTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    React.useEffect(() => () => {
+        if (hintTimer.current) clearTimeout(hintTimer.current);
+    }, []);
     /* Honest stats — this screen used to print a hardcoded "1,250 IQ Points"
        and a fake 5-day streak. Stars are what the child actually collected;
        the streak is computed from real logged days. */
@@ -49,8 +56,8 @@ export function RewardsScreen() {
             nameAr: 'المبتدئ الذكي',
             nameEn: 'Smart Beginner',
             emoji: '🧠',
-            descriptionAr: 'لإكمال أول اختبار تقييم بالذكاء الاصطناعي.',
-            descriptionEn: 'For completing the first AI assessment.',
+            descriptionAr: 'أول مغامرة مع IRIS',
+            descriptionEn: 'First adventure with IRIS',
             unlocked: earnedBadges.includes('beginner')
         },
         {
@@ -98,8 +105,10 @@ export function RewardsScreen() {
 
     const handleBadgeClick = (badge: Badge) => {
         if (!badge.unlocked) {
-            speak(language === 'ar' ? 'هذا الوسام سيفتح قريباً! استمر في التعلم.' : 'This badge will unlock soon! Keep learning.', language);
-            playSound('error');
+            // Locked badges are non-interactive: no sound, just a quiet hint.
+            setHintBadge(badge.id);
+            if (hintTimer.current) clearTimeout(hintTimer.current);
+            hintTimer.current = setTimeout(() => setHintBadge(null), 2400);
             return;
         }
 
@@ -134,7 +143,7 @@ export function RewardsScreen() {
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                     <Card className="p-8 bg-brand-yellow border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
-                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
+                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand" aria-hidden="true">
                             <Trophy className="size-12 text-ink" />
                         </div>
                         <div>
@@ -144,21 +153,21 @@ export function RewardsScreen() {
                     </Card>
 
                     <Card className="p-8 bg-brand-blue border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
-                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
+                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand" aria-hidden="true">
                             <Star className="size-12 text-brand-yellow-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-surface">{iris.stars}</p>
+                            <p className="text-4xl font-black text-surface"><span dir="ltr" className="tabular-nums">{iris.stars}</span></p>
                             <p className="text-lg font-bold text-surface uppercase">{t.stars}</p>
                         </div>
                     </Card>
 
                     <Card className="p-8 bg-brand-coral-wash border-none flex items-center gap-6 shadow-brand rounded-brand-lg">
-                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand">
+                        <div className="size-20 rounded-full bg-surface flex items-center justify-center shadow-brand" aria-hidden="true">
                             <Heart className="size-12 text-brand-coral-ink" />
                         </div>
                         <div>
-                            <p className="text-4xl font-black text-brand-coral-ink">{dayStreak}</p>
+                            <p className="text-4xl font-black text-brand-coral-ink"><span dir="ltr" className="tabular-nums">{dayStreak}</span></p>
                             <p className="text-lg font-bold text-brand-coral-ink uppercase">{t.streak}</p>
                         </div>
                     </Card>
@@ -175,6 +184,7 @@ export function RewardsScreen() {
                         >
                             <button
                                 onClick={() => handleBadgeClick(badge)}
+                                aria-disabled={!badge.unlocked}
                                 className={`
                   w-full group relative transition-all duration-500
                   ${!badge.unlocked ? 'opacity-40 grayscale' : 'hover:scale-105 active:scale-95'}
@@ -186,21 +196,21 @@ export function RewardsScreen() {
                 `}>
                                     {/* Decorative background circle */}
                                     <div className={`
-                    absolute -top-10 -right-10 size-40 rounded-full opacity-10 transition-transform group-hover:scale-150
+                    absolute -top-10 -end-10 size-40 rounded-full opacity-10 transition-transform group-hover:scale-150
                     ${badge.unlocked ? 'bg-brand-yellow' : 'bg-hairline'}
-                  `} />
+                  `} aria-hidden="true" />
 
                                     <div className={`
                     size-40 rounded-brand-lg mb-6 flex items-center justify-center text-8xl  relative
                     ${badge.unlocked ? 'bg-brand-yellow-wash' : 'bg-surface-sunk'}
-                  `}>
+                  `} aria-hidden="true">
                                         {badge.unlocked ? (
                                             <>
-                                                <Sparkles className="absolute -top-4 -right-4 size-10 text-brand-yellow-ink animate-pulse" />
+                                                <Sparkles className="absolute -top-4 -end-4 size-10 text-brand-yellow-ink animate-pulse" />
                                                 {badge.emoji}
                                             </>
                                         ) : (
-                                            <Medal className="size-20 text-ink-muted" />
+                                            <Medal className="size-20 text-ink-muted" aria-hidden="true" />
                                         )}
                                     </div>
 
@@ -215,6 +225,12 @@ export function RewardsScreen() {
                                         <div className="mt-4 bg-surface-sunk px-4 py-1 rounded-full text-xs font-bold text-ink-muted uppercase tracking-widest">
                                             {language === 'ar' ? 'مقفل' : 'Locked'}
                                         </div>
+                                    )}
+
+                                    {!badge.unlocked && hintBadge === badge.id && (
+                                        <p className="mt-3 text-sm font-black text-ink leading-snug" role="status">
+                                            {language === 'ar' ? 'افتحها بلعبتك الجاية' : 'Open it with your next game'}
+                                        </p>
                                     )}
                                 </Card>
                             </button>

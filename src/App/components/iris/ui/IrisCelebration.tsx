@@ -22,6 +22,7 @@
  * evidence for this population (docs 29 §H, 05 §9). It is a warmth choice.
  */
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
@@ -67,7 +68,7 @@ export function IrisCelebration({
     return () => clearTimeout(t);
   }, [visible, onDone]);
 
-  return (
+  return createPortal((
     <AnimatePresence>
       {visible && (
         <motion.div
@@ -112,5 +113,5 @@ export function IrisCelebration({
         </motion.div>
       )}
     </AnimatePresence>
-  );
+  ), document.body);
 }

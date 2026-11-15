@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, Trash2, RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
@@ -45,8 +46,11 @@ export function ParentSettingsScreen() {
         navigateTo('iris-parent');
     };
 
+    /* Audit P1: Save used to early-return silently. Feedback is now
+       visible (aria-live chip) and honest in both directions. */
+    const [saveResult, setSaveResult] = React.useState<'idle' | 'saved' | 'failed'>('idle');
     const handleSave = async () => {
-        if (!childProfile?.email) return;
+        if (!childProfile?.email) { setSaveResult('failed'); return; }
         setIsSaving(true);
         playSound('tap');
 
@@ -59,10 +63,12 @@ export function ParentSettingsScreen() {
 
         if (success) {
             setIsSaving(false);
+            setSaveResult('saved');
             playSound('success');
             speak(language === 'ar' ? 'تم حفظ التغييرات' : 'Settings saved successfully', language);
         } else {
             setIsSaving(false);
+            setSaveResult('failed');
             playSound('error');
             speak(language === 'ar' ? 'حدث خطأ أثناء الحفظ' : 'Error saving settings', language);
         }
@@ -71,7 +77,8 @@ export function ParentSettingsScreen() {
     const handleReset = () => {
         resetProgress();
         setShowConfirmReset(false);
-        playSound('celebration');
+        /* A destructive action must never celebrate itself (audit P2). */
+        playSound('tap');
         speak(language === 'ar' ? 'تم تصفير التقدم بنجاح' : 'Progress reset successfully', language);
     };
 
@@ -94,13 +101,24 @@ export function ParentSettingsScreen() {
                         <span>{t.back}</span>
                     </button>
                     <div className="lc-header-side">
+                        {saveResult !== 'idle' && (
+                          <span
+                            role="status"
+                            aria-live="polite"
+                            className={`lc-pill ${saveResult === 'saved' ? 'lc-pill--blue' : 'lc-pill--ghost'}`}
+                          >
+                            {saveResult === 'saved'
+                              ? (language === 'ar' ? 'تم الحفظ ✓' : 'Saved ✓')
+                              : (language === 'ar' ? 'محفظش — جرب تاني' : 'Could not save — try again')}
+                          </span>
+                        )}
                         <button
                             type="button"
                             className="lc-pill lc-pill--blue lc-pill--primary pd-header-save"
                             onClick={handleSave}
                             disabled={isSaving}
                         >
-                            {isSaving ? '...' : <Save aria-hidden="true" />}
+                            {isSaving ? '…' : <Save aria-hidden="true" />}
                             <span>{t.save}</span>
                         </button>
                     </div>
@@ -133,14 +151,14 @@ export function ParentSettingsScreen() {
                                 onClick={() => { setLanguage('ar'); playSound('tap'); }}
                                 className={`lc-pill ps-choice ${language === 'ar' ? 'lc-pill--blue' : 'lc-pill--ghost'}`}
                             >
-                                العربية 🇪🇬
+                                العربية
                             </button>
                             <button
                                 type="button"
                                 onClick={() => { setLanguage('en'); playSound('tap'); }}
                                 className={`lc-pill ps-choice ${language === 'en' ? 'lc-pill--blue' : 'lc-pill--ghost'}`}
                             >
-                                English 🇺🇸
+                                English
                             </button>
                         </div>
                     </div>
@@ -240,8 +258,9 @@ export function ParentSettingsScreen() {
                     <div className="pd-plate">
                         <div className="ps-grid2">
                             <div className="ps-field">
-                                <label className="ps-label">{t.childName}</label>
+                                <label className="ps-label" htmlFor="ps-in-childName">{t.childName}</label>
                                 <input
+                                id="ps-in-childName"
                                     type="text"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -249,8 +268,9 @@ export function ParentSettingsScreen() {
                                 />
                             </div>
                             <div className="ps-field">
-                                <label className="ps-label">{t.age}</label>
+                                <label className="ps-label" htmlFor="ps-in-age">{t.age}</label>
                                 <input
+                                id="ps-in-age"
                                     type="number"
                                     value={formData.age}
                                     onChange={e => setFormData({ ...formData, age: e.target.value })}
@@ -258,8 +278,9 @@ export function ParentSettingsScreen() {
                                 />
                             </div>
                             <div className="ps-field">
-                                <label className="ps-label">{t.motherName}</label>
+                                <label className="ps-label" htmlFor="ps-in-motherName">{t.motherName}</label>
                                 <input
+                                id="ps-in-motherName"
                                     type="text"
                                     value={formData.motherName}
                                     onChange={e => setFormData({ ...formData, motherName: e.target.value })}
@@ -267,8 +288,9 @@ export function ParentSettingsScreen() {
                                 />
                             </div>
                             <div className="ps-field">
-                                <label className="ps-label">{t.fatherName}</label>
+                                <label className="ps-label" htmlFor="ps-in-fatherName">{t.fatherName}</label>
                                 <input
+                                id="ps-in-fatherName"
                                     type="text"
                                     value={formData.fatherName}
                                     onChange={e => setFormData({ ...formData, fatherName: e.target.value })}
@@ -296,7 +318,9 @@ export function ParentSettingsScreen() {
                                     {language === 'ar' ? 'تصفير التقدم' : 'Reset Progress'}
                                 </h3>
                                 <p className="ps-danger-desc">
-                                    {language === 'ar' ? 'سيتم مسح جميع الإنجازات والتقدم وبدء التعلم من جديد' : 'Clear all achievements and start learning from scratch'}
+                                    {language === 'ar'
+                                        ? 'هيتم مسح تقدم الأنشطة والمحفوظات على الحساب. ملف العائلة والتقييم هيفضلوا زي ما هم.'
+                                        : 'Clears saved activity progress on the account. The family file and assessment stay untouched.'}
                                 </p>
                             </div>
                             <button
@@ -313,17 +337,27 @@ export function ParentSettingsScreen() {
             </main>
 
             {/* Reset Confirmation Modal */}
-            {showConfirmReset && (
-                <div className="ps-modal-backdrop">
+            {showConfirmReset && createPortal(
+                <div className="pd-scope lc-token-scope">
+                <div
+                    className="ps-modal-backdrop"
+                    role="presentation"
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowConfirmReset(false); }}
+                >
                     <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
+                        initial={{ scale: 0.96, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1, transition: { duration: 0.2, ease: [0.05, 0.7, 0.1, 1] } }}
                         className="ps-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="ps-reset-title"
+                        tabIndex={-1}
+                        onKeyDown={(e) => { if (e.key === 'Escape') setShowConfirmReset(false); }}
                     >
                         <div className="ps-modal-icon">
                             <Trash2 aria-hidden="true" />
                         </div>
-                        <h2 className="ps-modal-title">
+                        <h2 className="ps-modal-title" id="ps-reset-title">
                             {language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
                         </h2>
                         <p className="pd-muted ps-modal-desc">
@@ -334,6 +368,7 @@ export function ParentSettingsScreen() {
                         <div className="ps-modal-actions">
                             <button
                                 type="button"
+                                autoFocus
                                 className="lc-pill lc-pill--ghost ps-modal-btn"
                                 onClick={() => setShowConfirmReset(false)}
                             >
@@ -349,6 +384,8 @@ export function ParentSettingsScreen() {
                         </div>
                     </motion.div>
                 </div>
+                </div>,
+                document.body,
             )}
         </div>
     );

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Play } from 'lucide-react';
 import { useIris } from '../../contexts/IrisContext';
@@ -74,7 +75,7 @@ function isTruncatedRun(r: any): boolean {
   );
 }
 
-export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
+export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => void; onExit?: () => void }) {
   const iris = useIris();
   const { language } = useLanguage();
   const { speak, isEnabled } = useAudio();
@@ -216,6 +217,14 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
     iris.flushLadderDraft();
     onFinish();
   };
+  /** Audit P1: an OPTIONAL (retake) run must always be exit-able, mid-run
+      included — same draft flush, but back to wherever the parent came from.
+      The forced onboarding ladder never receives onExit: no control there
+      can pretend to leave when the gate would only re-ask. */
+  const exitMidRun = () => {
+    iris.flushLadderDraft();
+    (onExit ?? onFinish)();
+  };
 
   const answerCalibration = (isCorrect: boolean) => {
     const probe = probes[calIndex];
@@ -298,11 +307,17 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
 
   // ── CALIBRATION ──────────────────────────────────────────────────────────
   if (phase === 'CALIBRATION') {
+    // Audit P1: a localStorage-restored calIndex can outrun a shorter probe
+    // set (age changed between sessions) — clamp instead of white-screening.
+    if (!probes[calIndex]) {
+      if (probes.length) queueMicrotask(() => setCalIndex(Math.max(0, probes.length - 1)));
+      return null;
+    }
     const probe = probes[calIndex];
     const items = servableStrandItems({ strand: probe.strand, template_id: probe.template });
     const item = items[0];
     return (
-      <Shell ar={ar} companion="listening">
+      <Shell ar={ar} companion="listening" onExit={onExit ? exitMidRun : undefined}>
         <div className="ps-progress">
           <LadderProgress current={calIndex + 1} total={probes.length} ar={ar} label={ar ? 'نتعرّف' : 'Getting to know you'} />
         </div>
@@ -328,6 +343,7 @@ export function IrisLadderAssessment({ onFinish }: { onFinish: () => void }) {
       <Shell
         ar={ar}
         companion={busy ? 'thinking' : 'listening'}
+        onExit={onExit ? exitMidRun : undefined}
         breakAction={
           <button
             type="button"
@@ -590,14 +606,23 @@ function EffortBurst({ burst, ar }: { burst: number; ar: boolean }) {
 }
 
 /** A calm, cream, focusable overlay the child can sit inside (break / choice). */
-function KidOverlay({ ar, children }: { ar: boolean; children: React.ReactNode }) {
+function KidOverlay({ ar, children, onClose }: { ar: boolean; children: React.ReactNode; onClose?: () => void }) {
   const reduceMotion = useReducedMotion();
-  return (
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && onClose) onClose(); };
+    window.addEventListener('keydown', onKey);
+    // Audit P2: the overlay must not strand a keyboard/switch user — focus
+    // lands inside the panel as soon as it opens.
+    const t = setTimeout(() => panelRef.current?.focus(), 30);
+    return () => { window.removeEventListener('keydown', onKey); clearTimeout(t); };
+  }, [onClose]);
+  return createPortal((
     <motion.div
       dir={ar ? 'rtl' : 'ltr'}
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 grid place-items-center p-6"
+      className="fixed inset-0 z-[300] grid place-items-center p-6 lc-token-scope ps-scope"
       style={{ background: 'rgba(253, 250, 241, 0.94)' }}
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -605,6 +630,8 @@ function KidOverlay({ ar, children }: { ar: boolean; children: React.ReactNode }
       transition={{ duration: 0.2 }}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         style={{
           maxWidth: 460,
           width: '100%',
@@ -623,6 +650,7 @@ function KidOverlay({ ar, children }: { ar: boolean; children: React.ReactNode }
         {children}
       </div>
     </motion.div>
+    ), document.body
   );
 }
 
@@ -651,11 +679,13 @@ function Shell({
   ar,
   companion,
   breakAction,
+  onExit,
 }: {
   children: React.ReactNode;
   ar: boolean;
   companion?: 'listening' | 'thinking';
   breakAction?: React.ReactNode;
+  onExit?: () => void;
 }) {
   return (
     <div className="lc-root ps-scope" dir={ar ? 'rtl' : 'ltr'}>
@@ -671,6 +701,11 @@ function Shell({
         <div className="lc-header-inner">
           <span className="ps-header-title">{ar ? 'نتعرّف على بعض' : 'Getting to know you'}</span>
           <div className="lc-header-side">
+            {onExit && (
+              <button type="button" className="lc-pill lc-pill--ghost" onClick={onExit} data-sfx="tap">
+                {ar ? 'حفظ وخروج' : 'Save & exit'}
+              </button>
+            )}
             {breakAction}
             <ChromeActions />
           </div>

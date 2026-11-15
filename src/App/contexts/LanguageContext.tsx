@@ -318,9 +318,17 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('ar');
+  /* Audit P2: language was the one preference a refresh wiped. Persist it. */
+  const [language, setLanguageState] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem('iris_lang');
+      if (saved === 'ar' || saved === 'en') return saved;
+    } catch { /* private mode */ }
+    return 'ar';
+  });
 
   const setLanguage = useCallback((lang: Language) => {
+    try { localStorage.setItem('iris_lang', lang); } catch { /* private mode */ }
     setLanguageState(lang);
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;

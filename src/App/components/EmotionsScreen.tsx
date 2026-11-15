@@ -129,7 +129,7 @@ export function EmotionsScreen() {
                                         onClick={() => handleEmotionSelect(emotion)}
                                         className={`w-full aspect-square rounded-full shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : emotion.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-brand">
+                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-brand" aria-hidden="true">
                                             {emotion.emoji}
                                         </div>
                                         <h3 className="text-3xl font-bold text-white drop-shadow-brand">
@@ -166,7 +166,7 @@ export function EmotionsScreen() {
                                             size="lg"
                                             className="bg-surface text-2xl px-12 py-8 rounded-full shadow-brand border-2 border-hairline/50"
                                         >
-                                            <RotateCcw className="size-8 me-3" />
+                                            <RotateCcw className="size-8 me-3" aria-hidden="true" />
                                             {language === 'ar' ? 'اختيار شعور آخر' : 'Choose another emotion'}
                                         </Button>
                                     </div>

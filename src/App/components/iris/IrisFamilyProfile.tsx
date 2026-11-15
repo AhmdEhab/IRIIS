@@ -8,6 +8,7 @@ import React from 'react';
 import { useIris } from '../../contexts/IrisContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCaregiverBlocks } from '../../../iris/caregiver/bank.js';
+import { getCaregiverBlocksV2 } from '../../../iris/caregiver/bankV2.js';
 import './plan-family.css';
 
 export interface IrisFamilyProfileProps {
@@ -48,7 +49,9 @@ export function IrisFamilyProfile({
   const blockMeta = React.useMemo(() => {
     const map: Record<string, { icon: string; titleAr: string; titleEn: string }> = {};
     try {
-      for (const b of getCaregiverBlocks()) map[b.id] = { icon: b.icon, titleAr: b.titleAr, titleEn: b.titleEn };
+      for (const b of [...getCaregiverBlocks(), ...getCaregiverBlocksV2()]) {
+        if (b && b.id) map[b.id] = { icon: b.icon, titleAr: b.titleAr, titleEn: b.titleEn };
+      }
     } catch { /* bank not loaded yet — the strip below renders plain names */ }
     return map;
   }, []);

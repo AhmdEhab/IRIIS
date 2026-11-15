@@ -34,7 +34,7 @@
  * The screen now wears the landing language (cream ground, glass header, a
  * white scroll plate for the thread) — markup and classes only.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Home } from 'lucide-react';
 import { useIris } from '../../contexts/IrisContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -59,13 +59,35 @@ export function IrisParentChat({ onBack }: { onBack: () => void }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  /**
+   * IRIS is composing an answer. This used to be implied by "the last message
+   * is from the user", but both halves of a turn were appended in ONE
+   * `setMsgs`, so that moment never existed and the `thinking` mood could
+   * never paint. Now the turn has two visible beats.
+   */
+  const [thinking, setThinking] = useState(false);
+  /** The pending reply timer, kept so leaving the screen cancels it. */
+  const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** One beat after the question lands, the answer appears. */
+  const REPLY_DELAY_MS = 700;
+
+  useEffect(() => {
+    /* An unmount with a live timer would fire setMsgs/setThinking on a screen
+       that is already gone. */
+    return () => {
+      if (replyTimer.current !== null) clearTimeout(replyTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [msgs]);
+  }, [msgs, thinking]);
 
-  const ask = (q: string) => {
-    if (!q.trim()) return;
+  const ask = useCallback((q: string) => {
+    const question = q.trim();
+    /* Empty questions and a second question while IRIS is still answering. */
+    if (!question || thinking) return;
     /**
      * The ladder assessment is passed in a shape the chatbot understands:
      * strengths, developing, floors, priorities and confidence — all of them
@@ -93,12 +115,29 @@ export function IrisParentChat({ onBack }: { onBack: () => void }) {
       { assignments, lastDecision, snapshots, profile, sessions, ladder: ladderContext, lastAdaptation },
       language
     );
-    setMsgs((m) => [...m, { role: 'user', text: q }, { role: 'bot', text: r.answer || '', meta: r }]);
-    setInput('');
-  };
 
-  const last = msgs[msgs.length - 1];
-  const mood = msgs.length === 0 ? 'idle' : last?.role === 'user' ? 'thinking' : 'listening';
+    /* Beat one: the parent's question lands, and IRIS is visibly thinking.
+       The retrieval above already ran — the pause only covers the moment the
+       companion would be composing, never the answer's content. */
+    setMsgs((m) => [...m, { role: 'user', text: q }]);
+    setInput('');
+    setThinking(true);
+
+    if (replyTimer.current !== null) clearTimeout(replyTimer.current);
+    replyTimer.current = setTimeout(() => {
+      replyTimer.current = null;
+      /* Beat two: the reply arrives and the companion returns to listening. */
+      setMsgs((m) => [...m, { role: 'bot', text: r.answer || '', meta: r }]);
+      setThinking(false);
+    }, REPLY_DELAY_MS);
+  }, [
+    thinking, assignments, lastDecision, snapshots, profile, sessions,
+    ladder, learningSnapshot, lastAdaptation, language,
+  ]);
+
+  /* The companion's face is driven by the explicit beat above, not by
+     "which message is last" — that inference was the bug. */
+  const mood = thinking ? 'thinking' : msgs.length === 0 ? 'idle' : 'listening';
 
   return (
     <div className="lc-root tc-scope tc-chat" dir={ar ? 'rtl' : 'ltr'}>
@@ -130,7 +169,16 @@ export function IrisParentChat({ onBack }: { onBack: () => void }) {
       <main className="lc-main">
         {/* The chat plate: a scrolling thread over a fixed composer. */}
         <div className="tc-chat-plate">
-          <div className="tc-chat-scroll">
+          {/* A live region: a screen reader announces each new turn in the
+              order it arrived without the parent having to move the cursor
+              into the thread. `aria-busy` marks the composing beat. */}
+          <div
+            className="tc-chat-scroll"
+            role="log"
+            aria-live="polite"
+            aria-busy={thinking}
+            aria-label={ar ? 'محادثة IRIS والأهل' : 'IRIS and parent conversation'}
+          >
             {msgs.length === 0 ? (
               /* ── The greeting, not a void ─────────────────────────────── */
               <div className="tc-greet">
@@ -175,6 +223,26 @@ export function IrisParentChat({ onBack }: { onBack: () => void }) {
                 )
               )
             )}
+
+            {/* The composing beat, made visible: this is the state the
+                `thinking` mood was written for and could never reach. */}
+            {thinking && (
+              <div className="tc-row tc-row--bot">
+                <div className="tc-avatar">
+                  <IrisBuddy mood="thinking" />
+                </div>
+                <div className="tc-bubble tc-bubble--iris tc-thinking">
+                  <span className="tc-typing" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span className="sr-only-iris">
+                    {ar ? 'إيريس بتفكر في الرد…' : 'IRIS is thinking…'}
+                  </span>
+                </div>
+              </div>
+            )}
             <div ref={endRef} />
           </div>
 
@@ -194,10 +262,14 @@ export function IrisParentChat({ onBack }: { onBack: () => void }) {
                   className="tc-field"
                 />
               </div>
+              {/* One question at a time: while IRIS is composing, Send waits.
+                  The field itself stays usable, so a follow-up can be typed. */}
               <button
                 type="button"
                 onClick={() => ask(input)}
-                aria-label={ar ? 'إرسال' : 'Send'}
+                disabled={thinking}
+                aria-disabled={thinking}
+                aria-label={thinking ? (ar ? 'إيريس بتفكر في الرد' : 'IRIS is thinking') : (ar ? 'إرسال' : 'Send')}
                 className="lc-pill lc-pill--blue tc-send"
               >
                 <BrandIcon name="send" className="w-6 h-6" tone="transparent" />

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, ChevronRight, Home } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HOME_TIP_CATEGORIES, type Tip, type TipCategory } from '../../content/homeTips';
+import { BrandIcon } from './ui/brand';
 import { ChromeActions } from './ui/ChromeActions';
 import { Blob, Sparkle } from '../landing/LandingDecor';
 import { IrisBuddy } from './ui/IrisBuddy';
@@ -32,7 +33,17 @@ import '../parent-tips-chat-landing.css';
 const TONES = ['blue', 'green', 'yellow', 'coral', 'purple'];
 
 /** The shared landing chrome for all three views: decor, glass header with
- *  the view's own back handler and label, and the content column. */
+ *  the view's own back handler and label, and the content column.
+ *
+ *  ── ONE BACK CONTROL, CHOSEN BY WHERE YOU ARE ───────────────────────────
+ *  It used to swap a `Home` glyph for a physically left-pointing `ArrowLeft`
+ *  depending on a flag, and that arrow stayed on the LEFT in Arabic, where
+ *  "back" points right. The rule is now the one the brand TopBar already
+ *  uses, and it is a rule a parent can learn once:
+ *    · inside a view → a chevron pointing BACK, chosen from the writing
+ *                      direction, labelled with what you land on;
+ *    · at the top of
+ *      the screen    → a `Home` pill that leaves Home Tips altogether. */
 function Chrome({
   ar,
   title,
@@ -44,7 +55,7 @@ function Chrome({
   ar: boolean;
   title: string;
   backLabel: string;
-  /** Home icon when the button leaves the screen; arrow when it steps back. */
+  /** True only at the top of the screen: this control leaves Home Tips. */
   homeBack?: boolean;
   onBackClick: () => void;
   children: React.ReactNode;
@@ -62,7 +73,12 @@ function Chrome({
       <header className="lc-header">
         <div className="lc-header-inner">
           <button type="button" className="lc-pill lc-pill--blue" onClick={onBackClick}>
-            {homeBack ? <Home aria-hidden="true" /> : <ArrowLeft aria-hidden="true" />}
+            {homeBack ? (
+              <Home aria-hidden="true" />
+            ) : (
+              /* Direction, not geometry: in Arabic "back" points right. */
+              <BrandIcon name={ar ? 'forward' : 'back'} className="w-5 h-5 shrink-0" tone="transparent" />
+            )}
             <span>{backLabel}</span>
           </button>
           <div className="lc-header-side lc-header-side--parent">
@@ -166,7 +182,9 @@ export function IrisHomeTips({ onBack }: { onBack: () => void }) {
                   </span>
                   <span className="lc-card-chip">
                     <span>{ar ? 'افتحي' : 'Open'}</span>
-                    <ChevronRight aria-hidden="true" style={{ transform: ar ? 'scaleX(-1)' : undefined }} />
+                    {/* The direction reading goes in, not a hard-coded right:
+                        in Arabic "open" points left. */}
+                    <BrandIcon name={ar ? 'back' : 'forward'} className="w-3.5 h-3.5" tone="transparent" />
                   </span>
                 </span>
               </button>
@@ -227,7 +245,7 @@ export function IrisHomeTips({ onBack }: { onBack: () => void }) {
               </span>
               <span className="lc-card-chip">
                 <span>{ar ? 'افتحي' : 'Open'}</span>
-                <ChevronRight aria-hidden="true" style={{ transform: ar ? 'scaleX(-1)' : undefined }} />
+                <BrandIcon name={ar ? 'back' : 'forward'} className="w-3.5 h-3.5" tone="transparent" />
               </span>
             </motion.button>
           ))}

@@ -615,3 +615,23 @@ span a[href] {
   background-size: 12px 6px;
   background-repeat: repeat-x;
 }
+
+/* ---------------------------------------------------------------------------
+   Calm mode inside the app mirrors the OS contract (spec §3 + §6.4).
+   The @media block above honours the operating system; the [data-motion]
+   attribute (set by AppContext from the parent's 'هادئ' choice and the
+   performance adapter) must grant the SAME floor without an OS setting:
+   animation and transition become near-instant, information is untouched.
+   ------------------------------------------------------------------------- */
+html[data-motion='low'] *,
+html[data-motion='low'] *::before,
+html[data-motion='low'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Direction token for the shared page transition (motion/tokens.ts):
+   +1 reads LTR→slide-from-right, RTL flips it to -1 (App.tsx sets it). */
+:root { --iris-dir-x: 1; }

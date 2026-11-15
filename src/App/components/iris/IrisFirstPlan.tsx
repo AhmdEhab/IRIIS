@@ -74,7 +74,7 @@ export function IrisFirstPlan({ caregiver, onContinue, onOpenFamily }: IrisFirst
           <div className="fp-hero-text">
             <p className="fp-kicker">{ar ? 'أول خطة — النهارده' : 'First plan — starting today'}</p>
             <h1 className="fp-title" dir={ar ? 'rtl' : 'ltr'}>
-              {ar ? <>خطة الأسبوع لـ <mark className="fp-mark">{name}</mark></> : <>This week\u2019s plan for <mark className="fp-mark">{name}</mark></>}
+              {ar ? <>خطة الأسبوع لـ <mark className="fp-mark">{name}</mark></> : <>This week’s plan for <mark className="fp-mark">{name}</mark></>}
             </h1>
             <p className="fp-sub" dir={ar ? 'rtl' : 'ltr'}>
               {ar

@@ -113,7 +113,7 @@ export function DrawingScreen() {
  {t.drawing} 
  </h1>
                     <div className="flex gap-4">
-                        <Button onClick={clearCanvas} variant="destructive" size="lg" className="rounded-full shadow-brand transition-transform hover:scale-110 active:scale-90"><Trash2 className="size-6" /></Button>
+                        <Button onClick={clearCanvas} variant="destructive" size="lg" aria-label={language === 'ar' ? 'مسح اللوحة' : 'Clear canvas'} className="rounded-full shadow-brand transition-transform hover:scale-110 active:scale-90"><Trash2 className="size-6" aria-hidden="true" /></Button>
                     </div>
                 </div>
 
@@ -126,11 +126,11 @@ export function DrawingScreen() {
                         </div>
                         <div className="lg:h-px lg:w-full w-px h-12 bg-surface-sunk" />
                         <div className="flex lg:flex-col gap-4">
-                            <Button variant={isEraser ? 'default' : 'outline'} size="lg" onClick={() => { setIsEraser(!isEraser); playSound('tap'); speak(language === 'ar' ? 'ممحاة' : 'Eraser', language); }} className={`rounded-brand size-16 p-0 ${isEraser ? 'bg-brand-coral' : ''}`}><Eraser className="size-8" /></Button>
+                            <Button variant={isEraser ? 'default' : 'outline'} size="lg" aria-label={language === 'ar' ? 'ممحاة' : 'Eraser'} aria-pressed={isEraser} onClick={() => { setIsEraser(!isEraser); playSound('tap'); speak(language === 'ar' ? 'ممحاة' : 'Eraser', language); }} className={`rounded-brand size-16 p-0 ${isEraser ? 'bg-brand-coral' : ''}`}><Eraser className="size-8" aria-hidden="true" /></Button>
                             <div className="space-y-2">
                                 <div className="flex flex-col gap-2">
                                     {[8, 16, 24].map((size) => (
-                                        <button key={size} onClick={() => { setBrushSize(size); playSound('tap'); }} className={`rounded-full border-2 border-hairline transition-all ${brushSize === size ? 'bg-ink scale-110' : 'bg-surface-sunk'}`} style={{ width: `${size + 20}px`, height: `${size + 20}px`, margin: '0 auto' }}>
+                                        <button key={size} aria-label={language === 'ar' ? `حجم الفرشة ${size}` : `Brush size ${size}px`} onClick={() => { setBrushSize(size); playSound('tap'); }} className={`rounded-full border-2 border-hairline transition-all ${brushSize === size ? 'bg-ink scale-110' : 'bg-surface-sunk'}`} style={{ width: `${size + 20}px`, height: `${size + 20}px`, margin: '0 auto' }}>
                                             <div className="bg-surface rounded-full mx-auto" style={{ width: `${size}px`, height: `${size}px` }} />
                                         </button>
                                     ))}
@@ -140,16 +140,16 @@ export function DrawingScreen() {
                     </Card>
 
                     <Card className="lg:col-span-10 relative bg-surface shadow-brand-lg p-2 rounded-brand-xl overflow-hidden">
-                        <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} className="w-full h-full cursor-crosshair touch-none rounded-brand-lg" />
+                        <canvas ref={canvasRef} role="img" aria-label={language === 'ar' ? 'لوحة الرسم' : 'Drawing canvas'} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} className="w-full h-full cursor-crosshair touch-none rounded-brand-lg" />
                         <div className="absolute top-6 left-1/2 -translate-x-1/2 pointer-events-none opacity-30 select-none">
-                            <p className="text-3xl font-bold text-ink-muted">{language === 'ar' ? 'ارسم شيئاً جميلاً هنا! ✨' : 'Draw something beautiful here! ✨'}</p>
+                            <p className="text-3xl font-bold text-ink-muted" aria-hidden="true">{language === 'ar' ? 'ارسم شيئاً جميلاً هنا! ✨' : 'Draw something beautiful here! ✨'}</p>
                         </div>
                     </Card>
                 </div>
 
                 <div className="mt-6 flex justify-center">
                     <Button size="lg" className="px-10 py-5 rounded-brand text-xl font-black bg-brand-green hover:bg-brand-green shadow-brand border-2 border-hairline transition-all transform hover:scale-105" onClick={() => { playSound('celebration'); incrementProgress('drawing'); speak(language === 'ar' ? 'عمل رائع يا فنان!' : 'Great job artist!', language); setTimeout(() => navigateTo('child-mode'), 1500); }}>
-                        <CheckCircle2 className="size-6 me-2" />
+                        <CheckCircle2 className="size-6 me-2" aria-hidden="true" />
                         {language === 'ar' ? 'انتهيت!' : 'Done!'}
                     </Button>
                 </div>
