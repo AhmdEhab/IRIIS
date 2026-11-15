@@ -459,7 +459,11 @@ function AppContent() {
       return signedInNow ? gateLoading : null;
     }
     if (!ladderChecked) return gateLoading;
-    if (emailVerified !== false && !caregiverChecked) {
+    if (emailVerified !== false && !(caregiverChecked && caregiver?.scored)) {
+      /* P61: checked alone is not enough — the gate passes only when an
+         actual scored family record is in hand (server-confirmed or the
+         account's own local mirror). A stray flag can no longer unlock
+         the hub. */
       // Research framework sequence: REGISTER → VERIFY → FAMILY FILE →
       // LADDER → FIRST PLAN → HUB. Suspension is safe: every answer is
       // auto-saved server-side (draft) and mirrored locally.

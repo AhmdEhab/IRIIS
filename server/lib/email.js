@@ -243,6 +243,13 @@ async function sendVerificationEmail(email, code, lang, ttlMinutes) {
     port: Number(process.env.SMTP_PORT || 465),
     secure: Number(process.env.SMTP_PORT || 465) === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    /* P61: a blocked/hung SMTP conversation used to wedge /api/register for
+       the full function timeout — the account was created while the parent
+       stared at a frozen form, and the next attempt read as "email taken".
+       Hard caps mean delivery fails LOUD and FAST; /verify offers resend. */
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 8000,
   });
   await transport.sendMail({ from: FROM, to: email, subject: mail.subject, html: mail.html, text: mail.text });
   return 'smtp';

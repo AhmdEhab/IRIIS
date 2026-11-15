@@ -363,6 +363,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     motionPreference === 'calm' ? 'low'
     : motionPreference === 'lively' ? 'high'
     : (dynamicRuleAdaptions.animationIntensity ?? 'medium');
+  /* ── P61: account boundary on shared devices ──────────────────────────
+     Everything below localStorage is per-DEVICE, but the onboarding gate
+     reads it as if it were per-ACCOUNT. A brand-new family registering on
+     a browser that once held another family could inherit that device's
+     mirrors (family file, ladder drafts, stars) and sail past the gate.
+     iris_owner_email stamps who the local data belongs to; the moment a
+     DIFFERENT identity signs in or boots, the account-scoped keys are
+     wiped — the server remains the only durable source, so the returning
+     legitimate owner simply rehydrates from it, and nobody borrows
+     another family's progress. Device prefs (language, motion, sound,
+     display) are deliberately kept. */
+  const ACCOUNT_SCOPED_KEYS = React.useRef<string[]>([
+    'iris_child_profile',
+    'iris_family_profiles_v1',
+    'iris_caregiver_draft_v1',
+    'iris_ladder_probe_v1',
+    'iris_ladder_cal_v1',
+    'iris_stars_v1',
+    'iris_avatar_v1',
+    'iris_stage_feedback',
+  ]);
+  const purgeAccountScoped = useCallback(() => {
+    try { ACCOUNT_SCOPED_KEYS.current.forEach((k) => localStorage.removeItem(k)); } catch { /* private mode */ }
+  }, []);
+  const ensureOwnerBoundary = useCallback((nextEmail: string | null | undefined) => {
+    try {
+      const owner = localStorage.getItem('iris_owner_email');
+      if (nextEmail && owner && owner !== nextEmail) purgeAccountScoped();
+      if (nextEmail) localStorage.setItem('iris_owner_email', nextEmail);
+    } catch { /* storage unavailable: nothing to protect */ }
+  }, [purgeAccountScoped]);
+
   useEffect(() => {
     // Single global knob that useReducedMotion() and iris.css both honour.
     document.documentElement.dataset.motion = effectiveMotionIntensity;
@@ -441,6 +473,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * P0 security fix — see server.js and IRIS_IMPLEMENTATION_AUDIT.md §14.3).
    * That endpoint now returns 410 for anyone who still calls it.
    */
+  /* P61b: the identity boundary must run BEFORE any hydration effect can
+     re-pollute iris_auth_email. A function body runs on every render — the
+     guard below is idempotent, so repeating it costs a key compare. */
+  const ownerBoundaryRan = React.useRef(false);
+  if (!ownerBoundaryRan.current) {
+    ownerBoundaryRan.current = true;
+    try {
+      const authEmail = localStorage.getItem('iris_auth_email');
+      const owner = localStorage.getItem('iris_owner_email');
+      if (authEmail && owner && authEmail !== owner) {
+        ACCOUNT_SCOPED_KEYS.current.forEach((k) => localStorage.removeItem(k));
+        localStorage.setItem('iris_owner_email', authEmail);
+      } else if (authEmail && !owner) {
+        localStorage.setItem('iris_owner_email', authEmail);
+      }
+      /* P61b: no token does NOT clear the stamp — an empty session is
+         exactly the window where the NEXT identity (login/register) must
+         find a mismatch to purge. Clearing it here erased the evidence
+         that the device belonged to someone else. */
+    } catch { /* private mode */ }
+  }
   const registerUser = useCallback(async (profile: ChildProfile & { password?: string }) => {
     setAuthErrorCode(null);
     try {
@@ -462,6 +515,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json(); // { token, user, verification }
         const user = data.user || {};
+        /* The fresh account owns this device's local state now — drop any
+           previous family's mirrors BEFORE the gate reads them. */
+        ensureOwnerBoundary(user.email || profile.email);
         setAuthToken(data.token || null);
         setRegisterEmailSent(data.verification ? data.verification.sent === true : null);
         try { localStorage.setItem('iris_auth_email', user.email || profile.email || ''); } catch {}
@@ -505,6 +561,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const payload = await response.json(); // { token, user }
         const data = payload.user || {};
+        // P61: an identity change on this device purges the old account's
+        // mirrors first — see ensureOwnerBoundary above. Same account = no-op.
+        ensureOwnerBoundary(data.email || email);
         setAuthToken(payload.token || null);
         try { localStorage.setItem('iris_auth_email', data.email || email); } catch {}
         setChildProfile({
@@ -675,12 +734,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const map = readFamilyMap();
       const cid = String(childId ?? 'current');
       if (v) map[cid] = v; else delete map[cid];
+      try { map[String(childId)].owner = localStorage.getItem('iris_auth_email') || null; } catch { /* stamped best-effort */ }
       localStorage.setItem(FAMILY_KEY, JSON.stringify(map));
     } catch { /* private mode — in-memory state still serves this session */ }
   }, [readFamilyMap]);
   const caregiverForChild = useCallback((childId: number | string | null) => {
     const map = readFamilyMap();
-    return map[String(childId ?? 'current')] ?? map['current'] ?? null;
+    const rec = map[String(childId ?? 'current')] ?? map['current'] ?? null;
+    /* P61c: defense in depth — even if a purge was ever missed, a family
+       mirror stamped to a DIFFERENT account is never handed to this one.
+       Unstamped pre-boundary records still pass (offline legacy support). */
+    if (rec && (rec as any).owner) {
+      try {
+        const me = localStorage.getItem('iris_auth_email');
+        if (me && (rec as any).owner !== me) return null;
+      } catch { /* private mode */ }
+    }
+    return rec;
   }, [readFamilyMap]);
   const navigateTo = useCallback((screen: Screen) => {
     clearTimeout(transitionHold.timer as ReturnType<typeof setTimeout>);
