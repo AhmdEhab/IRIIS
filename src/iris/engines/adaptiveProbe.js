@@ -280,6 +280,16 @@ export function nextProbe(state) {
     if (pending.length === 0) continue; // nothing left here; advance() will move it
     const strandId = pending[0];
     const strand = STRAND_BY_ID[strandId];
+    /* P62b ROTATION: consecutive visits to the same strand must not re-ask
+       the same cards. The engine rotates the strand's TEMPLATE list (visual
+       vs listen variants — real activity differences) by visit number, and
+       tells the picker how many visits have already run (`visit_offset`) so
+       it can rotate the ITEM list too. Paired-modality retries still win:
+       they exist to answer the insufficiency that just happened. */
+    const tpls = (strand.templates || []);
+    const rotTemplate = tpls.length
+      ? tpls[Math.min(t.visits, tpls.length - 1)]
+      : null;
     return {
       track_key: `${t.ladder}:${t.track}`,
       strand: strandId,
@@ -287,6 +297,7 @@ export function nextProbe(state) {
       track: t.track,
       rung: t.rung,
       item_count: cfg.ITEMS_PER_VISIT,
+      visit_offset: t.visits,
       // On a paired-modality retry the visit carries the twin format, so the
       // screen renders the OTHER route to the same rung rather than asking the
       // identical question again. `template` stays the strand default for
@@ -294,6 +305,7 @@ export function nextProbe(state) {
       // av2 and all of them when no twin serves this strand.
       template: (t.modality_tried[strandId] === true
         && pairedTemplate(strandId, strand.templates?.[0]))
+        || rotTemplate
         || strand.templates?.[0]
         || null,
       use_modality_pair: !!t.modality_tried[strandId],

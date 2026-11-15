@@ -259,6 +259,19 @@ await page.screenshot({ path: `${OUT}/03-ladder-done.png` });
 
 // ── 4a. P62: skill chips during the run ────────────────────────────────────
 ok('skill chip (🎯 …) appeared on the ladder screens', !!lres.sawChip, `clicks=${lres.clicks}`);
+/* P62b: no card should be served more than twice in one family session
+   (twice is only possible on the pool-3 strands; the rotation kills the old
+   "same first two cards every visit" bug entirely). */
+const servedIds = await page.evaluate(() => (window).__irisVisitItemIds || []);
+{
+  const c = {};
+  servedIds.forEach((id) => { c[id] = (c[id] || 0) + 1; });
+  const worst = Math.max(0, ...Object.values(c));
+  const dupIds = Object.values(c).filter((x) => x > 1).length;
+  console.log(`   served cards: ${servedIds.length}, unique: ${Object.keys(c).length}, worst repeat: ${worst}`);
+  ok('P62b no card served 3+ times in one session', worst <= 2, `worst=${worst} dup=${dupIds}`);
+  ok('P62b session served at most 18 probe cards', servedIds.length <= 18, `served=${servedIds.length}`);
+}
 
 // ── 4b. P62: the RESULTS screen sits between the ladder and the plan ──────
 if (!lres.onResults) {

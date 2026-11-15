@@ -193,7 +193,14 @@ function useIrisState() {
   const savedProbe = (() => {
     try { return JSON.parse(localStorage.getItem('iris_ladder_probe_v1') || 'null'); } catch { return null; }
   })();
-  const [probeState, setProbeState] = useState<any>(savedProbe?.probeState ?? null);
+  /* P62b: pre-P62 drafts carry no `config` (they were the long clinical
+     defaults). The product decision is that families — not archives — use
+     this screen, so a legacy in-progress draft resumes on the SHORT family
+     profile from wherever it stopped. Drafts that already stamped a config
+     keep exactly what they started with. */
+  const ensureFamilyConfig = (ps: any) =>
+    ps && !ps.config ? { ...ps, config: PROBE_PROFILES.family } : ps ?? null;
+  const [probeState, setProbeState] = useState<any>(ensureFamilyConfig(savedProbe?.probeState));
   const [probeCalibration, setProbeCalibration] = useState<any>(savedProbe?.probeCalibration ?? null);
   const [currentVisit, setCurrentVisit] = useState<any>(savedProbe?.currentVisit ?? null);
   /*
@@ -305,7 +312,7 @@ function useIrisState() {
       calIndex: d.cal?.calIndex ?? 0,
       calResponses: Array.isArray(d.cal?.calResponses) ? d.cal.calResponses : [],
       cal: d.cal ?? null,
-      probeState: d.probeState ?? null,
+      probeState: ensureFamilyConfig(d.probeState),
       probeCalibration: d.probeCalibration ?? null,
       currentVisit: d.currentVisit ?? null,
       visitSeed: null,
@@ -403,7 +410,7 @@ function useIrisState() {
       if (!Number.isFinite(sStamp)) return null;
       if (Date.now() - sStamp > LADDER_DRAFT_FRESH_MS) return null; // stale: not a resume point
       if (lStamp && sStamp < lStamp) return null;                   // this device is newer
-      setProbeState(st.probeState ?? null);
+      setProbeState(ensureFamilyConfig(st.probeState));
       setProbeCalibration(st.probeCalibration ?? null);
       setCurrentVisit(st.currentVisit ?? null);
       setLadderObservations(Array.isArray(st.observations) ? st.observations : []);

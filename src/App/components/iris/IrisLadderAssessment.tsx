@@ -73,7 +73,10 @@ type Phase = 'INTRO' | 'CALIBRATION' | 'PROBE' | 'DONE';
  * session ever truncates silently. av2 raises 12 → 15 to match the honest
  * 8–15-minute target, counted in items, never promised in minutes.
  */
-const SESSION_CAP_ITEMS = 15;
+/* P62b: the family session budget is 16 items, so the cap question must
+   sit ABOVE it — otherwise the break prompt pops one item before the engine
+   ends the session and families who take the break never reach the report. */
+const SESSION_CAP_ITEMS = 18;
 
 /**
  * Stop reasons that mean "the session was cut short" rather than "we
@@ -246,7 +249,19 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     if (!v) return;
     const pool = servableStrandItems({ strand: v.strand, template_id: v.template });
     const fallback = pool.length ? pool : servableStrandItems({ strand: v.strand });
-    setVisitItems(fallback.slice(0, v.item_count));
+    /* P62b ROTATION: visit N starts where visit N-1 ended (cyclic). The
+       engine's template rotation already switches activity FORM for strands
+       that have a listen/visual twin; this stops the same CARDS from being
+       re-served inside one form. QA reads the accumulated list below. */
+    const n = Math.max(1, v.item_count || 1);
+    const len = fallback.length || 1;
+    const start = (((v.visit_offset || 0) % len) * n) % len;
+    const rotated = fallback.slice(start).concat(fallback.slice(0, start)).slice(0, Math.min(n, len));
+    setVisitItems(rotated);
+    try {
+      const w = window as any;
+      w.__irisVisitItemIds = [...(w.__irisVisitItemIds || []), ...rotated.map((i: any) => String(i.item_id ?? i.id ?? ''))];
+    } catch { /* test env */ }
     setVisitIndex(0);
     setVisitCorrect(0);
     visitObsRef.current = [];   // fresh observation slice per visit
