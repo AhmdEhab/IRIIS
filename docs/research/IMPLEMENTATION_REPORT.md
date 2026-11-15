@@ -105,3 +105,27 @@ This section supersedes the cv1 questionnaire for NEW families. cv1 remains full
 
 ## Validation plan (timing claim)
 2–3 minutes remains a TARGET, not a proven figure. Every cv2 submission now carries `metrics.durationSeconds` + probe counts. After ≥ 20 real family sessions, median wall time will be computed; only then may a minutes claim appear in copy (refinement 5 of the approved draft).
+
+---
+
+## P61 — Onboarding-Gate Integrity Fix (2026-11-15)
+
+**المنشأ:** بلاغ مستخدم — حساب جديد على الإنتاج دخل التطبيق مباشرة بدون ملف العائلة (cv2) وبدون تقييم الطفل.
+
+**الأسباب الجذرية (ثلاثة متراكبة):**
+1. **تداخل بيانات الأجهزة المشتركة:** مرايا localStorage (ملف العائلة، مسودّة التدرّج، النجوم…) كانت مفهرسة برقم الطفل فقط بلا وسم حساب — جهاز فيه بقايا جلسات اختبار سابقة يستطيع حساب جديد أن يرث منه "إكمال" البوابات.
+2. **بوابة أضعف مما يجب:** `caregiverChecked` وحده كان يفتح اللوحة؛ لم يكن مطلوباً وجود سجل فعلي `scored`.
+3. **علّق SMTP في الإنتاج:** `/api/register` كان ينتظر رسالة التحقق بلا أي مهلة؛ انقطاع Gmail↔Vercel يجمّد الطلب لدقائق بينما الحساب يُنشأ فعلاً — فيبدو التسجيل "مكسورًا" ويلجأ المستخدم لتسجيل الدخول بحالة جهاز ملوثة.
+
+**الإصلاحات:**
+- `iris_owner_email`: وسم هوية على الجهاز؛ حارس تزامن في أول render + `ensureOwnerBoundary()` قبل أي token في registerUser/loginUser — أي تبديل هوية يمحو المفاتيح الحسابية (ملف الطفل/العائلة/المسودّات/النجوم/الأفاتار/تغذية المراحل) مع إبقاء تفضيلات الجهاز (لغة/حركة/صوت/عرض). وسم `owner` لكل قيد عائلة، و`caregiverForChild` يرفض قيد الحساب الآخر. الوسم يبقى بعد الخروج (الدليل على الملكية).
+- البوابة الآن `caregiverChecked && caregiver?.scored` معًا.
+- مهلات nodemailer صارمة (5s اتصال/تحية، 8s socket): التسجيل يرد خلال ثوانٍ ويصريح بالفشل مع زر إعادة الإرسال — لا تعليق بعد اليوم.
+- فحوص دائمة: `scripts/qa-account-switch.mjs` (عائلتان، جهاز واحد — B تُجبَر على ملف العائلة وتُمحى مرايا A) و`scripts/vis-p61-prod.mjs` (برهان الإنتاج بلقطة شاشة).
+
+**التحقق على الإنتاج (بعد النشر index-DIhuilLW.js):**
+- register جديد: **201 خلال 4.2 ث، verification.sent=true عبر SMTP الحقيقي**.
+- محاكاة حالة المستخدم (مرآة عائلة مزوّرة تحت id الطفل نفسه + owner غريب): **تمحوها البوابة عند الإقلاع، والشاشة الظاهرة = تأكيد البريد — لا اللوحة**. PASS/PASS.
+- البطارية الكاملة المحلية: unit 233/233، auth 47/47، cv2 35/35، family 16/16، av2 28/28، nav 27/27، account-switch PASS.
+
+**توافق cv1:** السجلات المكتملة على السيرفر لا تتأثر إطلاقًا — المحو يمسح المرايا المحلية فقط، والمياهرة تعيد-load من السيرفر لحسابها الشرعي.
