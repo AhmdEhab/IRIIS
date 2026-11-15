@@ -441,3 +441,33 @@
 .cp-care-title { font-family: var(--cp-display, inherit); font-size: clamp(20px, 3.4vw, 26px); font-weight: 800; color: var(--cp-ink, #243056); margin: 0 0 8px; }
 .cp-care-body { font-size: clamp(15px, 2.6vw, 17px); line-height: 1.85; color: var(--cp-text, #3a4468); margin: 0 0 18px; }
 .cp-cta--care { background: linear-gradient(135deg, #4C7DF0, #6a5cff); }
+
+/* ── av2 P1/P2/P3 (lane notes 2026-11-15) ────────────────────────────────
+   P1: a third, honest save-chip tone — the flush is in flight. Amber, the
+   same warm-not-alarming language as the care card; never red. */
+.cp-save--pending { color: #b7791f; }
+
+/* P3: the derived-steps remaining count, under the progress meta row.
+   Deliberately quiet — it is information, never a countdown. */
+.cp-remaining { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+.cp-remaining-count { font-size: 13px; font-weight: 700; color: var(--muted-text); font-variant-numeric: tabular-nums; }
+.cp-remaining-cap { font-size: 12px; font-weight: 600; color: var(--muted-text); background: var(--surface-sunk); border: 1px solid var(--border-soft); border-radius: 999px; padding: 1px 8px; }
+.cp-adjust-note { text-align: center; font-size: 12.5px; line-height: 1.7; color: var(--muted-text); max-width: 52ch; margin: 6px auto 0; }
+
+/* P2: the completion summary. Strengths chips lead; rows are quiet facts. */
+.cp-card--summary { text-align: start; }
+.cp-sum-head { font-family: var(--cp-display, inherit); font-size: clamp(16px, 2.8vw, 19px); font-weight: 800; color: var(--cp-ink, #243056); margin: 20px 0 8px; }
+.cp-sum-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cp-sum-interests { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cp-sum-interests-label { font-size: 14px; font-weight: 700; color: var(--muted-text); }
+.cp-sumchip { display: inline-block; font-size: 14px; font-weight: 700; line-height: 1.4; padding: 6px 12px; border-radius: 999px;
+  color: var(--brand-green-ink); background: var(--brand-green-wash); border: 1.5px solid color-mix(in srgb, var(--brand-green) 34%, white); }
+.cp-sumchip--strength { background: color-mix(in srgb, var(--brand-green) 14%, white); }
+.cp-sumrows { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.cp-sumrow { border: 1.5px solid var(--border-soft); border-radius: 14px; padding: 12px 14px; background: var(--surface-sunk); }
+.cp-sumrow-main { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+.cp-sumrow-name { font-size: 15.5px; font-weight: 800; color: var(--cp-ink, #243056); }
+.cp-sumrow-count, .cp-sumrow-state, .cp-sumrow-conf { font-size: 13.5px; font-weight: 600; color: var(--muted-text); }
+.cp-sumrow-state { color: var(--cp-text, #3a4468); }
+.cp-sumrow-note { font-size: 12.5px; line-height: 1.7; color: var(--muted-text); margin: 8px 0 0; }
+.cp-soft { text-align: center; color: var(--muted-text); font-size: 15px; margin: 8px auto; }

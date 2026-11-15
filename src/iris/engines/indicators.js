@@ -33,6 +33,78 @@
 import { DPS_WEIGHTS, PROFILE, VALIDATION } from '../spec.js';
 import { STRAND_BY_ID, heightOf, baseRungOf } from '../ladders/index.js';
 import { carriesDialectCaveat } from '../ladders/literacy.js';
+import { presentedOf } from './skillEstimate.js';
+
+/**
+ * av2 §1 — the six outcomes an observation can carry.
+ *
+ * Exported as ONE frozen list so a consumer cannot invent a seventh and a
+ * producer cannot silently drop one; the UI's helper-confirm buttons and the
+ * engine's counting both read this array, so the two ends of the wire cannot
+ * drift apart.
+ *
+ * The distinction that makes this list necessary is the last three:
+ *
+ *   demonstrated_independent  did it without a scaffold
+ *   demonstrated_with_support did it WITH a scaffold shown   (counts 0.5, and
+ *                             moves `independence` — this is the difference
+ *                             between "can do it" and "can do it today with
+ *                             help", which matrix D9/D10 say parents need)
+ *   not_demonstrated          tried, and did not get there
+ *   insufficient              NOT a failure. The item never reached a
+ *                             scorable response: disengaged, off-task, audio
+ *                             not played, interface not understood this time.
+ *                             Never counted in a denominator (spec §4).
+ *   no_opportunity            the domain was never offered — gated before the
+ *                             session. Honest absence, not a zero.
+ *   invalid_administration    the VISIT was not administered as specified
+ *                             (<3 items, interruption, wrong device). All its
+ *                             rows are excluded from every estimate (§1.6).
+ *
+ * None of these is a diagnosis and none of them is a behaviour-clinical
+ * statement: they describe what happened during an item.
+ */
+export const OUTCOME = Object.freeze([
+  'demonstrated_independent',
+  'demonstrated_with_support',
+  'not_demonstrated',
+  'insufficient',
+  'no_opportunity',
+  'invalid_administration',
+]);
+
+/**
+ * Turn one visit's item-level observations into the counts the probe row and
+ * the indicators are built from. This is the ONLY place outcomes become
+ * numbers, which is what keeps `supported` real instead of a hardcoded 0.
+ *
+ * Conventions, stated because the denominators depend on them:
+ *   correct      = demonstrated_independent ONLY. Support is its own count,
+ *                  so independence (1 − supported/presented) can be computed
+ *                  and a supported answer cannot silently look like mastery.
+ *   supported    = demonstrated_with_support.
+ *   insufficient = items that never reached a scorable response.
+ *   total        = every item that was presented and scored in some way, so
+ *                  insufficient IS inside `total`, and the scorable share is
+ *                  `total − insufficient` (see presentedOf in skillEstimate).
+ *   no_opportunity and invalid_administration rows are excluded from `total`:
+ *                  the first was never presented, the second was presented
+ *                  but is not evidence about the child (§1.6).
+ */
+export function visitCountsFromObservations(obs) {
+  const rows = (Array.isArray(obs) ? obs : []).filter(
+    (o) => o && OUTCOME.includes(o.outcome) &&
+      o.outcome !== 'no_opportunity' && o.outcome !== 'invalid_administration'
+  );
+  const count = (want) => rows.filter((o) => o.outcome === want).length;
+  return {
+    correct: count('demonstrated_independent'),
+    supported: count('demonstrated_with_support'),
+    missed: count('not_demonstrated'),
+    insufficient: count('insufficient'),
+    total: rows.length,
+  };
+}
 
 export const INDICATOR_CONFIG = {
   /** Below this many scored items a strand is NOT MEASURED, not scored low. */
@@ -45,9 +117,21 @@ export const INDICATOR_CONFIG = {
   _source: 'ASSESSMENT_RESEARCH_MATRIX.md §8',
 };
 
-/** Rows for one strand: scored, non-calibration only. */
+/**
+ * Rows for one strand: scored, non-calibration only.
+ *
+ * Two av2 allowances, both deliberate:
+ *   - a row whose visit was flagged invalid never reaches the counts (§1.6);
+ *   - a row of nothing but `insufficient` still has to be VISIBLE here, or a
+ *     strand that never got a scorable response would report NOT_PROBED, which
+ *     is a claim nobody tested. It reports NEEDS_MORE_INFORMATION instead —
+ *     we tried, and the attempt did not produce evidence.
+ */
 export function rowsForStrand(results, strandId) {
-  return results.filter((r) => r.strand === strandId && !r.calibration && r.total > 0);
+  return results.filter(
+    (r) => r.strand === strandId && !r.calibration && !r.invalid_flag &&
+      (r.total > 0 || (r.insufficient ?? 0) > 0)
+  );
 }
 
 /**
@@ -64,14 +148,23 @@ export function indicatorFor(strandId, results, opts = {}) {
   if (!strand) throw new Error(`unknown strand: ${strandId}`);
 
   const rows = rowsForStrand(results, strandId);
-  const items = rows.reduce((s, r) => s + r.total, 0);
-  const correct = rows.reduce((s, r) => s + r.correct, 0);
-  const supported = rows.reduce((s, r) => s + r.supported, 0);
+  /**
+   * av2 §1 — `items` is the PRESENTED count: everything the child was actually
+   * given a chance to answer. Disengaged and unreachable items are inside the
+   * visit's `total` but not inside this number, so an item that was never
+   * really asked cannot dilute an accuracy. For a row with no insufficient
+   * items — every row produced before av2 — presented === total, and every
+   * number below is bit-for-bit what it always was.
+   */
+  const items = rows.reduce((s, r) => s + presentedOf(r), 0);
+  const insufficient = rows.reduce((s, r) => s + (r.insufficient ?? 0), 0);
+  const correct = rows.reduce((s, r) => s + (r.correct ?? 0), 0);
+  const supported = rows.reduce((s, r) => s + (r.supported ?? 0), 0);
   const flags = [];
 
   // Dialect distance — annotation only. It NEVER changes the number.
   const dialectRows = rows.filter((r) => carriesDialectCaveat(r.dialect_distance));
-  const dialectItems = dialectRows.reduce((s, r) => s + r.total, 0);
+  const dialectItems = dialectRows.reduce((s, r) => s + presentedOf(r), 0);
   const dialectRatio = items > 0 ? dialectItems / items : 0;
   const dialect_caveat = strand.phonological === true && dialectRatio >= INDICATOR_CONFIG.DIALECT_CAVEAT_RATIO;
   if (dialect_caveat) flags.push('DIALECT_DISTANCE');
@@ -91,7 +184,11 @@ export function indicatorFor(strandId, results, opts = {}) {
    * A floor is still a strong signal for what to teach next — see
    * learningPriorities(), which ranks floors first.
    */
-  const isFloor = items >= INDICATOR_CONFIG.MIN_ITEMS_TO_REPORT && correct === 0;
+  // A floor is "nothing was gotten", and a scaffolded success IS a gotten
+  // thing: a child who completed three items with hints has not floored, they
+  // have demonstrated with support. Counting supported answers as zero would
+  // turn the scaffolding the evidence says works (D9, D10) into a failure.
+  const isFloor = items >= INDICATOR_CONFIG.MIN_ITEMS_TO_REPORT && (correct + supported) === 0;
 
   if (items < INDICATOR_CONFIG.MIN_ITEMS_TO_REPORT || isFloor) {
     return {
@@ -104,9 +201,16 @@ export function indicatorFor(strandId, results, opts = {}) {
       indicator: null,
       notMeasured: true,
       floor: isFloor,
-      reason: isFloor ? 'FLOOR_NO_CORRECT_RESPONSE' : items === 0 ? 'NOT_PROBED' : 'TOO_FEW_ITEMS',
+      reason: isFloor
+        ? 'FLOOR_NO_CORRECT_RESPONSE'
+        : items === 0
+          // Nothing scorable, but items WERE attempted: that is a request for
+          // more information, not an unprobed strand (spec §4).
+          ? (insufficient > 0 ? 'NEEDS_MORE_INFORMATION' : 'NOT_PROBED')
+          : 'TOO_FEW_ITEMS',
       lowest_probed_rung: rows.length ? Math.min(...rows.map((r) => r.rung)) : null,
       items,
+      insufficient,
       accuracy: null,
       depth: null,
       independence: null,
@@ -164,6 +268,7 @@ export function indicatorFor(strandId, results, opts = {}) {
     reason: null,
     lowest_probed_rung: Math.min(...rows.map((r) => r.rung)),
     items,
+    insufficient,
     accuracy: Number(accuracy.toFixed(3)),
     depth: Number(depth.toFixed(3)),
     independence: Number(independence.toFixed(3)),

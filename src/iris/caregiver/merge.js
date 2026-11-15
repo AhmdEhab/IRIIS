@@ -48,6 +48,180 @@ const TIME_AR = { none: 'من غير وقت زيادة', lt15: 'أقل من ١٥
 const TIME_EN = { none: 'no extra time', lt15: 'under 15 min', '15_30': '15–30 min', '30_60': '30–60 min', most_day: 'most of the day' };
 const TRACK_CAP = 2;
 
+/* ── Two-track discrepancies (framework §8 / spec §8) ──────────────────────
+ * Canonical, category-only label maps shared with the parent instruments:
+ * CaregiverProfileScreen's completion summary (P2) and IrisFirstPlan's
+ * «لوحت الصورة في مكانين» strip render these words, so a family never sees
+ * two vocabularies for one thing. They are EXPORTED, not invented per
+ * screen. The state tokens and the Arabic wording mirror the STATE_LABELS
+ * keys in `IrisFamilyProfile.tsx` — copied, not imported, because merge.js
+ * is plain engine-side JS that the node test suite loads without JSX.
+ * If either list drifts, tests/iris.discrepancy.test.js fails. */
+export const PARENT_STATE_WORDS = {
+  does_independently: { ar: 'بيعمله لوحده', en: 'does it on his own' },
+  does_with_support: { ar: 'بيعمله بمساعدة', en: 'does it with support' },
+  emerging: { ar: 'لسه بيشوف طريقه', en: 'finding his way in it' },
+  unmet_need: { ar: 'محتاج دعم — والدعم ده لسه مش موجود', en: 'needs support — and it is not there yet' },
+  not_yet_opportunity: { ar: 'ماخدش فرصة يعملها لحد دلوقتي', en: 'has not had the chance to try it' },
+  needs_more_information: { ar: 'لسه بنجمع معلومات كفاية', en: 'still gathering enough to say' },
+};
+/** Confidence WORDS (P2 summary) — plain parent language, not HIGH/MEDIUM. */
+export const PARENT_CONFIDENCE_WORDS = {
+  HIGH: { ar: 'واضح', en: 'clear' },
+  MEDIUM: { ar: 'محتاج تأكيد', en: 'needs confirming' },
+  LOW: { ar: 'مش كافي', en: 'not enough yet' },
+  NEEDS_MORE_INFO: { ar: 'مش كافي', en: 'not enough yet' },
+};
+/** What the screen side shows of a family, as a category. Never a number. */
+export const OBSERVED_STATE_WORDS = {
+  demonstrated: { ar: 'على الشاشة حصلت', en: 'seen on screen' },
+  not_demonstrated: { ar: 'على الشاشة ماظهرتش النهارده', en: 'not seen on screen today' },
+  no_data: { ar: 'على الشاشة لسه ما اتقاسش', en: 'not measured on screen yet' },
+  independent: { ar: 'على الشاشة عمله لوحده', en: 'done alone on screen' },
+  with_support: { ar: 'على الشاشة محتاج مساعدة', en: 'needed support on screen' },
+};
+/** Discrepancy family → the block word the rest of the product already uses. */
+const FAMILY_BLOCK = { communication: 'C', learning: 'L', support: 'S' };
+export const DISCREPANCY_FAMILY_WORDS = Object.fromEntries(
+  Object.keys(FAMILY_BLOCK).map((f) => [f, BLOCK_NAME[FAMILY_BLOCK[f]]]),
+);
+/** The six block names, exported for the P2 summary rows. */
+export const BLOCK_LABELS = BLOCK_NAME;
+
+/** Indicator rows for one skill family, by STRAND NAME ONLY — categorical.
+ *  `indicators` is the engine's map keyed by strand id (LIT.*, NUM.*, the
+ *  LISTENING track, and the new COMM.*). A ladder that predates a family
+ *  simply has no rows for it; the family then compares nothing. */
+function familyIndicators(ladder, which) {
+  const ind = ladder && ladder.indicators;
+  if (!ind || typeof ind !== 'object') return [];
+  const rows = [];
+  for (const [id, i] of Object.entries(ind)) {
+    if (!i || typeof i !== 'object') continue;
+    if (which === 'communication' && (/^COMM\./.test(id) || i.track === 'LISTENING' || /^LIT\.LISTEN/.test(id))) rows.push(i);
+    else if (which === 'learning' && (/^(LIT|NUM)\./.test(id) && i.track !== 'LISTENING' && !/^LIT\.LISTEN/.test(id))) rows.push(i);
+  }
+  return rows;
+}
+
+/** Collapse a family's indicator rows to ONE observed category. No sums,
+ *  no means, no averaging across the two tracks (§0.3 — it is a category
+ *  error, and here it is also simply not done). */
+function observedCategory(rows) {
+  if (!rows.length) return null; // family absent from this ladder shape
+  const measured = rows.filter((i) => i.notMeasured !== true);
+  if (measured.length) return 'demonstrated';
+  if (rows.some((i) => i.floor === true)) return 'not_demonstrated';
+  return 'no_data';
+}
+
+/** Independence pattern observed on screen, read ONLY from the av2
+ *  transparency log (outcome enums — spec §1). A phase5-1.0.0 ladder has
+ *  no outcome log, so this family declines to compare rather than guess
+ *  from numbers. */
+function observedSupportPattern(ladder) {
+  const log = Array.isArray(ladder && ladder.observations) ? ladder.observations : null;
+  if (!log) return null;
+  let independent = false, supported = false;
+  for (const o of log) {
+    if (!o || typeof o.outcome !== 'string') continue;
+    if (o.outcome === 'demonstrated_independent') independent = true;
+    if (o.outcome === 'demonstrated_with_support') supported = true;
+  }
+  if (!independent && !supported) return null;
+  if (independent && supported) return 'mixed';
+  return independent ? 'independent' : 'with_support';
+}
+
+const NOTE = {
+  home_yes_screen_no: {
+    ar: 'في البيت الحاجة دي بتتحصل لوحدها، وعلى الشاشة النهارده ماظهارش — ده في الغالب شكل المهمة على الشاشة هو اللي مختلف، مش المهارة نفسها. مفيش تعارض، الاتنين معلومة.',
+    en: 'At home this happens on its own; on screen today it did not appear — that usually means the task format was the barrier, not the skill. There is no conflict; both parts are information.',
+  },
+  home_less_screen_yes: {
+    ar: 'في البيت لسه بمساعدة أو من غير فرصة، وعلى الشاشة حصلت — فيه مساحة نجرّب نقلّل المساعدة في البيت خطوة خطوة.',
+    en: 'At home it still needs help or has not had the chance; on screen it happened — room to try easing the help at home, one step at a time.',
+  },
+  recheck: {
+    ar: 'البيت والشاشة مش في نفس المرحلة دلوقتي — دي حاجة تستاهل نعيد النظر فيها بهدوء، ومش حكم على الطفل.',
+    en: 'Home and screen are not at the same point right now — this is worth a calm re-check, not a verdict on the child.',
+  },
+  chance_new: {
+    ar: 'قولتِ إن الفرصة لسه ما جاتش في البيت، لكن على الشاشة تحصلت — يعني فيه فرصة جديدة تنفتح في اليوم، مش نقص قدرة.',
+    en: 'You told us the chance has not come yet at home, but it happened on screen — that is a new opening for the day, not a missing ability.',
+  },
+  support_home_more: {
+    ar: 'في البيت المساعدة بتيجي من الكبير، وعلى الشاشة عملها لوحده — نقدر نجرب نقلّل المساعدة معاه شوية شوية.',
+    en: 'At home an adult steps in to help; on screen he did it alone — we can try easing the help a little.',
+  },
+  support_home_less: {
+    ar: 'في البيت الحاجة بتتحصل من غير مساعدة، وعلى الشاشة طلبت تلميح — هنراقب الموضوع بهدوء قبل أي تغيير في الخطة.',
+    en: 'At home it happens without help; on screen it asked for hints — we will watch this quietly before changing anything in the plan.',
+  },
+};
+
+/**
+ * The two-track comparison — spec §8. Pure, deterministic, categorical.
+ *
+ * @param caregiverScored the cv1/cv2 `scored` object (or null — absent
+ *        caregiver simply compares nothing)
+ * @param ladderSnapshot  the ladder assessment object as it is already
+ *        passed to buildFamilyLearningProfile (or null)
+ * @returns {Array<{family: string, parent: string, observed: string, note: {ar: string, en: string}}>}
+ *          possibly empty; NEVER numbers, NEVER an average of the tracks.
+ * Tolerant by contract: an old phase5-1.0.0 snapshot simply has no COMM
+ * strands and no outcome log, so at most the families whose strand names
+ * exist compare; a snapshot with no indicators at all yields [].
+ */
+export function computeTrackDiscrepancies(caregiverScored, ladderSnapshot) {
+  const out = [];
+  const cg = caregiverScored;
+  const ladder = ladderSnapshot;
+  if (!cg || !ladder) return out;
+  const states = cg.domainStates || {};
+
+  const push = (family, parent, observed, note) => {
+    out.push({ family, parent, observed, note: { ar: note.ar, en: note.en } });
+  };
+
+  /* — Communication: the C block vs LISTENING/COMM indicators (where they
+     exist). Opportunity ≠ inability: a screen floor never becomes a child
+     failure, and a caregiver 'not yet' never becomes one either (§0.5). */
+  const cState = states.C && states.C.state;
+  const cObserved = observedCategory(familyIndicators(ladder, 'communication'));
+  if (cState && cObserved && cObserved !== 'no_data') {
+    if (cState === 'does_independently' && cObserved === 'not_demonstrated') push('communication', cState, cObserved, NOTE.home_yes_screen_no);
+    else if (['does_with_support', 'unmet_need', 'not_yet_opportunity'].includes(cState) && cObserved === 'demonstrated') push('communication', cState, cObserved, NOTE.home_less_screen_yes);
+    else if (cState === 'needs_more_information') push('communication', cState, cObserved, NOTE.recheck);
+  }
+
+  /* — Learning exposure: the L block (+ the §3 opportunityGates stamp when
+     the caller carries one) vs the LIT/NUM entry states on the ladder. */
+  const lState = states.L && states.L.state;
+  const gated = cg.opportunityGates
+    && (cg.opportunityGates.LITERACY === 'not_yet' || cg.opportunityGates.NUMERACY === 'not_yet');
+  const lObserved = observedCategory(familyIndicators(ladder, 'learning'));
+  if (lObserved && lObserved !== 'no_data') {
+    if ((lState === 'not_yet_opportunity' || gated) && lObserved === 'demonstrated') push('learning', 'not_yet_opportunity', lObserved, NOTE.chance_new);
+    else if (lState && lState !== 'not_yet_opportunity' && lObserved === 'not_demonstrated') push('learning', lState, lObserved, NOTE.recheck);
+  }
+
+  /* — Support pattern: the S block's help pattern vs the independence
+     pattern in the av2 outcome log (enums only — no numbers anywhere). */
+  const sState = states.S && states.S.state;
+  const sIntensity = (cg.supportIntensity && cg.supportIntensity.S && cg.supportIntensity.S.type) || null;
+  const sObserved = observedSupportPattern(ladder);
+  if (sObserved && sObserved !== 'mixed') {
+    const homeSupported = sState === 'does_with_support' || sState === 'unmet_need'
+      || sIntensity === 'partial_physical' || sIntensity === 'full_physical';
+    const homeIndependent = sState === 'does_independently' || sIntensity === 'none';
+    if (homeSupported && sObserved === 'independent') push('support', sState || 'does_with_support', sObserved, NOTE.support_home_more);
+    else if (homeIndependent && sObserved === 'with_support') push('support', sState || 'does_independently', sObserved, NOTE.support_home_less);
+  }
+
+  return out;
+}
+
 /** Learning priorities, from whichever ladder shape the caller handed us. */
 function learningPriorities(ladder) {
   if (!ladder) return [];
@@ -191,10 +365,15 @@ export function buildFamilyLearningProfile({ caregiver = null, ladderSnapshot = 
       recheckIn: recheck(caregiver, learning),
     },
     // Only shown when both tracks exist: the two instruments disagree by
-    // design, and the difference is the information (§4).
-    divergenceNote: both ? DIVERGENCE : null,
-    confidenceSummary,
-    // No condition label is read anywhere above; nothing above can be summed.
-    bannedTermsVerified: true,
-  };
+      // design, and the difference is the information (§4).
+      divergenceNote: both ? DIVERGENCE : null,
+      /* §8: where exactly the two tracks disagree, family by family —
+       * categorical, NEVER averaged, empty when nothing can be compared
+       * (one track, a legacy ladder without these strand names, or no
+       * caregiver at all). The First Plan strip renders this list. */
+      discrepancies: computeTrackDiscrepancies(caregiver, ladderSnapshot),
+      confidenceSummary,
+      // No condition label is read anywhere above; nothing above can be summed.
+      bannedTermsVerified: true,
+    };
 }

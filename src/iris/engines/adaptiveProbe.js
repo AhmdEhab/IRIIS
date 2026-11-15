@@ -19,6 +19,31 @@
  * `k = 3` and the 2/1/0 split come from ESTIMATE_CONFIG's accuracy thresholds
  * so there is one adaptation policy in the product, not two.
  *
+ * ── av2 §4 — INSUFFICIENT IS NOT A SCORE ──────────────────────────────────
+ * A visit can come back with items the child never really answered: warded
+ * off, audio not reached, interface not understood this time. Those are
+ * `insufficient`, and they are excluded from every denominator (see
+ * presentedOf). The walk for them is fixed and short:
+ *
+ *   first insufficient in a strand  → PAIRED_MODALITY_RETRY — the SAME rung is
+ *                                     re-offered once, asked the other way
+ *                                     (its `_LISTEN` twin), and nothing steps
+ *                                     anywhere in between. `empty_rungs` is
+ *                                     untouched: no evidence was earned or
+ *                                     lost, so no ceiling rule may fire.
+ *   second visit, still nothing     → NEEDS_MORE_INFORMATION. The strand is
+ *                                     marked and never re-presented this
+ *                                     session; presenting an item a third time
+ *                                     after two disengaged attempts measures
+ *                                     patience, not ability.
+ *   a rung whose strands are all NMI→ stop_reason INSUFFICIENT_INFORMATION.
+ *
+ * Supported answers are now real numbers too: the climb gate reads
+ * (correct + SUPPORTED_CREDIT × supported) over the PRESENTED items. For a
+ * trace with supported = 0 and insufficient = 0 — every trace written before
+ * av2, and every test that pins it — both the gate and the recorded accuracy
+ * come out bit-for-bit as they always did.
+ *
  * ── STOPPING ──────────────────────────────────────────────────────────────
  * A track stops when it runs out of ladder, scores zero on two consecutive
  * rungs, spends its item budget, or the session budget runs out.
@@ -38,10 +63,11 @@
  */
 import { VALIDATION } from '../spec.js';
 import {
-  STRAND_BY_ID, strandsAtRung, nextRung, prevRung, baseRungOf, tracksFor,
+  STRAND_BY_ID, strandsAtRung, nextRung, prevRung, baseRungOf, tracksFor, LADDER_IDS,
 } from '../ladders/index.js';
-import { ESTIMATE_CONFIG } from './skillEstimate.js';
+import { ESTIMATE_CONFIG, presentedOf } from './skillEstimate.js';
 import { CALIBRATION_PROBES } from './calibration.js';
+import { TEMPLATE_BY_ID } from '../content/templates.js';
 
 export const PROBE_CONFIG = {
   /** Items presented per strand visit. F3: PROMIS uses a 4–5 item minimum. */
@@ -70,6 +96,13 @@ export const PROBE_STOP = {
   SESSION_BUDGET: 'SESSION_BUDGET',
   BASE_FLOOR: 'BASE_FLOOR',
   EXHAUSTED: 'EXHAUSTED',
+  /**
+   * av2 §4: the track is not closed because the child failed it, and not
+   * because it ran out of ladder — it is closed because what was collected is
+   * not enough to say anything. `indicators` reports those strands as
+   * NEEDS_MORE_INFORMATION, never as a score and never as a zero.
+   */
+  INSUFFICIENT_INFORMATION: 'INSUFFICIENT_INFORMATION',
 };
 
 /**
@@ -104,8 +137,27 @@ function calibrationCorrectStrands(calibration) {
 export function startProbe(calibration) {
   const rescue = calibrationCorrectStrands(calibration);
   const tracks = {};
-  for (const key of Object.keys(calibration.entry_rungs)) {
-    const { ladder, track, rung } = calibration.entry_rungs[key];
+  /**
+   * The tracks walked are the UNION of what calibration placed and what the
+   * ladder registry contains.
+   *
+   * Calibration only has probes for the tracks it was written to place, so
+   * without the registry half of this union the av2 ladders would exist in the
+   * content, be servable, and never be walked: an unprobed VSP/MEM/COMM track
+   * is not "measured and found nothing", it is a domain that was never offered,
+   * which is the one thing this engine is supposed to refuse to report. A
+   * registry-opened track starts at its BASE rung with that reason recorded in
+   * `evidence`, and is placed by observation like any other.
+   */
+  const keys = new Set(Object.keys(calibration.entry_rungs ?? {}));
+  for (const ladder of LADDER_IDS) {
+    for (const track of tracksFor(ladder)) keys.add(`${ladder}:${track}`);
+  }
+  for (const key of [...keys].sort()) {
+    const placed = calibration.entry_rungs?.[key];
+    const ladder = placed?.ladder ?? key.split(':')[0];
+    const track = placed?.track ?? key.split(':')[1];
+    const rung = placed ? placed.rung : baseRungOf(ladder, track);
     tracks[key] = {
       rescue: [...rescue].filter((id) => {
         const s = STRAND_BY_ID[id];
@@ -120,6 +172,16 @@ export function startProbe(calibration) {
       visits: 0,
       modality_tried: {},   // strandId -> true once the paired modality was used
       resampled: {},        // strandId -> true once a second sample was taken
+      /**
+       * av2 §4. `insufficient_retry` is the once-only gate on the paired
+       * re-offer; `needs_more_information` is the permanent (this-session)
+       * exclusion. They are separate from `modality_tried` because a strand
+       * can have been modality-shifted for being WEAK — which is evidence —
+       * and still owe its one disengaged-item retry, which is not.
+       */
+      insufficient_retry: {},
+      needs_more_information: {},
+      evidence: placed ? placed.evidence ?? 'CALIBRATION_ENTRY' : 'TRACK_OPEN_AT_BASE',
       done: false,
       stop_reason: null,
     };
@@ -152,8 +214,24 @@ function moveTo(t, rung) {
  */
 function pendingAtRung(t) {
   return strandsAtRung(t.ladder, t.track, t.rung)
-    .filter((s) => !t.visited.includes(s.id))
+    .filter((s) => !t.visited.includes(s.id) && !t.needs_more_information?.[s.id])
     .map((s) => s.id);
+}
+
+/**
+ * The template that asks the SAME strand the other way, if the ladder declares
+ * one. av2 §4's paired retry is only real if the second attempt is a different
+ * ROUTE at the same difficulty, so the twin must serve this very strand: the
+ * legacy sound↔letter pair is a different strand in the other direction, and
+ * for those the strand-level rule already handles the shift without touching
+ * the format.
+ */
+function pairedTemplate(strandId, templateId) {
+  if (!templateId) return null;
+  const pair = TEMPLATE_BY_ID[templateId]?.modality_pair_id ?? null;
+  if (!pair) return null;
+  const serves = STRAND_BY_ID[strandId]?.templates ?? [];
+  return serves.includes(pair) ? pair : null;
 }
 
 /**
@@ -186,7 +264,15 @@ export function nextProbe(state) {
       track: t.track,
       rung: t.rung,
       item_count: PROBE_CONFIG.ITEMS_PER_VISIT,
-      template: strand.templates?.[0] ?? null,
+      // On a paired-modality retry the visit carries the twin format, so the
+      // screen renders the OTHER route to the same rung rather than asking the
+      // identical question again. `template` stays the strand default for
+      // every trace that never marked a modality, which is all of them before
+      // av2 and all of them when no twin serves this strand.
+      template: (t.modality_tried[strandId] === true
+        && pairedTemplate(strandId, strand.templates?.[0]))
+        || strand.templates?.[0]
+        || null,
       use_modality_pair: !!t.modality_tried[strandId],
     };
   }
@@ -198,13 +284,18 @@ export function nextProbe(state) {
  *
  * @param {object} state
  * @param {object} visit   the object returned by nextProbe()
- * @param {object} result  { correct, total, supported?, modality?, dialect_distance? }
+ * @param {object} result  { correct, total, supported?, insufficient?, modality?, dialect_distance? }
  */
 export function recordProbe(state, visit, result) {
   const key = visit.track_key;
   const t = { ...state.tracks[key] };
   const correct = result.correct ?? 0;
   const total = result.total ?? visit.item_count;
+  // av2 §1: `supported` is a real count now, not a placeholder, and
+  // `insufficient` is the third thing a visit can return — neither a success
+  // nor a failure, but a statement that the item never reached an answer.
+  const supported = result.supported ?? 0;
+  const insufficient = result.insufficient ?? 0;
 
   const row = {
     strand: visit.strand,
@@ -213,7 +304,8 @@ export function recordProbe(state, visit, result) {
     rung: visit.rung,
     correct,
     total,
-    supported: result.supported ?? 0,
+    supported,
+    insufficient,
     modality: result.modality ?? visit.template,
     dialect_distance: result.dialect_distance ?? 'UNKNOWN',
     used_modality_pair: !!visit.use_modality_pair,
@@ -222,24 +314,64 @@ export function recordProbe(state, visit, result) {
   t.visited = [...t.visited, visit.strand];
   t.visits += 1;
 
-  const accuracy = total > 0 ? correct / total : 0;
+  const presented = presentedOf(row);
+  // Independent answers in full, scaffolded answers at SUPPORTED_CREDIT, over
+  // the items that were really presented. A row with nothing presented records
+  // `null` — not 0, because 0 is a score and this is the absence of one.
+  const accuracy = total > 0
+    ? (presented > 0
+      ? Math.min(presented, correct + ESTIMATE_CONFIG.SUPPORTED_CREDIT * supported) / presented
+      : null)
+    : 0;
   const stillPending = pendingAtRung(t).length > 0;
+
+  /**
+   * av2 §4 — the insufficient walk, BEFORE any ceiling or floor rule reads
+   * this visit. Disengaged items are not evidence about the child, so they
+   * must not feed the rule that steps a track down or closes it: the rung is
+   * re-offered once by the other route, and only a second attempt that also
+   * produced nothing takes the strand out of this session.
+   */
+  const nmi = t.needs_more_information ?? {};
+  const retried = t.insufficient_retry ?? {};
+  let byInsufficiency = false;
+  let move = 'COLLECTING_RUNG';
+
+  if (insufficient > 0 && !nmi[visit.strand]) {
+    if (!retried[visit.strand]) {
+      t.insufficient_retry = { ...retried, [visit.strand]: true };
+      // The marker nextProbe reads to hand back the twin format at the same
+      // rung; the strand is un-visited so the same rung is offered again and
+      // `empty_rungs` is left alone — no evidence, no ceiling movement.
+      t.modality_tried = { ...(t.modality_tried ?? {}), [visit.strand]: true };
+      t.visited = t.visited.filter((v) => v !== visit.strand);
+      move = 'PAIRED_MODALITY_RETRY';
+      byInsufficiency = true;
+    } else if (presented === 0) {
+      t.needs_more_information = { ...nmi, [visit.strand]: true };
+      move = 'NEEDS_MORE_INFORMATION';
+      byInsufficiency = true;
+    }
+    // presented > 0 on the retry means the second attempt produced evidence
+    // after all: it is scored on its merits below, like any other visit.
+  }
 
   // 'COLLECTING_RUNG' means parallel strands at this rung are still pending.
   // The rung decision waits until they have all been seen, so one weak
   // parallel strand cannot sink a rung the child has otherwise demonstrated.
-  let move = 'COLLECTING_RUNG';
-
-  if (!stillPending) {
+  if (!stillPending && !byInsufficiency) {
     // Every parallel strand at this rung has now been probed. Decide by the
     // rung's combined evidence, so one weak parallel strand cannot sink a rung
     // the child has otherwise shown.
     const rungRows = [...state.results, row].filter(
       (r) => r.ladder === t.ladder && r.track === t.track && r.rung === t.rung
     );
-    const rungTotal = rungRows.reduce((s, r) => s + r.total, 0);
-    const rungCorrect = rungRows.reduce((s, r) => s + r.correct, 0);
-    const rungAcc = rungTotal > 0 ? rungCorrect / rungTotal : 0;
+    const rungPresented = rungRows.reduce((s, r) => s + presentedOf(r), 0);
+    const rungCorrect = rungRows.reduce((s, r) => s + (r.correct ?? 0), 0);
+    const rungSupported = rungRows.reduce((s, r) => s + (r.supported ?? 0), 0);
+    const rungAcc = rungPresented > 0
+      ? Math.min(rungPresented, rungCorrect + ESTIMATE_CONFIG.SUPPORTED_CREDIT * rungSupported) / rungPresented
+      : 0;
 
     if (rungAcc >= ESTIMATE_CONFIG.CLIMB_AT_ACCURACY * 0.75) {
       // 0.6 of the rung correct is enough to look higher. Deliberately lower
@@ -301,6 +433,25 @@ export function recordProbe(state, visit, result) {
         }
       }
       t.empty_rungs = 0;
+    }
+  }
+
+  /**
+   * A rung whose strands ALL need more information is finished for this
+   * session. Not because the child ran out of ladder, and not because they
+   * failed it — because nothing collected here can support a statement either
+   * way. Closing it explicitly is what keeps the walk from coming back to the
+   * same disengaged items until the item budget runs dry.
+   */
+  if (!t.done) {
+    const atRung = strandsAtRung(t.ladder, t.track, t.rung);
+    const marks = t.needs_more_information ?? {};
+    if (atRung.length > 0 && atRung.every((x) => marks[x.id])) {
+      t.done = true;
+      t.stop_reason = PROBE_STOP.INSUFFICIENT_INFORMATION;
+      // The row keeps saying what happened at the visit; the track-level stop
+      // is the stop_reason, which is where the report reads it from.
+      if (move !== 'NEEDS_MORE_INFORMATION') move = 'STOP_INSUFFICIENT_INFORMATION';
     }
   }
 

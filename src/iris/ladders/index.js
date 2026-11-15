@@ -28,22 +28,49 @@
  */
 import { LITERACY_STRANDS, LITERACY_META } from './literacy.js';
 import { NUMERACY_STRANDS, NUMERACY_META } from './numeracy.js';
+import { VSP_STRANDS, VSP_META } from './visual.js';
+import { MEM_STRANDS, MEM_META } from './memory.js';
+import { COMM_STRANDS, COMM_META } from './communication.js';
 
 export { LITERACY_STRANDS, LITERACY_META } from './literacy.js';
 export { NUMERACY_STRANDS, NUMERACY_META } from './numeracy.js';
+export { VSP_STRANDS, VSP_META } from './visual.js';
+export { MEM_STRANDS, MEM_META, ATTENTION_POLICY } from './memory.js';
+export { COMM_STRANDS, COMM_META } from './communication.js';
 export * from './literacy.js';
 
-/** Every strand in the system, in one flat list. */
-export const ALL_STRANDS = [...LITERACY_STRANDS, ...NUMERACY_STRANDS];
+/**
+ * Every strand in the system, in one flat list.
+ *
+ * av2 (spec §2): the COMM track lives INSIDE the LITERACY ladder as a
+ * parallel track — expressive channel next to the receptive LISTENING track —
+ * so COMM strands are appended to the LITERACY ladder's strand set while
+ * LITERACY_STRANDS itself keeps its original meaning (the LADDER list,
+ * MAIN + LISTENING). VSP and MEM are their own ladders. The registry is the
+ * ONLY wiring the adaptive probe needs: a track that exists here is probed
+ * automatically, at its own base rung, and gates nothing else.
+ */
+export const LADDER_LITERACY_STRANDS = [...LITERACY_STRANDS, ...COMM_STRANDS];
+export const ALL_STRANDS = [...LADDER_LITERACY_STRANDS, ...NUMERACY_STRANDS, ...VSP_STRANDS, ...MEM_STRANDS];
 
 export const STRAND_BY_ID = Object.fromEntries(ALL_STRANDS.map((s) => [s.id, s]));
 
 export const LADDERS = {
-  LITERACY: { id: 'LITERACY', strands: LITERACY_STRANDS, meta: LITERACY_META },
+  LITERACY: { id: 'LITERACY', strands: LADDER_LITERACY_STRANDS, meta: LITERACY_META },
   NUMERACY: { id: 'NUMERACY', strands: NUMERACY_STRANDS, meta: NUMERACY_META },
+  VSP: { id: 'VSP', strands: VSP_STRANDS, meta: VSP_META },
+  MEM: { id: 'MEM', strands: MEM_STRANDS, meta: MEM_META },
 };
 
 export const LADDER_IDS = Object.keys(LADDERS);
+
+/** Per-track metadata for tracks that are not a whole ladder (COMM). */
+export const TRACK_META = {
+  'LITERACY:COMM': COMM_META,
+};
+
+export const metaForTrack = (ladderId, track) =>
+  TRACK_META[`${ladderId}:${track}`] ?? LADDERS[ladderId]?.meta ?? null;
 
 /** Strands belonging to one ladder track (main track or a parallel track). */
 export function strandsInTrack(ladderId, track) {

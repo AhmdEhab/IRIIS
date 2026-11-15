@@ -15,11 +15,17 @@ import {
   ladderSnapshot, recordPracticeSession, toAssessmentRecord,
   runCalibration, startProbe, nextProbe, recordProbe, finaliseLadderAssessment,
  fromAssessmentRecord} from '../../iris/journey.js';
-import { API_URL, authHeaders } from '../config';
+/* Namespace import so the OPTIONAL av2 engine exports (gatesFromCaregiver)
+   can be probed at call time without breaking this build while the engine
+   lane lands them in parallel. A named import of a not-yet-existing export
+   would break the bundle; a namespace read is undefined-safe by design. */
+import * as journeyApi from '../../iris/journey.js';
+import { API_URL, authHeaders, readAuthToken } from '../config';
 import { TASKS } from '../../iris/engines/assessment.js';
 import { GOAL_BY_ID } from '../../iris/engines/goals.js';
 import { explainProfile, explainGoalStatus, explainDecision } from '../../iris/parent/explain.js';
 import { progressSnapshot } from '../../iris/engines/progress.js';
+import { classifyVisitValidity, gatingObservations } from '../components/iris/ladderObservations.js';
 
 type Ctx = ReturnType<typeof useIrisState>;
 const IrisContext = createContext<Ctx | undefined>(undefined);
@@ -62,6 +68,65 @@ function newLadderClientRef(): string {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   } catch { /* older webviews */ }
   return `ladder-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
+ * ── av2 §3: close the tracks the caregiver said have had no opportunity ──
+ * A gated MAIN track never gets a visit: its probe-state track is marked
+ * done with an explicit NO_OPPORTUNITY stop so nothing silently reads as
+ * "untested". It changes NO entry rung, NO score and NO other track — the
+ * track-independence doctrine (LISTENING/VSP/MEM/COMM are never affected)
+ * is enforced by `t.track === 'MAIN'` here, not by a check elsewhere.
+ */
+function closeGatedTracks(state: any, gates: any) {
+  if (!state || !state.tracks) return state;
+  const closedFor = (ladder: string) =>
+    !!gates && gates[ladder] === 'not_yet' && gates[`optIn${ladder}`] !== true;
+  let touched = false;
+  const tracks: any = {};
+  for (const [k, t] of Object.entries(state.tracks as Record<string, any>)) {
+    if (!t?.done && t?.track === 'MAIN' && closedFor(t?.ladder)) {
+      tracks[k] = { ...t, done: true, stop_reason: 'NO_OPPORTUNITY' };
+      touched = true;
+    } else tracks[k] = t;
+  }
+  if (!touched) return state;
+  const finished = Object.values(tracks).every((x: any) => x?.done === true);
+  return { ...state, tracks, finished };
+}
+
+/** The §7 opportunityGates envelope: what was closed, what was overridden,
+ *  why, and which caregiver record said so. Null when nothing was gated. */
+function gatesEnvelope(gates: any, caregiverRef: any) {
+  if (!gates) return null;
+  const closed = (k: string) => gates[k] === 'not_yet' && gates[`optIn${k}`] !== true;
+  return {
+    LITERACY: gates.LITERACY ?? null,
+    NUMERACY: gates.NUMERACY ?? null,
+    optIn: { LITERACY: gates.optInLITERACY === true, NUMERACY: gates.optInNUMERACY === true },
+    closed: { LITERACY: closed('LITERACY'), NUMERACY: closed('NUMERACY') },
+    source: gates.source ?? null,
+    caregiver: caregiverRef ?? null,
+  };
+}
+
+/** av2 server-draft freshness: a draft older than this is not a resume
+ *  point. The session target is 8–15 minutes (spec §4); two weeks of
+ *  silence is a different child on a different day, not a half-finished
+ *  run, and resuming it would misdate every observation stamp inside. */
+const LADDER_DRAFT_FRESH_MS = 14 * 24 * 3600 * 1000;
+
+/** The ladder draft localStorage envelope (kept in the SAME key it has
+ *  always used, so phase5-1.0.0-era drafts still hydrate; av2 fields are
+ *  additive and defaulted when missing). */
+const LADDER_DRAFT_KEY = 'iris_ladder_probe_v1';
+
+function readLocalLadderDraft(): any {
+  try { return JSON.parse(localStorage.getItem(LADDER_DRAFT_KEY) || 'null'); } catch { return null; }
+}
+function localDraftStamp(env: any): number {
+  const t = Date.parse(env?.updatedAt ?? '');
+  return Number.isFinite(t) ? t : 0;
 }
 
 function useIrisState() {
@@ -132,6 +197,29 @@ function useIrisState() {
   const [probeCalibration, setProbeCalibration] = useState<any>(savedProbe?.probeCalibration ?? null);
   const [currentVisit, setCurrentVisit] = useState<any>(savedProbe?.currentVisit ?? null);
   /*
+   * ── av2 run accumulators (spec §1/§5) ───────────────────────────────────
+   * `ladderObservations` is the full per-item transparency log of the run;
+   * `ladderVisitValidity` is the per-visit classification (valid / low /
+   * invalid); `ladderCalDraft` mirrors the calibration progress the screen
+   * owns so the SERVER draft can carry a resumable calibration too;
+   * `ladderGates`/`ladderCaregiverRef` are the §3 opportunity decisions and
+   * the record they came from. All of them hydrate from the extended local
+   * envelope — an envelope written by an older build simply lacks the
+   * fields, and the defaults below keep phase5-1.0.0 drafts loading
+   * exactly as before (spec §0 non-negotiable 2).
+   */
+  const [ladderObservations, setLadderObservations] = useState<any[]>(
+    Array.isArray(savedProbe?.observations) ? savedProbe.observations : [],
+  );
+  const [ladderVisitValidity, setLadderVisitValidity] = useState<any[]>(
+    Array.isArray(savedProbe?.visitValidity) ? savedProbe.visitValidity : [],
+  );
+  const [ladderCalDraft, setLadderCalDraft] = useState<any>(
+    savedProbe?.cal && typeof savedProbe.cal === 'object' ? savedProbe.cal : null,
+  );
+  const [ladderGates, setLadderGatesState] = useState<any>(savedProbe?.gates ?? null);
+  const [ladderCaregiverRef, setLadderCaregiverRef] = useState<any>(savedProbe?.caregiverRef ?? null);
+  /*
    * ── W17: the draft envelope, extended and debounced ──────────────────────
    * The same localStorage mechanism as before, now also carrying the run's
    * observation meta and its client_ref, so a reload mid-assessment resumes
@@ -140,6 +228,14 @@ function useIrisState() {
    * state), and `flushLadderDraft` / the `pagehide` listener guarantee the
    * last moment is never lost to the debounce window when the child leaves
    * via SAVE & EXIT or the tab simply closes.
+   *
+   * ── av2 §5 adds the SERVER half ──────────────────────────────────────
+   * The same debounce now also POSTs /api/ladder/draft (mirroring the
+   * caregiver routes), every visit boundary forces an immediate write, and
+   * `pagehide`/`visibilitychange` fire a synchronous sendBeacon to
+   * /api/ladder/draft/beacon. localStorage is written FIRST and always:
+   * the network path is an upgrade, never a dependency, and fails silently
+   * when the server lane has not landed the endpoint yet.
    */
   const [ladderObservation, setLadderObservation] = useState<any>(savedProbe?.observation ?? null);
   const [ladderClientRef, setLadderClientRef] = useState<string | null>(
@@ -153,25 +249,223 @@ function useIrisState() {
   const [ladderLoadError, setLadderLoadError] = useState<string | null>(null);
 
   const ladderDraftRef = useRef<any>(null);
-  ladderDraftRef.current = { probeState, probeCalibration, currentVisit, observation: ladderObservation, clientRef: ladderClientRef };
+  ladderDraftRef.current = {
+    probeState, probeCalibration, currentVisit, observation: ladderObservation, clientRef: ladderClientRef,
+    // ── av2 additions (additive; an old envelope just lacks them) ──
+    observations: ladderObservations, visitValidity: ladderVisitValidity,
+    cal: ladderCalDraft, gates: ladderGates, caregiverRef: ladderCaregiverRef,
+  };
   const writeLadderDraft = useCallback(() => {
     try {
       const d = ladderDraftRef.current;
       const empty = !d.probeState && !d.probeCalibration && !d.currentVisit && !d.observation && !d.clientRef;
-      if (empty) localStorage.removeItem('iris_ladder_probe_v1');
-      else localStorage.setItem('iris_ladder_probe_v1', JSON.stringify(d));
+      if (empty) localStorage.removeItem(LADDER_DRAFT_KEY);
+      else localStorage.setItem(LADDER_DRAFT_KEY, JSON.stringify({
+        ...d, bankVersion: d.clientRef ? 'av2' : d.bankVersion, updatedAt: new Date().toISOString(),
+      }));
     } catch { /* private mode */ }
   }, []);
   useEffect(() => {
-    const t = setTimeout(writeLadderDraft, 800);
+    const t = setTimeout(() => {
+      writeLadderDraft();
+      // av2 §5: the same settled moment flushes the SERVER draft, debounced
+      // exactly like the local one. Silent failure — the local write above
+      // is the guarantee, the server copy is the cross-device upgrade.
+      void postLadderDraftRef.current?.('IN_PROGRESS');
+    }, 800);
     return () => clearTimeout(t);
-  }, [probeState, probeCalibration, currentVisit, ladderObservation, ladderClientRef, writeLadderDraft]);
+  }, [probeState, probeCalibration, currentVisit, ladderObservation, ladderClientRef,
+      ladderObservations, ladderVisitValidity, ladderCalDraft, ladderGates, writeLadderDraft]);
   useEffect(() => {
-    const flush = () => writeLadderDraft();
+    const flush = () => {
+      writeLadderDraft();          // the local net always lands, synchronously
+      beaconLadderDraftRef.current?.(); // then the fire-and-forget server copy
+    };
+    const onVis = () => { if (document.visibilityState === 'hidden') flush(); };
     window.addEventListener('pagehide', flush);
-    return () => window.removeEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [writeLadderDraft]);
-  const flushLadderDraft = writeLadderDraft;
+
+  /*
+   * ── av2 §5: the server ladder draft (mirror of the caregiver routes) ─────
+   * Body: {childId, clientRef, status, bankVersion:'av2', state, updatedAt}.
+   * GET returns {ok, draft:{clientRef,status,state,updatedAt}} — both the
+   * wrapped and flat shapes are accepted, exactly like the caregiver screen
+   * learned to do. Everything fails SILENTLY on purpose: the ladder must
+   * remain playable offline, and localStorage above is the never-fail copy.
+   */
+  const buildLadderDraftState = useCallback(() => {
+    const d = ladderDraftRef.current ?? {};
+    return {
+      phase: d.probeState ? 'PROBE' : ((d.cal?.calResponses?.length ?? 0) > 0 ? 'CALIBRATION' : 'INTRO'),
+      calIndex: d.cal?.calIndex ?? 0,
+      calResponses: Array.isArray(d.cal?.calResponses) ? d.cal.calResponses : [],
+      cal: d.cal ?? null,
+      probeState: d.probeState ?? null,
+      probeCalibration: d.probeCalibration ?? null,
+      currentVisit: d.currentVisit ?? null,
+      visitSeed: null,
+      observations: Array.isArray(d.observations) ? d.observations : [],
+      visitValidity: Array.isArray(d.visitValidity) ? d.visitValidity : [],
+      gates: d.gates ?? null,
+      caregiverRef: d.caregiverRef ?? null,
+      observation: d.observation ?? null,
+      startedAt: d.observation?.startedAt ?? null,
+      bankVersion: 'av2',
+      updatedAt: new Date().toISOString(),
+    };
+  }, []);
+
+  const postLadderDraft = useCallback(async (
+    status: 'IN_PROGRESS' | 'COMPLETE' | 'INVALID' = 'IN_PROGRESS',
+    override: { state?: any; clientRef?: string | null } | null = null,
+  ) => {
+    if (!childDbId) return; // no bound child row — local net carries the run
+    const d = ladderDraftRef.current ?? {};
+    const clientRef = override?.clientRef !== undefined ? override.clientRef : (d.clientRef ?? null);
+    if (!clientRef && !d.probeState && !d.cal?.calResponses?.length) return; // nothing to save yet
+    let state = override?.state ?? buildLadderDraftState();
+    try {
+      // 512 KB server cap (spec §5): if the run log ever grows toward it,
+      // keep the newest observations — the engine record is complete
+      // regardless; the draft is a resume convenience.
+      if (JSON.stringify(state).length > 420_000) {
+        state = { ...state, observations: (state.observations ?? []).slice(-800) };
+      }
+      await fetch(`${API_URL}/ladder/draft`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ childId: childDbId, clientRef, status, bankVersion: 'av2', state, updatedAt: state.updatedAt }),
+      });
+    } catch { /* offline: localStorage is already written; resume falls back to it */ }
+  }, [childDbId, buildLadderDraftState]);
+  const postLadderDraftRef = useRef(postLadderDraft);
+  postLadderDraftRef.current = postLadderDraft;
+
+  /** Synchronous last-gasp flush (pagehide / tab hidden). If the beacon
+   *  endpoint is absent at runtime the browser simply drops it — silently,
+   *  which is the specified behavior; localStorage was written first. */
+  const beaconLadderDraft = useCallback(() => {
+    try {
+      if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') return;
+      if (!childDbId) return;
+      const d = ladderDraftRef.current ?? {};
+      if (!d.clientRef && !d.probeState && !d.cal?.calResponses?.length) return;
+      const state = buildLadderDraftState();
+      const tok = readAuthToken();
+      // sendBeacon cannot set headers, so the server beacon route accepts
+      // the bearer in the query string; absent token → the POST is refused
+      // server-side and the localStorage copy stands.
+      const url = `${API_URL}/ladder/draft/beacon${tok ? `?token=${encodeURIComponent(tok)}` : ''}`;
+      navigator.sendBeacon(url, new Blob(
+        [JSON.stringify({ childId: childDbId, clientRef: d.clientRef ?? null, status: 'IN_PROGRESS', bankVersion: 'av2', state })],
+        { type: 'application/json' },
+      ));
+    } catch { /* never block a page exit on the assessment's draft net */ }
+  }, [childDbId, buildLadderDraftState]);
+  const beaconLadderDraftRef = useRef(beaconLadderDraft);
+  beaconLadderDraftRef.current = beaconLadderDraft;
+
+  /** Local + server flush in one call, used at visit boundaries and exits. */
+  const flushLadderDraft = useCallback(() => {
+    writeLadderDraft();
+    void postLadderDraftRef.current?.('IN_PROGRESS');
+  }, [writeLadderDraft]);
+
+  /**
+   * av2 boot resume (spec §5): server draft (IN_PROGRESS, bankVersion av2,
+   * fresh) > localStorage (both current keys) > nothing. Returns the cal
+   * slice the screen owns so it can hydrate its own calibration position;
+   * probe-side state is hydrated directly into the context here. A COMPLETE
+   * or INVALID draft is never a resume point (§5).
+   */
+  const resumeLadderDraft = useCallback(async (): Promise<any | null> => {
+    const local = readLocalLadderDraft();
+    const lStamp = localDraftStamp(local);
+    if (!childDbId) return null;
+    try {
+      const res = await fetch(
+        `${API_URL}/ladder/draft?childId=${encodeURIComponent(String(childDbId))}`,
+        { headers: authHeaders() },
+      );
+      if (!res.ok) return null;
+      const raw = await res.json();
+      const draft = (raw && (raw as any).draft) || raw;
+      if (!draft || typeof draft !== 'object' || !('status' in draft)) return null;
+      if (draft.status !== 'IN_PROGRESS') return null;
+      const st: any = (draft as any).state ?? draft;
+      if (st.bankVersion !== 'av2') return null;
+      const sStamp = Date.parse((draft as any).updatedAt ?? st.updatedAt ?? '');
+      if (!Number.isFinite(sStamp)) return null;
+      if (Date.now() - sStamp > LADDER_DRAFT_FRESH_MS) return null; // stale: not a resume point
+      if (lStamp && sStamp < lStamp) return null;                   // this device is newer
+      setProbeState(st.probeState ?? null);
+      setProbeCalibration(st.probeCalibration ?? null);
+      setCurrentVisit(st.currentVisit ?? null);
+      setLadderObservations(Array.isArray(st.observations) ? st.observations : []);
+      setLadderVisitValidity(Array.isArray(st.visitValidity) ? st.visitValidity : []);
+      setLadderGatesState(st.gates ?? null);
+      setLadderCaregiverRef(st.caregiverRef ?? null);
+      if (st.observation) setLadderObservation(st.observation);
+      if (typeof draft.clientRef === 'string' && draft.clientRef) setLadderClientRef(draft.clientRef);
+      const cal = st.cal ?? (Array.isArray(st.calResponses)
+        ? { calIndex: st.calIndex ?? 0, calResponses: st.calResponses } : null);
+      if (cal) setLadderCalDraft(cal);
+      return { cal, resumed: true };
+    } catch { return null; } // offline / endpoint absent: the local copy decides
+  }, [childDbId]);
+
+  /* ── av2 run accumulators — the actions the assessment screen calls ───── */
+  /** One observation per presented item (spec §1). Stored sanitized. */
+  const recordLadderObservation = useCallback((obs: any) => {
+    if (!obs || typeof obs !== 'object') return;
+    setLadderObservations((arr: any[]) => [...arr, obs]);
+  }, []);
+  /** The screen owns calibration progress; mirror it for the draft. */
+  const setLadderCalProgress = useCallback((calIndex: number, calResponses: any[]) => {
+    setLadderCalDraft({ calIndex, calResponses: Array.isArray(calResponses) ? calResponses : [] });
+  }, []);
+  /** §3 gates, decided from the caregiver record at INTRO. Null = no gating. */
+  const setLadderGating = useCallback((gates: any, caregiverRef: any) => {
+    setLadderGatesState(gates ?? null);
+    setLadderCaregiverRef(caregiverRef ?? null);
+  }, []);
+  /**
+   * The engine lane's `gatesFromCaregiver` (av2 contract), probed through
+   * the namespace import so an engine that has not landed it yet — or a
+   * caregiver record of an unexpected shape — can only ever produce NULL,
+   * which the UI reads as "no gating". The rule is conservative in both
+   * directions: opportunity gates exist ONLY when someone answered them
+   * clearly; a crash, a missing export, or a malformed record silently
+   * opens every track rather than hiding a domain from the child.
+   */
+  const ladderGatesFromCaregiver = useCallback((caregiverRecord: any) => {
+    try {
+      const fn: any = (journeyApi as any).gatesFromCaregiver;
+      if (typeof fn !== 'function') return null;
+      const g = fn.call(journeyApi, caregiverRecord?.scored ?? caregiverRecord);
+      if (!g || typeof g !== 'object') return null;
+      const src = (g as any).opportunityGates ?? g;
+      const out: any = {};
+      if (src.LITERACY === 'not_yet') out.LITERACY = 'not_yet';
+      if (src.NUMERACY === 'not_yet') out.NUMERACY = 'not_yet';
+      if (typeof g.source === 'string') out.source = g.source;
+      return (out.LITERACY || out.NUMERACY) ? out : null;
+    } catch { return null; } // any failure = no gating (spec §3 defensive)
+  }, []);
+  /** Fresh run: clear the accumulators and mint the draft's idempotency key
+   *  up front, so even the calibration games ride a flushable clientRef. */
+  const resetLadderRun = useCallback(() => {
+    setLadderObservations([]);
+    setLadderVisitValidity([]);
+    setLadderCalDraft(null);
+    setProbeState(null); setProbeCalibration(null); setCurrentVisit(null);
+    setLadderClientRef(newLadderClientRef());
+  }, []);
 
   /** Intake — the ONLY diagnosis touchpoint, and it sets access supports only. */
   const startChild = useCallback((name: string, cond: string, ageYears: number | null = null) => {
@@ -184,6 +478,9 @@ function useIrisState() {
     setLadder(null); setLadderPlan(null); setLadderLedger(null); setLadderSaveError(null);
     setProbeState(null); setProbeCalibration(null); setCurrentVisit(null);
     setLadderObservation(null); setLadderClientRef(null); setLadderLoadError(null);
+    // av2 run accumulators belong to the child whose intake this is, too.
+    setLadderObservations([]); setLadderVisitValidity([]); setLadderCalDraft(null);
+    setLadderGatesState(null); setLadderCaregiverRef(null);
   }, []);
 
   const accommodationInfo = useMemo(() => accommodationDefaults(condition), [condition]);
@@ -528,7 +825,11 @@ function useIrisState() {
 
   const beginLadderProbe = useCallback((calibrationResponses: any[]) => {
     const calibration = runCalibration({ ageYears: childAgeYears, responses: calibrationResponses });
-    const state = startProbe(calibration);
+    /* §3 opportunity gating: a closed MAIN track is folded into the probe
+       state as an explicit NO_OPPORTUNITY stop before the first visit — the
+       engine never scores what the child never had the chance to meet, and
+       no other track can feel the difference. */
+    const state = closeGatedTracks(startProbe(calibration), ladderGates);
     const visit = nextProbe(state);
     setProbeCalibration(calibration);
     setProbeState(state);
@@ -541,32 +842,101 @@ function useIrisState() {
     }));
     setLadderClientRef((r: any) => (typeof r === 'string' && r ? r : newLadderClientRef()));
     return { calibration, visit };
-  }, [childAgeYears]);
+  }, [childAgeYears, ladderGates]);
 
   /**
    * Record one strand visit and hand back the next, or null when finished.
    * Returns `{ visit, finished, assessment }` so the screen never has to
    * inspect engine state itself.
+   *
+   * ── av2 additions (spec §1.6 / §5 / §7) ─────────────────────────────────
+   * Third argument `visitCtx` carries THIS visit's observation rows:
+   *   { observations: [...], invalidVisit?: boolean }
+   * The visit is classified locally from them. An `invalid_administration`
+   * visit NEVER reaches `recordProbe` — the estimates do not move, the
+   * strand is simply marked visited so the session keeps flowing, and the
+   * validity row records what happened. On the finishing visit the engine
+   * finalise call gains the av2 envelope options (observations, gates,
+   * visitValidity, caregiverRef), and the POST's `item_results` carries the
+   * full §7 av2 shape. A successful save marks the server draft COMPLETE
+   * (never deletes it) and clears the local keys.
    */
-  const submitLadderVisit = useCallback(async (result: any, explicitChildId: number | null = null) => {
+  const submitLadderVisit = useCallback(async (
+    result: any,
+    explicitChildId: number | null = null,
+    visitCtx: any = {},
+  ) => {
     /* The assessment screen calls this with no id — it has none. Falling back
        to the bound child row is what makes the assessment actually persist;
        before this it silently skipped the write on every real run. */
     const childId = explicitChildId ?? childDbId;
     if (!probeState || !currentVisit) return { visit: null, finished: true, assessment: null };
 
-    const next = recordProbe(probeState, currentVisit, result);
+    const visitObservations = Array.isArray(visitCtx?.observations) ? visitCtx.observations : [];
+    // Prefer what the screen classified; classify defensively from the raw
+    // rows if it did not. No rows at all (legacy callers) stays 'valid' so
+    // pre-av2 call sites behave exactly as before.
+    const validity = visitCtx?.invalidVisit === true
+      ? 'invalid_administration'
+      : (visitObservations.length
+          ? classifyVisitValidity(visitObservations)
+          : (result?.visitValidity === 'invalid_administration' ? 'invalid_administration' : 'valid'));
+    const visitNo = (Array.isArray(ladderVisitValidity) ? ladderVisitValidity.length : 0) + 1;
+    const validityRows = [...(ladderVisitValidity ?? []), {
+      visit: visitNo,
+      strand: currentVisit.strand ?? null,
+      ladder: currentVisit.ladder ?? null,
+      track: currentVisit.track ?? null,
+      valid: validity,
+    }];
+
+    let next;
+    if (validity === 'invalid_administration') {
+      /* §1.6: never updates estimates. recordProbe is NOT called; the
+         strand is marked visited so the track advances on its own. */
+      const key = currentVisit.track_key;
+      const t: any = probeState.tracks?.[key];
+      const tracks = t
+        ? {
+            ...probeState.tracks,
+            [key]: { ...t, visited: [...new Set([...(t.visited ?? []), currentVisit.strand])] },
+          }
+        : probeState.tracks;
+      next = closeGatedTracks({ ...probeState, tracks }, ladderGates);
+    } else {
+      next = closeGatedTracks(recordProbe(probeState, currentVisit, result), ladderGates);
+    }
     const visit = nextProbe(next);
+    setLadderVisitValidity(validityRows);
     setProbeState(visit ? next : null);
     setCurrentVisit(visit);
     if (!visit) setProbeCalibration(null);
 
+    /* §5: a visit boundary is a FORCED flush — no debounce waiting. */
+    writeLadderDraft();
+    void postLadderDraft('IN_PROGRESS');
+
     if (visit) return { visit, finished: false, assessment: null };
+
+    /* The final observation log: item rows + this last visit + one
+       domain-level no_opportunity row per closed track (§3). */
+    const itemObservations = [
+      ...(Array.isArray(ladderObservations) ? ladderObservations : []).filter((o: any) => o?.outcome !== 'no_opportunity'),
+      ...visitObservations,
+    ];
+    const observations = [...itemObservations, ...gatingObservations(ladderGates)];
+    const gates = gatesEnvelope(ladderGates, ladderCaregiverRef);
 
     const assessment = finaliseLadderAssessment({
       calibration: probeCalibration,
       probe: { ...next, finished: true },
       accommodations,
+      // ── av2 envelope opts (engine lane contract; harmless no-ops until
+      //    they land, and the engine lane's tests keep their own shape) ──
+      observations,
+      opportunityGates: gates,
+      visitValidity: validityRows,
+      caregiverRef: ladderCaregiverRef ?? null,
     });
 
     /*
@@ -575,6 +945,8 @@ function useIrisState() {
      * measurement — it is an accidental exit. It is never persisted and never
      * published to local state (no low estimate, no phantom snapshot). The
      * draft is cleared, so on resume the child simply sees the intro again.
+     * Under av2 the draft is explicitly marked INVALID first (§5: INVALID
+     * drafts never hydrate as resume points).
      */
     const invalidRun = (assessment.items_presented ?? 0) < 3;
 
@@ -584,10 +956,15 @@ function useIrisState() {
     const clientRef = typeof ladderClientRef === 'string' && ladderClientRef
       ? ladderClientRef
       : newLadderClientRef();
+    /* Snapshot the resumable draft BEFORE the state below consumes it, so
+       the terminal draft POST still carries the full run log under the
+       right clientRef. */
+    const finalDraftState = buildLadderDraftState();
     setLadderObservation(null);
     setLadderClientRef(null);
 
     if (invalidRun) {
+      void postLadderDraft('INVALID', { state: finalDraftState, clientRef });
       return { visit: null, finished: true, assessment: null, invalidRun: true };
     }
 
@@ -599,13 +976,30 @@ function useIrisState() {
 
     if (childId) {
       try {
+        const rec: any = toAssessmentRecord(assessment);
+        /* §7 record envelope. The engine record is byte-compatible by
+           construction (calibration + probe stay as they were); the av2
+           arrays are additive INSIDE item_results, which is exactly the
+           documented av2 shape, and `rule_pack_version` is stamped for the
+           av2 pack. Server-side, legacy rows bypass the new enum checks;
+           av2 rows validate shape only — ids stay client authority. */
+        const itemResults = {
+          ...(rec.item_results ?? {}),
+          bankVersion: 'av2',
+          observations,
+          opportunityGates: gates,
+          visitValidity: validityRows,
+          caregiverRef: ladderCaregiverRef ?? null,
+        };
         const res = await fetch(`${API_URL}/assessments`, {
           method: 'POST',
           headers: authHeaders(),
           body: JSON.stringify({
             childId,
             assessment_kind: 'LADDER',
-            ...toAssessmentRecord(assessment),
+            ...rec,
+            item_results: itemResults,
+            rule_pack_version: 'av2-1.0.0',
             // ── TOP-LEVEL ADDITIONS ONLY (W13 + accommodation record + §1) ──
             // `observationMeta` and `clientRef` sit BESIDE the engine record,
             // never inside `item_results`, whose shape is byte-compatible
@@ -618,14 +1012,26 @@ function useIrisState() {
             clientRef,
           }),
         });
-        if (!res.ok) setLadderSaveError(`SAVE_FAILED_${res.status}`);
+        if (!res.ok) {
+          setLadderSaveError(`SAVE_FAILED_${res.status}`);
+        } else {
+          /* §5: a completed LADDER record clears the drafts — the SERVER
+             draft is marked COMPLETE (never deleted) and the local keys go
+             with the consumed run state below. */
+          void postLadderDraft('COMPLETE', {
+            state: { ...finalDraftState, probeState: null, currentVisit: null },
+            clientRef,
+          });
+        }
       } catch (e: any) {
         setLadderSaveError(e?.message || 'SAVE_FAILED');
       }
     }
 
     return { visit: null, finished: true, assessment, invalidRun: false };
-  }, [probeState, currentVisit, probeCalibration, accommodations, childDbId, ladderObservation, ladderClientRef]);
+  }, [probeState, currentVisit, probeCalibration, accommodations, childDbId, ladderObservation,
+      ladderClientRef, ladderObservations, ladderVisitValidity, ladderGates, ladderCaregiverRef,
+      writeLadderDraft, postLadderDraft, buildLadderDraftState]);
 
   /**
    * Fold a finished practice session back into the ledger — closes the loop.
@@ -777,6 +1183,12 @@ function useIrisState() {
     ladderObservation, ladderClientRef, ladderLoadError,
     recordLadderLatency, recordLadderBreak, setLadderHelperUsed, setLadderAudioAuto,
     flushLadderDraft,
+    // ── av2 (spec §1/§3/§5/§7): per-item observation log, per-visit
+    // validity, opportunity gates, calibration draft mirror, server-draft
+    // resume, and the defensive caregiver-gate probe. ──
+    ladderObservations, ladderVisitValidity, ladderGates, ladderCaregiverRef,
+    recordLadderObservation, setLadderCalProgress, setLadderGating,
+    ladderGatesFromCaregiver, resetLadderRun, resumeLadderDraft,
     // The adaptive decision trace — what changed, why, and on what evidence.
     lastAdaptation, practiceSaveError, childDbId, setChildDbId,
     adaptationHistory, historyError, refreshAdaptationHistory,

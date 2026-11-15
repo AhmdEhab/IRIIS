@@ -13,7 +13,11 @@ import { useApp } from '../../contexts/AppContext';
 import { useIris } from '../../contexts/IrisContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { IrisBuddy } from '../iris/ui/IrisBuddy';
-import { buildFamilyLearningProfile } from '../../../iris/caregiver/merge.js';
+/* §8: the discrepancy list itself, plus the CANONICAL label maps shared
+   with the merge engine and the parent screen — one vocabulary everywhere. */
+import {
+  buildFamilyLearningProfile, DISCREPANCY_FAMILY_WORDS, PARENT_STATE_WORDS, OBSERVED_STATE_WORDS,
+} from '../../../iris/caregiver/merge.js';
 import './plan-family.css';
 
 export interface IrisFirstPlanProps {
@@ -62,6 +66,10 @@ export function IrisFirstPlan({ caregiver, onContinue, onOpenFamily }: IrisFirst
   const plan = merged.planSeed || {};
   const priorities: any[] = merged.priorities || [];
   const strengths: any[] = merged.functional?.strengths || merged.caregiverSummary?.strengths || [];
+  /* §8: per-family, category-only differences between the two tracks.
+     Empty (or absent from an old merge) is the normal case — then the
+     static divergence sentence below stays as it has always been. */
+  const discrepancies: any[] = (merged as any).discrepancies || [];
   const interests: string[] = ((caregiver?.scored?.interests as any[]) || (merged.functional?.interests as any[]) || []).slice(0, 6);
   const activities: any[] = plan.activities || [];
   const supports: string[] = plan.supports || [];
@@ -86,7 +94,38 @@ export function IrisFirstPlan({ caregiver, onContinue, onOpenFamily }: IrisFirst
           <div className="fp-hero-buddy" aria-hidden="true"><IrisBuddy mood="happy" /></div>
         </header>
 
-        {merged.divergenceNote && (
+        {/* §8: when the two tracks genuinely differ on a named skill
+            family, the plan shows WHERE — neutral framing, shared label
+            vocabulary (merge.js exports), and NEVER a number: the engine
+            emits categorical entries only, and the priority resolver
+            above is untouched. */}
+        {discrepancies.length > 0 && (
+          <section className="fp-card" dir={ar ? 'rtl' : 'ltr'} aria-labelledby="fp-disc-title">
+            <h2 className="fp-h2" id="fp-disc-title">{ar ? 'لوحت الصورة في مكانين' : 'The picture differed in two places'}</h2>
+            <p className="fp-soft" dir={ar ? 'rtl' : 'ltr'}>
+              {ar
+                ? 'الشاشة والبيت بيسألوا بطرق مختلفة — الاختلاف ده معلومات، ومش تعارض. ومفيش رقم بيلمّ الاتنين.'
+                : 'The screen and home ask in different ways — the difference is information, not contradiction, and no number merges the two.'}
+            </p>
+            <ul className="fp-list fp-dots">
+              {discrepancies.map((d: any, i: number) => {
+                const fam = DISCREPANCY_FAMILY_WORDS[d.family] || { ar: String(d.family), en: String(d.family) };
+                const par = PARENT_STATE_WORDS[d.parent] || { ar: String(d.parent), en: String(d.parent) };
+                const obs = OBSERVED_STATE_WORDS[d.observed] || { ar: String(d.observed), en: String(d.observed) };
+                return (
+                  <li key={d.family || i} dir={ar ? 'rtl' : 'ltr'}>
+                    <strong>{ar ? fam.ar : fam.en}</strong>
+                    {ar ? ` — في البيت ${par.ar}، و${obs.ar}. ${d.note?.ar || ''}` : ` — at home: ${par.en}; ${obs.en}. ${d.note?.en || ''}`}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+        {/* The static divergence sentence stays — the honest fallback for
+            every family where nothing specific was found (and for profiles
+            merged before §8 existed). */}
+        {discrepancies.length === 0 && merged.divergenceNote && (
           <div className="fp-note" dir={ar ? 'rtl' : 'ltr'}>
             {ar ? merged.divergenceNote.ar : merged.divergenceNote.en}
           </div>

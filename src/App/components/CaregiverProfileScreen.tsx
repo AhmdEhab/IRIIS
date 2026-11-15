@@ -4,11 +4,15 @@ import { useIris } from '../contexts/IrisContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { API_URL, authHeaders } from '../config';
+import { API_URL, authHeaders, readAuthToken } from '../config';
 import { CAREGIVER_BANK_VERSION, getCaregiverBlocks } from '../../iris/caregiver/bank.js';
 import { scoreCaregiverProfile } from '../../iris/caregiver/scoring.js';
 import { CAREGIVER_V2_VERSION, getCaregiverBlocksV2, CARE_CARD_CODES } from '../../iris/caregiver/bankV2.js';
 import { scoreCaregiverV2 } from '../../iris/caregiver/scoringV2.js';
+/* The canonical, engine-side label maps (merge.js §8): the completion
+ * summary and the First Plan strip render the SAME parent words from the
+ * SAME source, so a family never meets two vocabularies for one thing. */
+import { PARENT_STATE_WORDS, PARENT_CONFIDENCE_WORDS, BLOCK_LABELS } from '../../iris/caregiver/merge.js';
 import './caregiver-profile.css';
 
 /**
@@ -266,6 +270,36 @@ const UI: Record<string, { ar: string; en: string }> = {
   savedServer: { ar: 'محفوظ على حسابك', en: 'Saved to your account' },
   langLabel: { ar: 'English', en: 'عربي' },
   childWord: { ar: 'عن', en: 'about' },
+  /* P1 — the honest third chip tone: the write is in flight, not done. */
+  saving: { ar: 'بنحدّث على حسابك…', en: 'Updating your account…' },
+  /* P3 — derived-steps remaining count, auto-adjust note, cv2 cap word. */
+  remainingWord: { ar: 'فضلت', en: 'left' },
+  questionsWord: { ar: 'أسئلة', en: 'questions' },
+  capWord: { ar: 'حتى ١٥', en: 'up to 15' },
+  adjustNote: {
+    ar: 'لو أي إجابة اتغيّرت، الأسئلة اللي بعدها هتتعدّل تلقائيًا.',
+    en: 'If any answer changes, the questions after it adjust automatically.',
+  },
+  /* P2 — the completion summary (framework §5: strengths first). */
+  summaryTitle: { ar: 'ملخص اللي جمعناه', en: 'Summary of what we gathered' },
+  summaryLead: {
+    ar: 'دي الصورة اللي اتبنّت من إجاباتك النهارده — مش حكم ولا درجة، وهرجع نعدّلها مع الوقت.',
+    en: 'This is the picture your answers gave today — not a verdict and not a score, and it will change with time.',
+  },
+  summaryStrengthHead: { ar: 'حاجات ظهرت — قبل أي حاجة تانية', en: 'What stood out — before anything else' },
+  summaryInterestsWord: { ar: 'وبيحب:', en: 'And he likes:' },
+  summaryBlocksHead: { ar: 'اللي جمعناه في كل قسم', en: 'What we gathered, section by section' },
+  /* cv2 short instrument: S/M confidence is force-capped to MEDIUM by the
+     adapter (scoringV2). The limitation note says exactly that, honestly. */
+  summaryCapNote: {
+    ar: 'الملف ده بيسأل أسئلة قليلة عن المجال ده، فالثقة بوقوف عند «محتاج تأكيد» — الشاشات هتكمّل الصورة.',
+    en: 'This short file asks few questions in this area, so confidence stops at "needs confirming" — the screens will complete the picture.',
+  },
+  summaryCareLine: {
+    ar: 'خدنا بالك النقطة اللي شاركتينا فيها، وهنراعيها في ترتيب الأنشطة — وإحنا معاك.',
+    en: 'We are holding the point you shared gently, and it shapes how activities are arranged — we are with you.',
+  },
+  summaryCta: { ar: 'يلا نبدأ تقييم', en: "Let's start assessing" },
 };
 
 /* ── Small pure helpers ─────────────────────────────────────────────────── */
@@ -476,17 +510,24 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
   const months = useMemo(() => childAgeMonths(childProfile as { age?: number } | null), [childProfile]);
 
   const [answers, setAnswers] = useState<Answers>({});
-  const [phase, setPhase] = useState<'intro' | 'flow' | 'review' | 'busy'>('intro');
+  const [phase, setPhase] = useState<'intro' | 'flow' | 'review' | 'busy' | 'summary'>('intro');
   // NOTE: 'submit' is the busy spinner only; the review screen is a step, so
   // landing on it flips phase to 'review' below in goNext().
+  // NOTE: 'summary' (P2) sits between a SUCCESSFUL submit and onComplete —
+  // the family sees what was gathered before the ladder invitation.
   const [idx, setIdx] = useState(0);
   const [clientRef, setClientRef] = useState<string>(() => makeClientRef());
-  const [saveState, setSaveState] = useState<'idle' | 'local' | 'server' | 'offline'>('idle');
+  // P1: 'pending' is the honest in-flight tone — the flush has started and
+  // has not been confirmed. It replaced the old lie-by-silence.
+  const [saveState, setSaveState] = useState<'idle' | 'local' | 'pending' | 'server' | 'offline'>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [ownText, setOwnText] = useState<Record<string, string>>({}); // free-text 'add own' buffer per item
   const [restored, setRestored] = useState(false);
   const startAtRef = useRef<number | null>(null);
+  /* P2: the scored object is kept in a REF — the summary screen reads it,
+     and only the CTA hands (answers, scored) to onComplete. */
+  const summaryRef = useRef<{ answers: Answers; scored: object } | null>(null);
 
   const steps = useMemo(() => buildSteps(blocks, answers, months), [blocks, answers, months]);
   const qs = useMemo(() => questionSteps(steps), [steps]);
@@ -515,18 +556,42 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
   const T = useCallback((key: keyof typeof UI) => UI[key]?.[ar ? 'ar' : 'en'] ?? String(key), [ar]);
 
   /* ── Autosave ───────────────────────────────────────────────────────────
-     localStorage first and synchronously (it is the safety net that must never
-     fail), then the server draft debounced by 800ms and swallowed silently.
-     A parent on a flaky 3G connection keeps every answer regardless. */
-  const serverTimer = useRef<number | null>(null);
+     localStorage first and synchronously (it is the safety net that must
+     never fail), then — since P1 — the server draft per ANSWER, immediate,
+     with in-flight coalescing, a single-slot retry drained on the next
+     answer or on 'online', and a sendBeacon last-gasp on page exit. A
+     parent on a flaky 3G connection keeps every answer regardless, and a
+     closed tab keeps the LAST one too. */
   const submittedRef = useRef(false); // after submit, autosave is done
   const latest = useRef<{ answers: Answers; clientRef: string; bankVersion: string }>({ answers, clientRef, bankVersion: vBank });
   latest.current = { answers, clientRef, bankVersion: vBank };
 
-  const postDraft = useCallback(async (status: 'IN_PROGRESS' | 'COMPLETE') => {
+  /* ── P1 (spec §9): the autosave, hardened ──────────────────────────────
+     localStorage stays first and synchronous (the safety net that must never
+     fail). The server copy is NO LONGER debounced: every answer flushes
+     immediately, so "never lose the last answer server-side" holds between
+     two answers too. Three small machines sit on top of one fetch:
+       • in-flight coalescing — while a POST runs, a later answer only marks
+         the coalesce slot; when the request lands, the NEWEST snapshot goes
+         out once. The payload is always the full latest answers, so a
+         coalesced resend and a retry of the last failure are the same send.
+       • single-slot retry — a failure leaves `failedRef` set; the next
+         answer flushes anyway (latest wins), and window 'online' drains the
+         slot the moment connectivity returns, with no queue to grow.
+       • exit beacon — pagehide / visibilitychange:hidden fire
+         navigator.sendBeacon at /api/caregiver/draft/beacon (POST fetches
+         die with the tab; beacons do not). sendBeacon cannot set headers,
+         so the token rides in the JSON body — the beaconAuth middleware in
+         server.js reads body.token first, then ?token=, then the header. */
+  const inflightRef = useRef(false);
+  const againRef = useRef(false);
+  const failedRef = useRef(false);
+  const draftChildId = () => childDbId ?? (childProfile as unknown as { id?: string } | null)?.id ?? null;
+
+  const sendDraft = useCallback(async (status: 'IN_PROGRESS' | 'COMPLETE') => {
     const { answers: a, clientRef: ref, bankVersion: bv } = latest.current;
     const body = {
-      childId: childDbId ?? (childProfile as unknown as { id?: string } | null)?.id ?? null,
+      childId: draftChildId(),
       clientRef: ref,
       responses: a,
       status,
@@ -537,9 +602,65 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
       const res = await fetch(`${API_URL}/caregiver/draft`, {
         method: 'POST', headers: authHeaders(), body: JSON.stringify(body),
       });
-      if (res.ok) setSaveState('server');
-      else setSaveState('offline');
-    } catch { setSaveState('offline'); }
+      if (res.ok) { failedRef.current = false; setSaveState('server'); }
+      else { failedRef.current = true; setSaveState('offline'); }
+    } catch { failedRef.current = true; setSaveState('offline'); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childProfile, childDbId]);
+
+  const flushDraftRef = useRef<() => void>(() => {});
+  flushDraftRef.current = () => {
+    if (submittedRef.current) return;
+    if (inflightRef.current) { againRef.current = true; return; } // coalesce: newest wins later
+    inflightRef.current = true;
+    setSaveState('pending'); // the honest in-flight tone
+    void sendDraft('IN_PROGRESS').finally(() => {
+      inflightRef.current = false;
+      if (againRef.current) { againRef.current = false; flushDraftRef.current(); }
+    });
+  };
+
+  /* Drain the retry slot when the connection itself comes back. */
+  useEffect(() => {
+    const onOnline = () => { if (failedRef.current && !submittedRef.current) flushDraftRef.current(); };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, []);
+
+  /* The exit flush: synchronous, header-less, last-gasp. Skipped after a
+     submit (the COMPLETE write owns the ending) and before the first answer. */
+  useEffect(() => {
+    const beaconFlush = () => {
+      if (submittedRef.current) return;
+      try {
+        if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') return;
+        const childId = draftChildId();
+        const { answers: a, clientRef: ref, bankVersion: bv } = latest.current;
+        if (childId == null || Object.keys(a).length === 0) return;
+        const payload = {
+          token: readAuthToken(),
+          childId,
+          clientRef: ref,
+          responses: a,
+          status: 'IN_PROGRESS',
+          bankVersion: bv,
+          updatedAt: new Date().toISOString(),
+          source: 'beacon',
+        };
+        navigator.sendBeacon(
+          `${API_URL}/caregiver/draft/beacon`,
+          new Blob([JSON.stringify(payload)], { type: 'application/json' }),
+        );
+      } catch { /* never block a page exit on the draft's network */ }
+    };
+    const onVisibility = () => { if (typeof document !== 'undefined' && document.visibilityState === 'hidden') beaconFlush(); };
+    window.addEventListener('pagehide', beaconFlush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', beaconFlush);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childProfile, childDbId]);
 
   const queueSave = useCallback((next: Answers) => {
@@ -549,15 +670,14 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
         responses: next, itemId: steps[idx]?.kind === 'item' || steps[idx]?.kind === 'gate' ? steps[idx]?.id : null,
         bankVersion: vBankRef.current, clientRef, updatedAt: new Date().toISOString(),
       }));
-      setSaveState(prev => (prev === 'server' ? prev : 'local'));
+      setSaveState(prev => (prev === 'server' || prev === 'pending' ? prev : 'local'));
     } catch { /* private mode: the server copy is still queued below */ }
-    // 2. the cross-device copy, debounced so a fast run of answers is one call
-    if (serverTimer.current) window.clearTimeout(serverTimer.current);
-    if (submittedRef.current) return;
-    serverTimer.current = window.setTimeout(() => { void postDraft('IN_PROGRESS'); }, 800);
-  }, [clientRef, idx, steps, postDraft]);
-
-  useEffect(() => () => { if (serverTimer.current) window.clearTimeout(serverTimer.current); }, []);
+    // 2. the cross-device copy, FLUSHED PER ANSWER (P1). queueSave runs
+    //    inside the setState updater, before the re-render refreshes
+    //    `latest`, so seed it here — the flush must carry THIS answer.
+    latest.current = { ...latest.current, answers: next, bankVersion: vBankRef.current };
+    flushDraftRef.current();
+  }, [clientRef, idx, steps]);
 
   const record = useCallback((itemId: string, patch: Answer, opts?: { keepIndex?: boolean }) => {
     setAnswers(prev => {
@@ -677,10 +797,14 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
   const submit = useCallback(async () => {
     setSubmitError(null);
     setPhase('busy');
-    // §5: the review step's idx autosave can still be in flight; a late
-    // IN_PROGRESS write must never land after this COMPLETE.
-    if (serverTimer.current) window.clearTimeout(serverTimer.current);
+    // §5: the review step's per-answer flush can still be in flight; a late
+    // IN_PROGRESS write must never land after this COMPLETE. P1 removed the
+    // timer, so the wait is on the request itself: park until the inflight
+    // slot is free, drop any coalesce promise, then own the ending.
+    while (inflightRef.current) await new Promise((r) => setTimeout(r, 60));
+    againRef.current = false;
     submittedRef.current = true;
+    failedRef.current = false; // the COMPLETE retry belongs to this call, not the queue
     // A visible beat for the spinner, then the engine does the reading.
     await new Promise((r) => setTimeout(r, 450));
     try {
@@ -702,13 +826,18 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
         try { localStorage.setItem('iris_display_pref', pref); } catch { /* non-critical */ }
       }
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ responses: answers, bankVersion: vBankRef.current, clientRef, status: 'COMPLETE', itemId: null, updatedAt: new Date().toISOString() })); } catch { /* silent */ }
-      await postDraft('COMPLETE'); // best-effort; a local COMPLETE still stands
-      onComplete(answers, scored);
+      await sendDraft('COMPLETE'); // best-effort; a local COMPLETE still stands
+      /* P2 (spec §9): the family SEES what was gathered before the ladder
+       * invitation — strengths first, per-block rows with confidence words
+       * and the honest cv2 limitation note. Only the fresh-completion path
+       * lands here; edits and resumes never re-earn the summary. */
+      summaryRef.current = { answers, scored };
+      setPhase('summary');
     } catch {
       setSubmitError(T('submitError'));
       setPhase('review');
     }
-  }, [answers, months, clientRef, postDraft, onComplete, T]);
+  }, [answers, months, clientRef, sendDraft, T]);
 
   /* ── One item card, whatever its format ───────────────────────────────── */
   const ItemBody = ({ item }: { item: BankItem }) => {
@@ -833,10 +962,14 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
           </button>
         ) : <span className="cp-home cp-home--spacer" aria-hidden="true" />}
         <span className={cx('cp-save', `cp-save--${saveState}`)} role="status" aria-live="polite">
-          {saveState === 'server' ? T('savedServer') : saveState === 'local' || saveState === 'offline' ? T('savedLocal') : ''}
+          {saveState === 'server' ? T('savedServer')
+            /* P1: 'pending' is honest — the write left the device and has
+               not come back. It replaced the debounce window's silence. */
+            : saveState === 'pending' ? T('saving')
+            : saveState === 'local' || saveState === 'offline' ? T('savedLocal') : ''}
         </span>
       </div>
-      {phase !== 'intro' && (
+      {phase !== 'intro' && phase !== 'busy' && phase !== 'summary' && (
         <div className="cp-progress">
           <div className="cp-progress-meta">
             <span className="cp-count">
@@ -850,6 +983,23 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
             </span>
             <span className="cp-pct" aria-hidden="true">{num(Math.round((answeredQs / Math.max(1, qs.length)) * 100))}%</span>
           </div>
+          {/* P3 (spec §9): the remaining count comes from the DERIVED step
+              list, so follow-ups that just fired are in it and questions an
+              edit removed are out — no minutes are promised anywhere. cv2
+              adds its honest ceiling word. */}
+          {phase === 'flow' && (
+            <div className="cp-remaining" dir={ar ? 'rtl' : 'ltr'}>
+              <span className="cp-remaining-count">
+                {ar
+                  ? `${T('remainingWord')} ${num(Math.max(0, qs.length - answeredQs))} ${T('questionsWord')}`
+                  : `${num(Math.max(0, qs.length - answeredQs))} ${T('questionsWord')} ${T('remainingWord')}`}
+              </span>
+              {vBank === CAREGIVER_V2_VERSION && (
+                <span className="cp-remaining-cap">{T('capWord')}</span>
+              )}
+            </div>
+          )}
+          {phase === 'flow' && <p className="cp-adjust-note" dir={ar ? 'rtl' : 'ltr'}>{T('adjustNote')}</p>}
           <div className="cp-track" aria-hidden="true"><span className="cp-track-fill" style={{ inlineSize: `${(qNo / Math.max(1, coreQs.length)) * 100}%` }} /></div>
           <div className="cp-dots" role="group" aria-label={T('blockWord')}>
             {blocks.map(b => {
@@ -1048,7 +1198,83 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
             <span className={cx('cp-spin', reduced && 'cp-spin--still')} aria-hidden="true" />
             <p className="cp-intro-lead">{T('submitting')}</p>
           </section>
-        ) : (
+        ) : phase === 'summary' ? (() => {
+          /* P2 — «ملخص اللي جمعناه» (spec §9, framework §5). Strengths and
+           * interests FIRST, then one honest row per block: answered count,
+           * the shared STATE vocabulary, a confidence WORD, and where the
+           * short cv2 instrument caps S/M to MEDIUM, the limitation note
+           * says so. careFlags get one gentle line. The CTA keeps the exact
+           * «يلا نبدأ» substring the QA battery greps for. */
+          const sc = (summaryRef.current?.scored ?? {}) as Record<string, any>;
+          const states: Record<string, any> = sc.domainStates || {};
+          const strengths: any[] = Array.isArray(sc.strengths) ? sc.strengths : [];
+          const interests: any[] = Array.isArray(sc.interests) ? sc.interests : [];
+          const careFlags: any[] = Array.isArray(sc.careFlags) ? sc.careFlags : [];
+          const isCv2 = vBank === CAREGIVER_V2_VERSION;
+          const kid = (childProfile as unknown as { name?: string } | null)?.name || (ar ? 'طفلك' : 'your child');
+          const rowKeys = ['C', 'L', 'S', 'M', 'P', 'H'].filter(k => states[k]);
+          return (
+            <section className="cp-card cp-card--summary" role="status" aria-live="polite" dir={ar ? 'rtl' : 'ltr'}>
+              <h2 className="cp-review-title">{T('summaryTitle')}</h2>
+              <p className="cp-block-blurb">{T('summaryLead')}</p>
+              <h3 className="cp-sum-head">{T('summaryStrengthHead')}</h3>
+              {strengths.length || interests.length ? (
+                <div className="cp-sum-chips" role="list" aria-label={T('summaryStrengthHead')}>
+                  {strengths.slice(0, 6).map((s, i) => (
+                    <span key={`st${i}`} role="listitem" className="cp-sumchip cp-sumchip--strength">{ar ? s.ar : s.en}</span>
+                  ))}
+                  {interests.length > 0 && (
+                    <span role="list" className="cp-sum-interests" aria-label={T('summaryInterestsWord')}>
+                      <span className="cp-sum-interests-label">{T('summaryInterestsWord')}</span>
+                      {interests.slice(0, 6).map((x, i) => (
+                        <span key={`in${i}`} role="listitem" className="cp-sumchip">{typeof x === 'string' ? x : (ar ? x.ar : x.en)}</span>
+                      ))}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="cp-soft">{ar ? 'قولتنا عن الحاجات الجميلة هتظهر أول ما الملف يتكمل.' : 'The good things will show here as the profile fills in.'}</p>
+              )}
+              {rowKeys.length > 0 && (
+                <>
+                  <h3 className="cp-sum-head">{T('summaryBlocksHead')}</h3>
+                  <ul className="cp-sumrows" role="list">
+                    {rowKeys.map(k => {
+                      const d = states[k];
+                      const st = PARENT_STATE_WORDS[d.state] || PARENT_STATE_WORDS.needs_more_information;
+                      const cf = PARENT_CONFIDENCE_WORDS[d.confidence];
+                      const answered = Number(d.answered ?? 0);
+                      const eligible = Number(d.eligible ?? 0);
+                      return (
+                        <li key={k} className="cp-sumrow">
+                          <div className="cp-sumrow-main">
+                            <strong className="cp-sumrow-name">{ar ? (BLOCK_LABELS[k]?.ar || k) : (BLOCK_LABELS[k]?.en || k)}</strong>
+                            <span className="cp-sumrow-count">{num(answered)}/{num(eligible)} {T('answeredWord')}</span>
+                            <span className="cp-sumrow-state">{ar ? st.ar : st.en}</span>
+                            {cf && <span className="cp-sumrow-conf">{ar ? `الثقة: ${cf.ar}` : `confidence: ${cf.en}`}</span>}
+                          </div>
+                          {isCv2 && (k === 'S' || k === 'M') && d.confidence === 'MEDIUM' && (
+                            <p className="cp-sumrow-note">{T('summaryCapNote')}</p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
+              {careFlags.length > 0 && <p className="cp-sumrow-note">{T('summaryCareLine')}</p>}
+              <div className="cp-nav cp-nav--end">
+                <button type="button" className="cp-cta cp-cta--start" autoFocus data-sfx="tap"
+                  onClick={() => {
+                    const s = summaryRef.current;
+                    if (s) onComplete(s.answers, s.scored);
+                  }}>
+                  <span>{ar ? `${T('summaryCta')} ${kid}` : `${T('summaryCta')} ${kid}`}</span>
+                </button>
+              </div>
+            </section>
+          );
+        })() : (
           <div className="cp-stack">{body}</div>
         )}
       </main>

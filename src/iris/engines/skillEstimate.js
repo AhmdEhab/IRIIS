@@ -42,6 +42,22 @@ export const ESTIMATE_CONFIG = {
   CLIMB_AT_ACCURACY: 0.8,
   CLIMB_AFTER_SESSIONS: 2,
   HOLD_FLOOR_ACCURACY: 0.5,
+  /**
+   * av2 §1 — what a scaffolded success is worth.
+   *
+   * Half, not zero and not one. Zero would throw away the thing matrix D9/D10
+   * say is the most useful signal a parent gets — what the child can do WITH
+   * help — and would let a scaffolded pass look identical to a failure. One
+   * would erase the difference between "can do it" and "can do it today with a
+   * hint", which is precisely what `independence` exists to report. So a
+   * supported item earns credit toward accuracy while `supportRatioOf` keeps
+   * reporting it in its own column.
+   *
+   * Legacy rows carry supported = 0, so the numerator is unchanged for every
+   * observation recorded before av2 — the byte-compatibility tests depend on
+   * that and it is why the credit lives here rather than inside `correct`.
+   */
+  SUPPORTED_CREDIT: 0.5,
   SCAFFOLD_AFTER_LOW: 1,
   MODALITY_SHIFT_AFTER_LOW: 2,
   BACKSTEP_AFTER_LOW: 3,
@@ -99,6 +115,9 @@ export function newEstimate({ strandId, rung, provenance = PROVENANCE.CALIBRATED
  * @param {number} obs.correct
  * @param {number} obs.total
  * @param {number} [obs.supported] items answered with a hint/scaffold shown
+ * @param {number} [obs.insufficient] items that never reached a scorable
+ *        response (av2 §4). Kept on the row so the record shows what was
+ *        attempted, and excluded from every denominator by presentedOf().
  * @param {string} [obs.modality]  template or modality id, for the multi-modal check
  * @param {boolean}[obs.calibration] calibration probes never count as attainment
  * @param {string} [obs.session_id]
@@ -111,6 +130,9 @@ export function recordObservation(estimate, obs) {
     correct: obs.correct ?? 0,
     total: obs.total ?? 0,
     supported: obs.supported ?? 0,
+    // Default 0 keeps every pre-av2 row byte-identical — a legacy record
+    // replayed through this function gains nothing it did not have.
+    insufficient: obs.insufficient ?? 0,
     modality: obs.modality ?? null,
     calibration: !!obs.calibration,
     session_id: obs.session_id ?? null,
@@ -143,11 +165,49 @@ export function recentEvidenceAtRung(estimate, rung = estimate.rung, n = ESTIMAT
   return scoredEvidenceAtRung(estimate, rung).slice(-n);
 }
 
-/** Unsupported accuracy — the figure the move table reads. */
+/**
+ * How many of a row's items were actually PRESENTED for a scorable response.
+ *
+ * av2 §4: `insufficient` lives inside `total` (the item was opened) but not
+ * inside the denominator (the child never really answered it). A row that
+ * carries no insufficient count — every row written before av2 — returns its
+ * `total`, unchanged.
+ *
+ * Two guards, both because a row is built by a producer this file cannot see:
+ *   - `insufficient` is clamped to `total` so a malformed row cannot make a
+ *     denominator negative;
+ *   - the result never falls below the items that were demonstrably answered,
+ *     so a producer that already left the disengaged items out of `total`
+ *     still gets a denominator that covers its own correct+supported counts.
+ */
+export function presentedOf(row) {
+  const total = row?.total ?? 0;
+  const insufficient = Math.min(Math.max(row?.insufficient ?? 0, 0), total);
+  const answered = Math.min(total, (row?.correct ?? 0) + (row?.supported ?? 0));
+  return Math.max(total - insufficient, answered);
+}
+
+/** Credit earned: independent in full, supported at SUPPORTED_CREDIT. */
+function creditOf(row) {
+  const presented = presentedOf(row);
+  const raw = (row?.correct ?? 0) + ESTIMATE_CONFIG.SUPPORTED_CREDIT * (row?.supported ?? 0);
+  // Capped at what was presented: a producer that counts a supported item
+  // inside `correct` as well must never be able to mint an accuracy above 1.
+  return Math.min(presented, raw);
+}
+
+/**
+ * Accuracy — the figure the move table reads.
+ *
+ * Independent answers count in full, scaffolded answers count at
+ * SUPPORTED_CREDIT, and items that never reached a scorable response are not
+ * in the denominator at all. With supported = 0 and insufficient = 0 this is
+ * `correct / total`, exactly as it has always been.
+ */
 export function accuracyOf(rows) {
-  const total = rows.reduce((s, r) => s + r.total, 0);
-  if (total === 0) return null;
-  return rows.reduce((s, r) => s + r.correct, 0) / total;
+  const presented = rows.reduce((s, r) => s + presentedOf(r), 0);
+  if (presented === 0) return null;
+  return rows.reduce((s, r) => s + creditOf(r), 0) / presented;
 }
 
 /**
@@ -160,9 +220,9 @@ export function accuracyOf(rows) {
  * can do WITH help is the thing a parent most needs and a single score hides.
  */
 export function supportRatioOf(rows) {
-  const total = rows.reduce((s, r) => s + r.total, 0);
-  if (total === 0) return null;
-  return rows.reduce((s, r) => s + r.supported, 0) / total;
+  const presented = rows.reduce((s, r) => s + presentedOf(r), 0);
+  if (presented === 0) return null;
+  return rows.reduce((s, r) => s + (r.supported ?? 0), 0) / presented;
 }
 
 /** Distinct modalities the strand has been observed through. */
@@ -179,7 +239,9 @@ export function modalitiesOf(estimate) {
  */
 export function confidenceOf(estimate) {
   const rows = scoredEvidenceAtRung(estimate);
-  const items = rows.reduce((s, r) => s + r.total, 0);
+  // Counted on PRESENTED items: an item the child never really answered cannot
+  // build confidence, however many of them were opened (av2 §1/§4).
+  const items = rows.reduce((s, r) => s + presentedOf(r), 0);
   const sessions = rows.length;
 
   if (items === 0) return 'LOW';
@@ -187,7 +249,12 @@ export function confidenceOf(estimate) {
   if (sessions < ESTIMATE_CONFIG.MIN_SESSIONS_FOR_HIGH_CONFIDENCE) return 'MEDIUM';
 
   // Inconsistency across sessions keeps confidence down even with many items.
-  const perSession = rows.map((r) => r.correct / r.total);
+  // Sessions that produced no scorable evidence are skipped rather than read
+  // as 0/0 = NaN; they cannot corroborate anything either way.
+  const perSession = rows
+    .filter((r) => presentedOf(r) > 0)
+    .map((r) => creditOf(r) / presentedOf(r));
+  if (perSession.length === 0) return 'LOW';
   const spread = Math.max(...perSession) - Math.min(...perSession);
   if (spread > 0.5) return 'MEDIUM';
 
@@ -266,7 +333,17 @@ export function updateEstimate(estimate, obs) {
     return { ...next, confidence: confidenceOf(next) };
   }
 
-  const accuracy = obs.total > 0 ? obs.correct / obs.total : null;
+  // Same maths as accuracyOf, applied to the row that was just recorded, so
+  // the streak counters and the move table can never disagree about what a
+  // supported answer was worth.
+  const row = {
+    correct: obs.correct ?? 0,
+    total: obs.total ?? 0,
+    supported: obs.supported ?? 0,
+    insufficient: obs.insufficient ?? 0,
+  };
+  const presented = presentedOf(row);
+  const accuracy = presented > 0 ? creditOf(row) / presented : null;
   if (accuracy != null) {
     next = {
       ...next,

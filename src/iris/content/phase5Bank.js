@@ -34,6 +34,7 @@ import {
 } from './arabicLetters.js';
 import { dialectDistanceFor } from '../ladders/literacy.js';
 import { SUBITIZING_MAX } from '../ladders/numeracy.js';
+import { TARGET_SKILL_BY_TEMPLATE } from './phase5Templates.js';
 
 export const TIERS = ['FOUNDATION', 'GUIDED', 'PRACTICE', 'INDEPENDENT', 'CHALLENGE'];
 
@@ -646,6 +647,363 @@ EGP_DENOMINATIONS.forEach((v, i) => {
     hint: { ar: 'بصّ على العقرب القصير', en: 'Look at the short hand' },
   }));
 });
+
+
+// ══ av2 §2 — VSP (E), MEM (F), COMM (A) ════════════════════════════════════
+//
+// These three ladders measure what the literacy and numeracy ladders can only
+// imply: the visual demand underneath a matching item, the memory demand
+// underneath an instruction, and the child's own expressive channel. They use
+// the SAME generation machinery as everything above — `distractors`,
+// `withOptions`, `mk`, `proto` — so an av2 item cannot ship with a validation
+// badge the rest of the bank does not carry, and difficulty still comes from
+// the number and closeness of options rather than from a label (brief §12).
+//
+// ── STIMULI ARE PICTURES, NOT WORDS ────────────────────────────────────────
+// Emoji tiles are deliberate: a picture pool carries no letter, no numeral and
+// no vocabulary requirement, which is the whole point of a non-symbolic
+// ladder. The pool stays small and familiar (apple / fish / car / ball / teddy
+// / elephant / flower / duck) because an unusual picture would test naming
+// instead of matching.
+//
+// ── THE `_LISTEN` ITEMS ARE A ROUTE, NOT A HARDER ITEM ─────────────────────
+// Same tiles, same answer key, instruction delivered by audio instead of by
+// printed Arabic. The adaptive probe re-offers exactly these on a
+// `paired_modality` retry (spec §4), so the second attempt has to differ ONLY
+// in how the question arrives — otherwise the engine would be comparing two
+// different difficulties and calling the difference a modality.
+const AV2_PICS = ['🍎', '🐟', '🚗', '⚽', '🧸', '🐘', '🌸', '🦆'];
+
+/** Egyptian-friendly names for the pool — used by the expressive items only. */
+const AV2_NAME_AR = {
+  '🍎': 'تفاحة', '🐟': 'سمكة', '🚗': 'عربية', '⚽': 'كورة', '🧸': 'دبدوب',
+  '🐘': 'فيل', '🌸': 'زَهرة', '🦆': 'بطة', '🐶': 'كلب', '🌙': 'قمر', '👟': 'جزمة',
+  '🪁': 'طيارة ورق', '🍌': 'موزة', '🌷': 'وردة',
+};
+
+let av2Seed = 0;   // one deterministic salt counter for the whole av2 block
+
+// ── VSP.MATCH — identical picture, two routes ───────────────────────────────
+[
+  { tpl: 'TPL-AR_VSP_MATCH', listen: false },
+  { tpl: 'TPL-AR_VSP_MATCH_LISTEN', listen: true },
+].forEach(({ tpl, listen }, k) => {
+  ['FOUNDATION', 'PRACTICE', 'CHALLENGE'].forEach((tier, j) => {
+    const pic = AV2_PICS[(k * 3 + j) % AV2_PICS.length];
+    const d = distractors(AV2_PICS, pic, OPTIONS_PER_TIER[tier] - 1, k + j);
+    const { options, correct_index } = withOptions(pic, d, av2Seed++);
+    items.push(mk({
+      item_id: nextId('AR-VSPM'), strand: 'VSP.MATCH', rung: 0, tier,
+      template_id: tpl,
+      stimulus: pic,
+      ...(listen ? { audio_ar: 'اختار الصورة اللي زي دي بالظبط' } : {}),
+      prompt: { ar: 'اختار اللي زيها بالظبط', en: 'Pick the one that is exactly the same' },
+      options, correct_index,
+      hint: { ar: 'قارن الشكل واللون — واحدة واحدة', en: 'Compare the shape and the colour, one at a time' },
+      language_light: true,
+      paired_modality: listen,
+    }));
+  });
+});
+
+// ── VSP.DIFFERENCE — odd-one-out ────────────────────────────────────────────
+// The row IS the option list: the child taps one of the tiles shown. Three
+// tiles is the smallest display in which "not like the others" means anything,
+// so FOUNDATION (2 options) is deliberately unused here — a tier that would
+// ask an unanswerable question is not a difficulty level, it is a bug.
+// CHALLENGE adds a fourth tile AND a near pair that differs by one attribute.
+[
+  { tpl: 'TPL-AR_VSP_DIFFERENCE', listen: false, tier: 'PRACTICE', base: '🚗', odd: '🚲', near: false },
+  { tpl: 'TPL-AR_VSP_DIFFERENCE', listen: false, tier: 'CHALLENGE', base: '🍎', odd: '🍏', near: true },
+  { tpl: 'TPL-AR_VSP_DIFFERENCE_LISTEN', listen: true, tier: 'PRACTICE', base: '⚽', odd: '🏀', near: false },
+  { tpl: 'TPL-AR_VSP_DIFFERENCE_LISTEN', listen: true, tier: 'CHALLENGE', base: '🐘', odd: '🦛', near: true },
+].forEach((x, i) => {
+  const count = OPTIONS_PER_TIER[x.tier];
+  // Never the first slot (that reads as "the odd one is whatever is on the
+  // left"), and always inside the row the tier actually shows: 1..count-1.
+  const oddAt = (i % (count - 1)) + 1;
+  const options = Array.from({ length: count }, (_, t) => (t === oddAt ? x.odd : x.base));
+  items.push(mk({
+    item_id: nextId('AR-VSPD'), strand: 'VSP.DIFFERENCE', rung: 1, tier: x.tier,
+    template_id: x.tpl,
+    display: 'TILE_ROW',
+    ...(x.listen ? { audio_ar: 'في واحدة مش زي الباقي — دوس عليها' } : {}),
+    prompt: { ar: 'دوس على اللي مش زي الباقي', en: 'Tap the one that is not like the others' },
+    options, correct_index: oddAt,
+    hint: { ar: 'شوف اللي زي بعض الأول، وشوف التالتة مختلفة فين', en: 'Find the ones that match, then see how the other differs' },
+    language_light: true,
+    near_difference: x.near,
+    paired_modality: x.listen,
+    _tier_note: 'PRACTICE = 3 tiles from clearly different things; CHALLENGE = 4 tiles, and the odd one differs by a single attribute.',
+  }));
+});
+
+// ── VSP.SORT — group by kind, or by colour ──────────────────────────────────
+// Two different RULES, therefore two different target_skill ids: sorting by
+// kind needs a category, sorting by colour needs one perceptual property. The
+// tier is how many groups compete, which is the actual load difference.
+[
+  {
+    tpl: 'TPL-AR_VSP_SORT', rule: 'KIND', tier: 'PRACTICE', target: '🦆', correct_group: 0,
+    groups: [['🐘', '🦆', '🐟'], ['⚽', '🧸', '🪁'], ['🍎', '🍌', '🥕']],
+  },
+  {
+    tpl: 'TPL-AR_VSP_SORT', rule: 'KIND', tier: 'CHALLENGE', target: '🐘', correct_group: 0,
+    groups: [['🐘', '🦆', '🐟'], ['⚽', '🧸', '🪁'], ['🍎', '🍌', '🥕'], ['👟', '🧢', '🧤']],
+  },
+  {
+    tpl: 'TPL-AR_VSP_SORT_COLOR', rule: 'COLOUR', tier: 'PRACTICE', target: '💙', correct_group: 1,
+    groups: [['🔴', '🍎', '❤️'], ['🔵', '💙', '🟦'], ['🟢', '💚', '🥒']],
+  },
+  {
+    tpl: 'TPL-AR_VSP_SORT_COLOR', rule: 'COLOUR', tier: 'CHALLENGE', target: '🟡', correct_group: 3,
+    groups: [['🔴', '🍎', '❤️'], ['🔵', '💙', '🟦'], ['🟢', '💚', '🥒'], ['🟡', '💛', '⭐']],
+  },
+].forEach((s, i) => {
+  // Rotate which group is shown first so the answer is not always in the same
+  // slot, while the option count stays exactly the tier's number.
+  const n = s.groups.length;
+  const shift = i % n;
+  const options = s.groups.map((_, idx) => s.groups[(idx + shift) % n].join(' '));
+  items.push(mk({
+    item_id: nextId('AR-VSPS'), strand: 'VSP.SORT', rung: 2, tier: s.tier,
+    template_id: s.tpl,
+    stimulus: s.target,
+    display: 'TARGET_AND_GROUPS',
+    sort_rule: s.rule,
+    prompt: s.rule === 'KIND'
+      ? { ar: 'دي بتتجمع مع أنهي مجموعة؟', en: 'Which group does this one belong to?' }
+      : { ar: 'دي بنفس لون أنهي مجموعة؟', en: 'Which group is the same colour as this one?' },
+    options, correct_index: (s.correct_group + shift) % n,
+    hint: s.rule === 'KIND'
+      ? { ar: 'فكّر دي من نوع إيه', en: 'Think about what kind of thing it is' }
+      : { ar: 'بصّ على اللون بس', en: 'Look at the colour only' },
+    language_light: true,
+    _why: 'C7 — grouping by a property sits underneath early number comparison; measured here with no number in the item at all.',
+  }));
+});
+
+// ── VSP.PATTERN — extend the repeat, no numerals ────────────────────────────
+// Two of these are generated on TPL-AR_PATTERN, the NUM.PATTERN format
+// re-hosted under the visual ladder exactly as av2 §2 asks. Every item here
+// carries its own `target_skill` so a visual pattern can never be rolled up
+// with the numeric one: the FORMAT is shared, the skill view is not.
+[
+  { tpl: 'TPL-AR_VSP_PATTERN', tier: 'PRACTICE', seq: ['🔴', '🔵', '🔴', '🔵'], next: '🔴', d: ['🟡', '🟢'] },
+  { tpl: 'TPL-AR_VSP_PATTERN', tier: 'CHALLENGE', seq: ['🍎', '🍎', '🌸', '🍎', '🍎', '🌸', '🍎'], next: '🍎', d: ['🌸', '🌷', '🍏'] },
+  { tpl: 'TPL-AR_PATTERN', rehosted: true, tier: 'PRACTICE', seq: ['🚗', '⚽', '🚗', '⚽', '🚗'], next: '⚽', d: ['🚗', '🧸'] },
+  { tpl: 'TPL-AR_PATTERN', rehosted: true, tier: 'CHALLENGE', seq: ['🟩', '🟨', '🟥', '🟩', '🟨', '🟥', '🟩', '🟨'], next: '🟥', d: ['🟨', '🟦', '🟩'] },
+].forEach((p, i) => {
+  const d = p.d.filter((x) => x !== p.next).slice(0, OPTIONS_PER_TIER[p.tier] - 1);
+  const { options, correct_index } = withOptions(p.next, d, av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-VSPP'), strand: 'VSP.PATTERN', rung: 3, tier: p.tier,
+    template_id: p.tpl,
+    target_skill: 'vsp-pattern-extend',   // wins over the numeric id on the re-hosted format
+    stimulus: p.seq.join(' '),
+    pattern_domain: 'VISUAL_ONLY',
+    prompt: { ar: 'إيه اللي جاي بعد كده؟', en: 'What comes next?' },
+    options, correct_index,
+    hint: { ar: 'شوف الشكل اللي بيتكرر إزاي', en: 'See how the shape repeats' },
+    language_light: true,
+    ...(p.rehosted
+      ? { _why: 'av2 §2 — the NUM.PATTERN format re-hosted under the visual ladder: no numerals, no counting, and its own target_skill, so a score here never moves NUM.PATTERN.' }
+      : {}),
+  }));
+});
+
+// ── MEM.VISUAL_STM — what disappeared? ──────────────────────────────────────
+// Three tiles are shown, one is removed in place, and the child picks what is
+// gone: from the SAME three at PRACTICE, or from three plus a tile that was
+// never there at CHALLENGE. That extra option is the whole tier difference — it
+// turns "which one is missing" into "which one is missing AND which one is
+// new", which is a real working-memory demand rather than a longer word.
+[
+  { tpl: 'TPL-AR_MEM_DISAPPEARED', listen: false, tier: 'PRACTICE', tiles: ['🐘', '🦆', '🍎'], gone: '🍎', foil: '🚗' },
+  { tpl: 'TPL-AR_MEM_DISAPPEARED', listen: false, tier: 'CHALLENGE', tiles: ['🚗', '⚽', '🌸'], gone: '⚽', foil: '🐟' },
+  { tpl: 'TPL-AR_MEM_DISAPPEARED_LISTEN', listen: true, tier: 'PRACTICE', tiles: ['🧸', '🐟', '🦆'], gone: '🧸', foil: '🌸' },
+  { tpl: 'TPL-AR_MEM_DISAPPEARED_LISTEN', listen: true, tier: 'CHALLENGE', tiles: ['🍎', '🚗', '🐘'], gone: '🐘', foil: '⚽' },
+].forEach((x, i) => {
+  const others = x.tiles.filter((t) => t !== x.gone);
+  const pool = x.tier === 'CHALLENGE' ? [...others, x.foil] : others;
+  const { options, correct_index } = withOptions(x.gone, pool, av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-MEMV'), strand: 'MEM.VISUAL_STM', rung: 0, tier: x.tier,
+    template_id: x.tpl,
+    set_size: x.tiles.length,
+    tiles_shown: [...x.tiles],
+    display_after: x.tiles.map((t) => (t === x.gone ? '⬜' : t)).join(' '),
+    stimulus: x.tiles.join(' '),
+    disappeared: x.gone,
+    ...(x.listen ? { audio_ar: 'إيه اللي اختفت من الصور؟' } : {}),
+    prompt: { ar: 'إيه اللي اختفت؟', en: 'What disappeared?' },
+    options, correct_index,
+    hint: { ar: 'افتكر الصور كانت إيه في الأول', en: 'Remember what the pictures were at the start' },
+    language_light: true,
+    paired_modality: x.listen,
+    _why: 'C8 — the same short-delay comparison that sits underneath subitizing, with no quantity judgement inside it.',
+  }));
+});
+
+// ── MEM.SEQUENCE — two steps, shown AND spoken ──────────────────────────────
+// The answer is an ORDER (`correct_order`), never a single index. Tier = how
+// many other tiles compete for the two taps.
+[
+  { tpl: 'TPL-AR_MEM_SEQUENCE', audio_led: false, tier: 'PRACTICE', steps: ['🐶', '🌙'], pool: ['🍎', '🚗'] },
+  { tpl: 'TPL-AR_MEM_SEQUENCE', audio_led: false, tier: 'CHALLENGE', steps: ['🦆', '⚽'], pool: ['🧸', '👟'] },
+  { tpl: 'TPL-AR_MEM_SEQUENCE_LISTEN', audio_led: true, tier: 'PRACTICE', steps: ['🌸', '🐘'], pool: ['🐟', '🍌'] },
+  { tpl: 'TPL-AR_MEM_SEQUENCE_LISTEN', audio_led: true, tier: 'CHALLENGE', steps: ['🚗', '🧸'], pool: ['🦆', '🌙'] },
+].forEach((x) => {
+  const foils = x.tier === 'CHALLENGE' ? x.pool : x.pool.slice(0, 1);
+  const options = [...x.steps, ...foils];
+  const instruction = `دوس ${x.steps[0]} الأول وبعدين ${x.steps[1]}`;
+  items.push(mk({
+    item_id: nextId('AR-MEMS'), strand: 'MEM.SEQUENCE', rung: 1, tier: x.tier,
+    template_id: x.tpl,
+    steps: x.steps.length,
+    stimulus: x.steps.join('  →  '),
+    audio_ar: instruction,
+    audio_led: x.audio_led,
+    prompt: { ar: instruction, en: `Tap ${AV2_NAME_AR[x.steps[0]] ?? x.steps[0]} first, then ${AV2_NAME_AR[x.steps[1]] ?? x.steps[1]}` },
+    options, correct_order: [...x.steps],
+    hint: { ar: 'لو نسيان، هتشوفهم وتسمعهم تاني', en: 'If you forget, you will see and hear them again' },
+    language_light: true,
+    paired_modality: true,     // shown + spoken is this strand's baseline (av2 §2 domain F)
+    _note_vs_listening: 'LIT.LISTEN_INSTRUCTION scores following words; this scores holding the order after the sentence is gone. Separate strands, separate indicators, neither reads the other.',
+  }));
+});
+
+// ── MEM.MEDIAL — which came first? ──────────────────────────────────────────
+// Two tiles appear one AFTER the other (never a static row, which would turn
+// the item into a matching item), and the child names the first or the last.
+// PRACTICE adds a tile that was never shown at all.
+[
+  { tpl: 'TPL-AR_MEM_MEDIAL_FIRST', term: 'FIRST', tier: 'FOUNDATION', first: '🧸', second: '🚗', foil: '🐘' },
+  { tpl: 'TPL-AR_MEM_MEDIAL_FIRST', term: 'FIRST', tier: 'PRACTICE', first: '🦆', second: '🍎', foil: '⚽' },
+  { tpl: 'TPL-AR_MEM_MEDIAL_LAST', term: 'LAST', tier: 'FOUNDATION', first: '🌸', second: '🐟', foil: '🧸' },
+  { tpl: 'TPL-AR_MEM_MEDIAL_LAST', term: 'LAST', tier: 'PRACTICE', first: '🐘', second: '👟', foil: '🌙' },
+].forEach((x) => {
+  const answer = x.term === 'FIRST' ? x.first : x.second;
+  const shown = [x.first, x.second];
+  const pool = x.tier === 'PRACTICE' ? [...shown, x.foil] : [...shown];
+  const { options, correct_index } = withOptions(answer, pool.filter((t) => t !== answer), av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-MEMF'), strand: 'MEM.MEDIAL', rung: 2, tier: x.tier,
+    template_id: x.tpl,
+    sequence_shown: shown,
+    stimulus: `${x.first}  وبعدين  ${x.second}`,
+    temporal_term: x.term,
+    prompt: x.term === 'FIRST'
+      ? { ar: 'إيه اللي جه الأول؟', en: 'Which one came first?' }
+      : { ar: 'إيه اللي جه الآخر؟', en: 'Which one came last?' },
+    options, correct_index,
+    hint: x.term === 'FIRST'
+      ? { ar: 'أول حاجة ظهرت قدامك', en: 'The first thing that appeared' }
+      : { ar: 'آخر حاجة ظهرت قدامك', en: 'The last thing that appeared' },
+    language_light: true,
+    _render_note: 'The two tiles appear one after the other in sequence_shown order — a static row would make this a matching item, not a memory item.',
+    ...(x.term === 'LAST'
+      ? { _language_note: 'E8 — "last / before / after" wording is itself the relational difficulty, so FIRST and LAST get separate target_skill ids and are never averaged.' }
+      : {}),
+  }));
+});
+
+// ── COMM.EXPRESS_CHOICE — make a choice known ───────────────────────────────
+// There is deliberately NO correct tile on a choice board: whatever the child
+// selects, confirmed by the helper, IS the response. The answer key is "one
+// confirmed selection" (`expected_taps: 1`). The tier changes only how many
+// choices compete — which is the real load for a child who has to find and hold
+// a preference while an adult controls the interface.
+/** What the board asks, by tier — preference questions, never a demand for speech. */
+const COMM_CHOICE_ASK = {
+  FOUNDATION: { ar: 'عايز تلعب بإيه؟ دوس عليه', en: 'What do you want to play with? Tap it' },
+  PRACTICE: { ar: 'عايز تاكل إيه؟ اختار بالإيد أو بالصوت', en: 'What do you want to eat? Choose by hand or by sound' },
+  CHALLENGE: { ar: 'اختار حاجة انت بتحبها — دوس عليها', en: 'Pick something you like — tap it' },
+};
+const COMM_BOARD_BY_TIER = {
+  FOUNDATION: [['🧸', '🍎'], ['⚽', '🦆']],
+  PRACTICE: [['🌸', '🐘', '🚗'], ['🐟', '👟', '⚽']],
+  CHALLENGE: [['🍎', '🧸', '🌸', '🚗'], ['🦆', '🐘', '🍌', '🧸']],
+};
+[
+  { tpl: 'TPL-AR_COMM_CHOICE', listen: false },
+  { tpl: 'TPL-AR_COMM_CHOICE_LISTEN', listen: true },
+].forEach(({ tpl, listen }, k) => {
+  ['FOUNDATION', 'PRACTICE', 'CHALLENGE'].forEach((tier) => {
+    const board = COMM_BOARD_BY_TIER[tier][k];
+    items.push(mk({
+      item_id: nextId('AR-CMEC'), strand: 'COMM.EXPRESS_CHOICE', rung: 0, tier,
+      template_id: tpl,
+      display: 'CHOICE_BOARD',
+      options: [...board],
+      expected_taps: 1,
+      accepts_any_output: true,
+      // A tap on the board is scored on its own — no adult confirmation step is
+      // REQUIRED for the response to count. `helper_confirm: false` says that;
+      // the any-vocal channel stays in `response_modes` for a child who does
+      // not tap, and when it is used the helper confirms it and it scores the
+      // same way (spec §2 domain A: opportunity to respond, not a gate).
+      helper_confirm: false,
+      any_response_is_success: true,
+      vocal_required: false,
+      response_modes: ['tap', 'point', 'gaze_adjacent_point', 'any_vocal_helper_confirmed', 'aac_press'],
+      ...(listen ? { audio_ar: COMM_CHOICE_ASK[tier].ar } : {}),
+      prompt: COMM_CHOICE_ASK[tier],
+      hint: { ar: 'خُد وقتك — أي حاجة تختارها تنفع', en: 'Take your time — anything you pick is fine' },
+      language_light: true,
+      paired_modality: listen,
+      _scoring_note: 'av2 §2 anti-rule: no tile is correct. A helper-confirmed choice by point, look, sound or press IS the demonstration, and the engine records the CHANNEL, never the preference.',
+      _tier_note: 'Only the number of competing choices changes across tiers — 2, then 3, then 4.',
+    }));
+  });
+});
+
+// ── COMM.LABEL — name it, any way you can ───────────────────────────────────
+// `accepts_any_output` + `helper_confirm` are the PRIMARY route: a word, a
+// vocal attempt, a sign or an AAC press all count as the same success. The
+// picture row is the EQUAL tap fallback for a child who does not speak — not a
+// vocabulary test and never a prerequisite for a result — and its length is
+// what makes a tier harder.
+[
+  { tpl: 'TPL-AR_COMM_LABEL', audio_led: false },
+  { tpl: 'TPL-AR_COMM_LABEL_POINT', audio_led: true },
+].forEach(({ tpl, audio_led }, k) => {
+  ['FOUNDATION', 'PRACTICE', 'CHALLENGE'].forEach((tier, j) => {
+    const pic = AV2_PICS[(k * 3 + j) % AV2_PICS.length];
+    const name = AV2_NAME_AR[pic];
+    const d = distractors(AV2_PICS, pic, OPTIONS_PER_TIER[tier] - 1, k + j + 5);
+    const { options, correct_index } = withOptions(pic, d, av2Seed++);
+    items.push(mk({
+      item_id: nextId('AR-CMLB'), strand: 'COMM.LABEL', rung: 1, tier,
+      template_id: tpl,
+      stimulus: pic,
+      expected_word_ar: name,
+      accepts_any_output: true,
+      helper_confirm: true,
+      any_response_is_success: true,
+      vocal_required: false,
+      never_vocal_required: true,
+      response_modes: ['any_vocal_helper_confirmed', 'vocal_attempt', 'sign', 'aac_press', 'point', 'tap'],
+      ...(audio_led ? { audio_ar: `دي ${name} — وريني فين ${name}` } : {}),
+      prompt: audio_led
+        ? { ar: `وريني فين ${name}`, en: `Show me the ${name}` }
+        : { ar: 'دي إيه؟ قولها، أو أشر على صورتها', en: 'What is this? Say it, or point to its picture' },
+      options, correct_index,
+      hint: { ar: 'مفيش غلط — أي صوت أو إشارة أو ضغطة تكفي', en: 'Nothing is wrong — any sound, sign or tap is enough' },
+      language_light: true,
+      paired_modality: audio_led,
+      _scoring_note: 'A helper-confirmed vocal attempt is scored exactly like the matching tap (matrix D9, av2 §2 anti-rule). A child who does not speak gets the same result from the same item.',
+    }));
+  });
+});
+
+// ── av2 §1 — every item carries the stable id of the SKILL it targets ──────
+// Derived from the template, so a regenerated or re-tiered item cannot drift
+// away from the skill its format was reviewed against; `??=` keeps any id an
+// item set for itself (the VSP.PATTERN items re-hosted on TPL-AR_PATTERN do
+// exactly that, so a visual pattern is never rolled up with the numeric one).
+// It is a label used to group observations, never a score and never a diagnosis.
+for (const it of items) it.target_skill ??= TARGET_SKILL_BY_TEMPLATE[it.template_id] ?? null;
 
 export const PHASE5_BANK = items;
 export const PHASE5_ITEM_BY_ID = Object.fromEntries(items.map((i) => [i.item_id, i]));

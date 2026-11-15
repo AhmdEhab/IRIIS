@@ -166,6 +166,17 @@ await page.waitForTimeout(1800);
 const ladderShown = await page.evaluate(() => /نتعرّف على بعض|تسلّم|يلا نبدأ|ابدأ التقييم/.test(document.body.innerText));
 ok('ladder gate appears after cv2 profile', ladderShown, await page.evaluate(() => document.body.innerText.slice(0, 120)));
 
+/* ── 4b. P2 summary step: recap shown, handoff only via CTA ───────────────── */
+const summaryText = await page.evaluate(() => document.body.innerText);
+ok('P2 recap screen appears after submit (ملخص اللي جمعناه)', /ملخص اللي جمعناه|summary/i.test(summaryText), summaryText.slice(0, 100));
+ok('P2 recap leads with strengths-first head', /حاجات ظهرت|What stood out/i.test(summaryText));
+ok('P2 recap shows the S/M confidence limitation honestly', /محتاج تأكيد|MEDIUM|محدود/i.test(summaryText));
+ok('P2 handoff CTA keeps the يلا نبدأ contract', /يلا نبدأ/.test(summaryText));
+await page.evaluate(() => {
+  const b = Array.from(document.querySelectorAll('button')).find((x) => /يلا نبدأ/.test(x.innerText || ''));
+  if (b) b.click();
+});
+await page.waitForTimeout(1500);
 /* ── 5. API proofs ────────────────────────────────────────────────────────── */
 await page.waitForTimeout(1500);
 const cg = await J('GET', `${API}/assessments/${kid}?kind=CAREGIVER`, null, token);
@@ -265,6 +276,9 @@ await page3.screenshot({ path: `${OUT}/05-cv1-resume.png` });
 // submitting the resumed cv1 draft must produce cv1 stamp, not cv2
 const qres3 = await playQuestionnaireQuick(page3);
 await page3.waitForTimeout(2200);
+/* the P2 recap also fronts the cv1 fresh-completion handoff */
+await page3.evaluate(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /يلا نبدأ/.test(x.innerText || '')); if (b) b.click(); });
+await page3.waitForTimeout(1500);
 const cg3 = await J('GET', `${API}/assessments/${kid3}?kind=CAREGIVER`, null, t3);
 const sc3 = (Array.isArray(cg3.data) ? cg3.data : [])[0]?.item_results?.scored;
 ok('cv1-resumed submit scores as cv1', sc3?.bankVersion === 'cv1', String(sc3?.bankVersion));

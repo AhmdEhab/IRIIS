@@ -45,6 +45,13 @@ const Session = require('./models/Session');
 const VerificationCode = require('./models/VerificationCode');
 const { mode: emailMode, sendVerificationEmail } = require('./lib/email');
 const blobsync = require('./lib/blobsync');
+/* av2 (spec §10): the ladder autosave table — required here so
+ * sequelize.sync() creates it whole, exactly like CaregiverDraft was. */
+const LadderDraft = require('./models/LadderDraft');
+/* Pure draft/av2 request validators (status normalisation, beacon token
+ * extraction, the 512 KB size rule, the av2 enum checks), shared by these
+ * routes and tests/iris.parentDraft.test.js so the rules cannot drift. */
+const dv = require('./lib/draftValidators');
 
 const app = express();
 
@@ -114,6 +121,33 @@ async function requireAuth(req, res, next) {
     const token = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (!token) return res.status(401).json({ error: 'UNAUTHENTICATED' });
 
+    const session = await Session.findOne({ where: { token_hash: hashToken(token) } });
+    if (!session) return res.status(401).json({ error: 'UNAUTHENTICATED' });
+    if (Number(session.expires_at) < Date.now()) {
+      await session.destroy();
+      return res.status(401).json({ error: 'SESSION_EXPIRED' });
+    }
+    req.userEmail = session.email;
+    req.sessionRow = session;
+    next();
+  } catch (e) {
+    return res.status(401).json({ error: 'UNAUTHENTICATED' });
+  }
+}
+
+/**
+ * Beacon auth (spec §9 P1 / §5): `navigator.sendBeacon` cannot set headers,
+ * so the exit-flush routes accept the bearer token from the JSON body
+ * (caregiver beacon), the query string (the sibling UI lane beacons
+ * `?token=…`), or the normal Authorization header — in exactly that order
+ * (see dv.extractBearerToken). The token resolves through the same Session
+ * lookup and expiry rules as requireAuth; nothing about requireAuth itself
+ * changed, so every existing caller is untouched.
+ */
+async function beaconAuth(req, res, next) {
+  try {
+    const token = dv.extractBearerToken(req);
+    if (!token) return res.status(401).json({ error: 'UNAUTHENTICATED' });
     const session = await Session.findOne({ where: { token_hash: hashToken(token) } });
     if (!session) return res.status(401).json({ error: 'UNAUTHENTICATED' });
     if (Number(session.expires_at) < Date.now()) {
@@ -594,6 +628,26 @@ app.post('/api/assessments', requireAuth, requireConsent, async (req, res) => {
     const observationJson = req.body.observationMeta && typeof req.body.observationMeta === 'object'
       ? JSON.stringify(req.body.observationMeta).slice(0, 262144)
       : null;
+    /* ── av2 additive branch (spec §7 / §10) ────────────────────────────────
+     * The ENTIRE new validation is gated on an explicit
+     * `item_results.bankVersion === 'av2'` stamp. Legacy records — cv1
+     * caregiver, phase5-1.0.0 ladder, sub-measure — miss the branch and are
+     * stored byte-for-byte exactly as before. When the stamp is present the
+     * checks are enum/shape only: outcomes against the six frozen values
+     * (unknown → 400 BAD_OBSERVATION_OUTCOME), visitValidity rows against
+     * BOTH spellings, and the transparency log capped at 10 000 entries
+     * (→ 413). The envelope may carry bankVersion / calibration / probe /
+     * observations / opportunityGates / visitValidity / caregiverRef —
+     * nothing here rewrites or rejects those keys otherwise; strand ids are
+     * never cross-checked server-side because the bank stays client
+     * authority. GET stays unchanged; observationJson stays write-only. */
+    const itemResultsIn = req.body.item_results;
+    if (itemResultsIn && typeof itemResultsIn === 'object' && itemResultsIn.bankVersion === 'av2') {
+      const av2Check = dv.validateAv2ItemResults(itemResultsIn);
+      if (!av2Check.ok) {
+        return res.status(av2Check.status).json({ error: av2Check.error, detail: av2Check.detail });
+      }
+    }
     const rec = await AssessmentRecord.create({
       childId: req.body.childId,
       domain_scores: JSON.stringify(req.body.domain_scores ?? {}),
@@ -680,7 +734,17 @@ app.get('/api/assessments/:childId', requireAuth, async (req, res) => {
  *  still rejects whole bodies before this handler ever sees them.) */
 const DRAFT_MAX_BYTES = 512 * 1024;
 
-app.post('/api/caregiver/draft', requireAuth, requireConsent, async (req, res) => {
+/**
+ * The caregiver draft write, shared by the normal POST and the P1 exit
+ * beacon (spec §9): a parent's LAST answer must never be lost, so the
+ * screen now flushes per answer over POST /api/caregiver/draft and, on
+ * pagehide/hidden, fires the same payload synchronously via
+ * navigator.sendBeacon to /api/caregiver/draft/beacon — a route sendBeacon
+ * can authenticate, because dv.extractBearerToken also reads body.token.
+ * Behaviour of the plain route is unchanged: same normalisation (COMPLETE
+ * or IN_PROGRESS only), same 512 KB rule, same latest-wins upsert.
+ */
+async function caregiverDraftWrite(req, res) {
   try {
     const b = req.body || {};
     if (!(await childBelongsToUser(b.childId, req.userEmail))) {
@@ -689,14 +753,14 @@ app.post('/api/caregiver/draft', requireAuth, requireConsent, async (req, res) =
     // TEXT columns hold JSON strings (same convention as User.moduleProgress
     // and every *_results field here) — stringify once, guard on the string.
     const responsesJson = JSON.stringify(b.responses ?? {});
-    if (Buffer.byteLength(responsesJson, 'utf8') >= DRAFT_MAX_BYTES) {
+    if (dv.overSizeCap(responsesJson, DRAFT_MAX_BYTES)) {
       return res.status(413).json({
         error: 'DRAFT_TOO_LARGE',
         detail: 'responses must serialise to under 512 KB.',
         bytes: Buffer.byteLength(responsesJson, 'utf8'),
       });
     }
-    const status = b.status === 'COMPLETE' ? 'COMPLETE' : 'IN_PROGRESS';
+    const status = dv.normalizeCaregiverDraftStatus(b.status);
     const clientRef = typeof b.clientRef === 'string' ? b.clientRef.trim().slice(0, 200) : null;
     const childId = Number(b.childId);
     // Upsert by childId: newest row wins (id DESC makes a raced duplicate
@@ -707,7 +771,14 @@ app.post('/api/caregiver/draft', requireAuth, requireConsent, async (req, res) =
       : await CaregiverDraft.create({ childId, clientRef, status, responsesJson });
     res.status(200).json({ ok: true, id: row.id, updatedAt: row.updatedAt });
   } catch (e) { res.status(400).json({ error: e.message }); }
-});
+}
+
+app.post('/api/caregiver/draft', requireAuth, requireConsent, caregiverDraftWrite);
+/* P1 exit flush (spec §9): identical semantics; the token rides in the
+ * JSON body because sendBeacon cannot set the Authorization header. The
+ * `source:'beacon'` field is informational only — the write itself is the
+ * same latest-wins upsert. */
+app.post('/api/caregiver/draft/beacon', beaconAuth, requireConsent, caregiverDraftWrite);
 
 app.get('/api/caregiver/draft', requireAuth, async (req, res) => {
   try {
@@ -726,6 +797,78 @@ app.get('/api/caregiver/draft', requireAuth, async (req, res) => {
         clientRef: row.clientRef,
         status: row.status,
         responses: parseSafely(row.responsesJson, {}),
+        updatedAt: row.updatedAt,
+      },
+    });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ── ladder assessment draft (autosave / resume, spec §5 / §10) ────────────
+/**
+ * Mirror of the caregiver draft for the CHILD run: auth + consent +
+ * childBelongsToUser, 512 KB cap → 413 DRAFT_TOO_LARGE, one active draft
+ * per child, latest write wins. Stored in its OWN table (LadderDraft) —
+ * CaregiverDrafts has no `kind` column and this build writes no migrations.
+ * No DELETE route: the caregiver pair never had one, so neither does this.
+ *
+ * The resume rules live client-side (spec §5: COMPLETE/INVALID drafts never
+ * hydrate; a completed LADDER record clears drafts). The server stores what
+ * it is told, normalised — it is a scratch pad with ownership checks, not a
+ * judge.
+ */
+async function ladderDraftWrite(req, res) {
+  try {
+    const b = req.body || {};
+    if (!(await childBelongsToUser(b.childId, req.userEmail))) {
+      return res.status(404).json({ error: 'CHILD_NOT_FOUND', detail: 'No child with that id belongs to this account.' });
+    }
+    // The whole resume state (phase, cal slice, probeState, observations,
+    // startedAt, bankVersion:'av2') rides in ONE column, stringified.
+    const stateJson = JSON.stringify(b.state ?? {});
+    if (dv.overSizeCap(stateJson, DRAFT_MAX_BYTES)) {
+      return res.status(413).json({
+        error: 'DRAFT_TOO_LARGE',
+        detail: 'state must serialise to under 512 KB.',
+        bytes: Buffer.byteLength(stateJson, 'utf8'),
+      });
+    }
+    const status = dv.normalizeLadderDraftStatus(b.status);
+    const clientRef = typeof b.clientRef === 'string' ? b.clientRef.trim().slice(0, 200) : null;
+    const bankVersion = typeof b.bankVersion === 'string' && b.bankVersion.trim()
+      ? b.bankVersion.trim().slice(0, 32) : 'av2';
+    const childId = Number(b.childId);
+    const existing = await LadderDraft.findOne({ where: { childId }, order: [['id', 'DESC']] });
+    const row = existing
+      ? await existing.update({ clientRef, status, bankVersion, stateJson })
+      : await LadderDraft.create({ childId, clientRef, status, bankVersion, stateJson });
+    res.status(200).json({ ok: true, id: row.id, updatedAt: row.updatedAt });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+}
+
+app.post('/api/ladder/draft', requireAuth, requireConsent, ladderDraftWrite);
+/* Beacon variant (spec §5): the UI lane beacons `…/ladder/draft/beacon?token=…`
+ * with a JSON Blob whose body may also carry `token`. dv.extractBearerToken
+ * checks body.token → query.token → Authorization header, in that order. */
+app.post('/api/ladder/draft/beacon', beaconAuth, requireConsent, ladderDraftWrite);
+
+app.get('/api/ladder/draft', requireAuth, async (req, res) => {
+  try {
+    const childId = Number(req.query.childId);
+    if (!Number.isInteger(childId) || childId <= 0) {
+      return res.status(400).json({ error: 'CHILD_ID_REQUIRED', detail: 'Pass ?childId=.' });
+    }
+    if (!(await childBelongsToUser(childId, req.userEmail))) {
+      return res.status(404).json({ error: 'CHILD_NOT_FOUND', detail: 'No child with that id belongs to this account.' });
+    }
+    const row = await LadderDraft.findOne({ where: { childId }, order: [['id', 'DESC']] });
+    if (!row) return res.json({ ok: true, draft: null });
+    res.json({
+      ok: true,
+      draft: {
+        clientRef: row.clientRef,
+        status: row.status,
+        bankVersion: row.bankVersion,
+        state: parseSafely(row.stateJson, {}),
         updatedAt: row.updatedAt,
       },
     });

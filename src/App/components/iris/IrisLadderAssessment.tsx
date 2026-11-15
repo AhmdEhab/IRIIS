@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Play } from 'lucide-react';
 import { useIris } from '../../contexts/IrisContext';
+import { useApp } from '../../contexts/AppContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudio } from '../../contexts/AudioContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -11,6 +12,10 @@ import { LadderItemCard, LadderProgress, LadderRemainingChip } from './ui/Ladder
 import { IrisBuddy } from './ui/IrisBuddy';
 import { ChromeActions } from './ui/ChromeActions';
 import { Blob, Sparkle } from '../landing/LandingDecor';
+import {
+  buildObservation, decideOutcomeFromCorrect, responseModeOf,
+  classifyVisitValidity, visitCounts, buildDomainLines,
+} from './ladderObservations.js';
 import '../landing-child.css';
 import '../parent-snapshot-landing.css';
 
@@ -38,30 +43,45 @@ import '../parent-snapshot-landing.css';
  * the helper switch OBSERVE and PRESENT. None of them reaches scoring —
  * they end up in `observationMeta` beside the record, never inside it.
  *
+ * ── WHAT av2 ADDS (spec §1–§7) ────────────────────────────────────────────
+ * The card now reports an OUTCOME per item, not a tick-or-cross: the
+ * observation pipeline in `LadderItemCard` + `ladderObservations.js` turns
+ * every presented item into one of the six frozen outcomes, the screen
+ * assembles them per visit, classifies visit validity locally, and hands
+ * the whole log to `IrisContext` — which owns the engine calls, the draft
+ * sync, and the finalise envelope. Opportunity gating (spec §3) reads the
+ * caregiver record defensively: ANY failure means NO gating. This file
+ * still decides nothing about scores, rungs or placement.
+ *
  * ── TONE ──────────────────────────────────────────────────────────────────
  * A child must not experience this as a test. No score is shown, no "wrong"
  * is announced, nothing counts down, and the child always moves forward.
  * Praise counts CONTINUATION ("you kept going"), never correctness — effort
- * is the only thing this screen is allowed to reward.
+ * is the only thing this screen is allowed to reward. The two new end-state
+ * messages (§6) follow the same rule: "not demonstrated" and "not today"
+ * are both invitations to move on, never verdicts.
  */
 
 type Phase = 'INTRO' | 'CALIBRATION' | 'PROBE' | 'DONE';
 
 /**
- * UI pacing rule (std-accom §2 / W14): after this many probe items the child
- * is offered a genuine choice — keep going or save and stop. The engine
- * already bounds the session with its own item budget; this is the
+ * UI pacing rule (std-accom §2 / W14, av2 §4): after this many probe items
+ * the child is offered a genuine choice — keep going or save and stop. The
+ * engine already bounds the session with its own item budget; this is the
  * engagement cap that sits INSIDE it, so the child is asked long before the
- * session ever truncates silently.
+ * session ever truncates silently. av2 raises 12 → 15 to match the honest
+ * 8–15-minute target, counted in items, never promised in minutes.
  */
-const SESSION_CAP_ITEMS = 12;
+const SESSION_CAP_ITEMS = 15;
 
 /**
  * Stop reasons that mean "the session was cut short" rather than "we
  * measured what we came to measure". LADDER_TOP / EMPTY_RUNGS / BASE_FLOOR
  * are natural ceilings and floors; a track that finished with NO reason, or
  * was closed by the visit cap or the item budget, was truncated — and the
- * done screen must then say so honestly (audit W4 surface).
+ * done screen must then say so honestly (audit W4 surface). NO_OPPORTUNITY
+ * (av2 §3) is its own honest closure and is NOT truncation: the track was
+ * deliberately left open for another day, and the done screen says so.
  */
 const TRUNCATING_STOPS = ['SESSION_BUDGET', 'TRACK_VISIT_CAP', 'EXHAUSTED'];
 
@@ -71,12 +91,58 @@ function isTruncatedRun(r: any): boolean {
   const stops = r.assessment?.stops;
   if (!stops || typeof stops !== 'object' || Object.keys(stops).length === 0) return false;
   return Object.values(stops).some(
-    (s: any) => !s?.stop_reason || TRUNCATING_STOPS.includes(s.stop_reason),
+    (s: any) => s?.stop_reason !== 'NO_OPPORTUNITY' && (!s?.stop_reason || TRUNCATING_STOPS.includes(s.stop_reason)),
   );
+}
+
+/**
+ * §3 opportunity gating, read from the caregiver record. The order of
+ * attempts is the engine contract first (`journey.gatesFromCaregiver`, via
+ * the context's defensive probe), then `scored.opportunityGates` if the
+ * caregiver lane produced it, then the conservative inline cv2/cv1 check.
+ * Every branch is wrapped: a missing export, an unexpected shape, or a
+ * private-mode throw all mean the same thing — NO gating. An academic
+ * track may only be hidden from a child when a grown-up CLEARLY said
+ * "he has not had the chance"; anything less keeps every door open.
+ */
+function computeRawGates(cg: any, viaEngine: any): any {
+  try {
+    const g = typeof viaEngine === 'function' ? viaEngine(cg) : null;
+    if (g && (g.LITERACY || g.NUMERACY)) return g;
+  } catch { /* keep trying — never gate on a crash */ }
+  try {
+    const og = cg?.scored?.opportunityGates;
+    if (og && (og.LITERACY === 'not_yet' || og.NUMERACY === 'not_yet')) {
+      const out: any = { source: 'caregiver.scored.opportunityGates' };
+      if (og.LITERACY === 'not_yet') out.LITERACY = 'not_yet';
+      if (og.NUMERACY === 'not_yet') out.NUMERACY = 'not_yet';
+      return out;
+    }
+  } catch { /* fall through to the inline check */ }
+  try {
+    const r = cg?.responses ?? {};
+    const code = (k: string) => {
+      try {
+        const a: any = r[k];
+        if (!a) return undefined;
+        return Array.isArray(a.v) ? a.v[0] : (typeof a === 'string' ? a : a?.v);
+      } catch { return undefined; }
+    };
+    // cv2 VQ13 ("letters, numbers, or a pencil — has he had the chance?")
+    // and its cv1 twin L7 cover BOTH academic tracks with one answer, so
+    // the conservative reading gates both — never anything else. LISTENING
+    // /COMM/VSP/MEM are never touched by this path.
+    const v = code('VQ13') ?? code('L7');
+    if (v === 'not_yet' || v === 'not_yet_chance') {
+      return { LITERACY: 'not_yet', NUMERACY: 'not_yet', source: 'cv2 VQ13 / cv1 L7 (inline conservative)' };
+    }
+  } catch { /* any failure = no gating */ }
+  return null;
 }
 
 export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => void; onExit?: () => void }) {
   const iris = useIris();
+  const { caregiver, caregiverForChild } = useApp();
   const { language } = useLanguage();
   const { speak, isEnabled } = useAudio();
   const ar = language === 'ar';
@@ -98,7 +164,7 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
   // ── run-experience state (std-accom + audit W4/W13/W20) ──────────────────
   /** Break overlay is open — the plate is frozen, nothing counts down. */
   const [onBreak, setOnBreak] = useState(false);
-  /** The 12-item "keep going or save a long break?" choice is on screen. */
+  /** The 15-item "keep going or save a long break?" choice is on screen. */
   const [capAsk, setCapAsk] = useState(false);
   /** Effort burst counter — pure UI, advanced every 3rd answer, right or wrong. */
   const [burst, setBurst] = useState(0);
@@ -106,6 +172,10 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
   const [partialCoverage, setPartialCoverage] = useState(false);
   /** Intro helper switch — recorded as an accommodation, never as scoring. */
   const [helperUsed, setHelperUsed] = useState<boolean>(iris.ladderObservation?.helperUsed === true);
+  /** §1.6 — the retry-with-supports overlay after an invalid visit. */
+  const [visitRetry, setVisitRetry] = useState(false);
+  /** §3 — the two opt-in chips (default OFF). */
+  const [optIn, setOptIn] = useState<{ LITERACY: boolean; NUMERACY: boolean }>({ LITERACY: false, NUMERACY: false });
 
   /*
    * W13 — response latency. A plain stopwatch per item: from item-shown to
@@ -118,10 +188,56 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
   const pauseStartRef = useRef(0);
   /** Effort counting across the run (engagement, not correctness). */
   const effortRef = useRef(0);
-  /** The 12-item choice is asked once per mounted run, not every item. */
+  /** The 15-item choice is asked once per mounted run, not every item. */
   const capAskedRef = useRef(false);
+  /** av2 §1 — the observation rows collected for the CURRENT visit. */
+  const visitObsRef = useRef<any[]>([]);
+  /** av2 §1.6 — the retry-with-supports is offered once per visit attempt. */
+  const visitRetriedRef = useRef(false);
+  /** Phase mirror so the async boot-resume never clobbers a live run. */
+  const phaseRef = useRef<Phase>('INTRO');
+  phaseRef.current = phase;
 
-  const probes = useMemo(() => iris.getCalibrationProbes().probes, [iris]);
+  const allProbes = useMemo(() => iris.getCalibrationProbes().probes, [iris]);
+
+  /* ── §3 gating: read the caregiver record, defensively, once per change ── */
+  const cg = useMemo(() => {
+    try { return caregiver ?? caregiverForChild?.(iris.childDbId) ?? null; } catch { return null; }
+  }, [caregiver, caregiverForChild, iris.childDbId]);
+  const rawGates = useMemo(() => computeRawGates(cg, iris.ladderGatesFromCaregiver), [cg, iris.ladderGatesFromCaregiver]);
+  const gatedLadders = useMemo(() => {
+    const s = new Set<string>();
+    if (rawGates?.LITERACY === 'not_yet') s.add('LITERACY');
+    if (rawGates?.NUMERACY === 'not_yet') s.add('NUMERACY');
+    return s;
+  }, [rawGates]);
+  const closed = useCallback(
+    (ladder: any) => gatedLadders.has(String(ladder)) && optIn[String(ladder) as 'LITERACY' | 'NUMERACY'] !== true,
+    [gatedLadders, optIn],
+  );
+
+  useEffect(() => {
+    if (!rawGates) return; // never clobber gates a resumed server draft already carried
+    try {
+      const g = {
+        ...rawGates,
+        optInLITERACY: optIn.LITERACY === true,
+        optInNUMERACY: optIn.NUMERACY === true,
+      };
+      const ref = {
+        type: 'CAREGIVER',
+        childId: iris.childDbId ?? null,
+        bankVersion: cg?.scored?.bankVersion ?? null,
+      };
+      iris.setLadderGating(g, ref);
+    } catch { /* gating is an upgrade, never a dependency */ }
+  }, [rawGates, optIn, iris.childDbId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Calibration probes: gated MAIN tracks are filtered out (spec §3/§5). */
+  const probes = useMemo(
+    () => allProbes.filter((p: any) => !(closed(p.ladder) && p.track === 'MAIN')),
+    [allProbes, closed],
+  );
   const visit = iris.currentVisit;
 
   /** Load the items for a strand visit from the bank. */
@@ -132,6 +248,8 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     setVisitItems(fallback.slice(0, v.item_count));
     setVisitIndex(0);
     setVisitCorrect(0);
+    visitObsRef.current = [];   // fresh observation slice per visit
+    visitRetriedRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -140,8 +258,46 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
       else localStorage.removeItem(CAL_KEY);
     } catch { /* private mode */ }
   }, [phase, calIndex, calResponses]);
+  /* av2 §5: the same progress ALSO rides the context draft, so the server
+     copy can resume a mid-calibration run on another device. */
+  useEffect(() => {
+    if (phase === 'CALIBRATION' && calResponses.length > 0) iris.setLadderCalProgress(calIndex, calResponses);
+  }, [phase, calIndex, calResponses]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasSavedCal = calResponses.length > 0 && calResponses.length < (probes.length || 99);
   const hasSavedProbe = !!iris.probeState && !!iris.currentVisit;
+
+  /*
+   * ── Boot resume (spec §5) ──────────────────────────────────────────────
+   * Server draft (IN_PROGRESS && av2 && fresh) > localStorage (both keys,
+   * already read synchronously into state above) > fresh start. The probe
+   * half lands directly in the context; this effect only pulls the
+   * calibration slice — which the screen owns — into its own state, and
+   * only while the child is still on the intro plate.
+   */
+  const resumeTriedRef = useRef(false);
+  useEffect(() => {
+    if (resumeTriedRef.current) return;
+    /* The draft endpoint is per-child: while the boot flow is still binding
+       the child row (childDbId === null) we MUST retry on the next tick —
+       marking the attempt tried before auth resolves silently kills the
+       server-draft resume (cross-device promise of spec §5). */
+    if (!iris.childDbId) return;
+    resumeTriedRef.current = true;
+    void (async () => {
+      try {
+        const res = await iris.resumeLadderDraft?.();
+        if (!res) return;
+        const cal = res?.cal;
+        if (phaseRef.current !== 'INTRO') return;
+        if (cal && Array.isArray(cal.calResponses) && cal.calResponses.length > 0) {
+          setCalIndex(Number.isFinite(cal.calIndex) ? cal.calIndex : 0);
+          setCalResponses(cal.calResponses);
+        }
+      } catch { /* server draft is optional; localStorage already hydrated */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iris.childDbId]);
+
   const startOrResume = () => {
     if (hasSavedProbe && iris.currentVisit) {
       loadVisit(iris.currentVisit);
@@ -152,6 +308,10 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     startCalibration();
   };
   const startCalibration = () => {
+    // Fresh run: clear the av2 accumulators (and mint the draft clientRef)
+    // BEFORE the first calibration game — every observation from here on
+    // belongs to this run.
+    try { iris.resetLadderRun(); } catch { /* local run still proceeds */ }
     setPhase('CALIBRATION');
     setCalIndex(0);
     setCalResponses([]);
@@ -190,6 +350,38 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     return () => clearTimeout(t);
   }, [burst]);
 
+  /* ── §1 the observation record for one settled item ─────────────────────
+     Built from what the card REPORTED (decision + response), stamped with
+     what the stopwatch saw, sanitized inside `buildObservation` (indices
+     and counts only — no free text, ever). The record goes into the run
+     log via the context; nothing here reaches scoring directly. */
+  const pushObservation = useCallback((item: any, meta: any, decision: any, isCorrect: boolean) => {
+    let obs: any = null;
+    try {
+      const mode = responseModeOf(item);
+      obs = buildObservation({
+        item,
+        decision: decision ?? decideOutcomeFromCorrect(isCorrect),
+        mode,
+        response: decision?.response ?? null,
+        accommodation: {
+          audio_auto: !!isEnabled,
+          target_size: (() => { try { return cg?.scored?.accessSettings?.targetSize ?? 'standard'; } catch { return 'standard'; } })(),
+          wait_ms: null,
+          helper_present: helperUsed,
+          response_mode: mode,
+        },
+        latencyMs: latencyMs(),
+        strand: meta?.strand ?? item?.strand ?? null,
+        rung: meta?.rung ?? item?.rung ?? null,
+        templateId: meta?.template ?? item?.template_id ?? null,
+      });
+      iris.recordLadderObservation(obs);
+    } catch { /* the observation net must never break the game */ }
+    return obs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEnabled, helperUsed, cg]);
+
   const startBreak = () => {
     if (onBreak) return;
     pauseStartRef.current = Date.now();
@@ -226,11 +418,18 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     (onExit ?? onFinish)();
   };
 
-  const answerCalibration = (isCorrect: boolean) => {
+  const answerCalibration = (isCorrect: boolean, decision?: any) => {
     const probe = probes[calIndex];
+    const item = servableStrandItems({ strand: probe?.strand, template_id: probe?.template })[0];
+    pushObservation(item, probe, decision, isCorrect);
     iris.recordLadderLatency(String(probe?.id ?? ''), latencyMs());
     noteEffort();
-    const next = [...calResponses, { probe_id: probe.id, is_correct: isCorrect }];
+    /* Calibration places the ENTRY point. av2 keeps placement conservative:
+       only INDEPENDENT success certifies a rung for calibration purposes —
+       a supported answer is real evidence and lives in the observation log,
+       but the coarse placement walk stays the pre-av2, stricter one. */
+    const independent = (decision?.outcome ?? (isCorrect ? 'demonstrated_independent' : 'not_demonstrated')) === 'demonstrated_independent';
+    const next = [...calResponses, { probe_id: probe.id, is_correct: independent }];
     setCalResponses(next);
 
     if (calIndex + 1 < probes.length) {
@@ -244,9 +443,45 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     setPhase('PROBE');
   };
 
-  const answerItem = async (isCorrect: boolean) => {
+  /** Submit the finished visit (valid or invalid) and move on. */
+  const finishVisit = useCallback(async (invalidVisit: boolean) => {
+    setBusy(true);
+    const rows = visitObsRef.current;
+    const counts = visitCounts(rows);
+    const lastItem = visitItems[visitItems.length - 1] ?? visitItems[0];
+    const r = await iris.submitLadderVisit(
+      {
+        // av2: REAL counts derived from the outcome log. `supported` is no
+        // longer a hardcoded 0 — independence in the indicators finally
+        // moves (spec §1). An invalid visit sends nothing that scores.
+        correct: counts.correct,
+        total: Math.max(counts.total, 0),
+        supported: counts.supported,
+        modality: visit?.template ?? null,
+        // Carried from the item so the engine can attribute a phonological
+        // failure to dialect distance rather than to the child.
+        dialect_distance: lastItem?.dialect_distance ?? 'UNKNOWN',
+      },
+      null,
+      { observations: rows, invalidVisit }
+    );
+    setBusy(false);
+
+    if (r.finished || !r.visit) {
+      // W4 surface: budget/stop-reason truncation must be said out loud on
+      // the done screen rather than implied as full coverage.
+      setPartialCoverage(isTruncatedRun(r));
+      setPhase('DONE');
+      return;
+    }
+    loadVisit(r.visit);
+  }, [iris, visit, visitItems, loadVisit]);
+
+  const answerItem = async (isCorrect: boolean, decision?: any) => {
     if (busy) return;
     const item = visitItems[visitIndex];
+    const obs = pushObservation(item, { strand: visit?.strand, rung: visit?.rung, template: visit?.template }, decision, isCorrect);
+    if (obs) visitObsRef.current = [...visitObsRef.current, obs];
     iris.recordLadderLatency(String(item?.item_id ?? ''), latencyMs());
     noteEffort();
     // items done so far in this run, counting the one just answered:
@@ -262,30 +497,30 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
       return;
     }
 
-    setBusy(true);
-    const r = await iris.submitLadderVisit(
-      {
-        correct,
-        total: visitItems.length,
-        supported: 0,
-        modality: visit?.template ?? null,
-        // Carried from the item so the engine can attribute a phonological
-        // failure to dialect distance rather than to the child.
-        dialect_distance: item?.dialect_distance ?? 'UNKNOWN',
-      },
-      null
-    );
-    setBusy(false);
-
-    if (r.finished || !r.visit) {
-      // W4 surface: budget/stop-reason truncation must be said out loud on
-      // the done screen rather than implied as full coverage.
-      setPartialCoverage(isTruncatedRun(r));
-      setPhase('DONE');
+    /* ── visit boundary: classify validity BEFORE anything is scored ──────
+       §1.6: a visit where fewer than half the items reached an end state is
+       an accidental exit, not a measurement. The child gets the retry-with-
+       supports message ONCE; a second invalid attempt skips the visit
+       without touching estimates (the validity row records what happened). */
+    const validity = classifyVisitValidity(visitObsRef.current);
+    if (validity === 'invalid_administration' && !visitRetriedRef.current) {
+      visitRetriedRef.current = true;
+      setVisitRetry(true);
       return;
     }
-    loadVisit(r.visit);
+    await finishVisit(validity === 'invalid_administration');
     maybeAskCap(answered);
+  };
+
+  const retryVisit = () => {
+    setVisitRetry(false);
+    setVisitIndex(0);
+    setVisitCorrect(0);
+    visitObsRef.current = []; // the retry slice replaces this visit's rows
+  };
+  const moveOnFromVisit = async () => {
+    setVisitRetry(false);
+    await finishVisit(true);
   };
 
   // ── INTRO ────────────────────────────────────────────────────────────────
@@ -300,6 +535,9 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
           onToggleHelper={() => setHelperUsed((v) => { const nv = !v; iris.setLadderHelperUsed(nv); return nv; })}
           loadError={!!iris.ladderLoadError}
           onRetryLoad={() => { void iris.loadLadderFromServer(); }}
+          rawGates={rawGates}
+          optIn={optIn}
+          onToggleOptIn={(k) => setOptIn((o) => ({ ...o, [k]: !o[k] }))}
         />
       </Shell>
     );
@@ -317,7 +555,7 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     const items = servableStrandItems({ strand: probe.strand, template_id: probe.template });
     const item = items[0];
     return (
-      <Shell ar={ar} companion="listening" onExit={onExit ? exitMidRun : undefined}>
+      <Shell ar={ar} companion="listening" onExit={onExit ? exitMidRun : undefined} breakAction={<BreakChip ar={ar} onStart={startBreak} />}>
         <div className="ps-progress">
           <LadderProgress current={calIndex + 1} total={probes.length} ar={ar} label={ar ? 'نتعرّف' : 'Getting to know you'} />
         </div>
@@ -328,10 +566,20 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
             item={item}
             fallbackPrompt={ar ? probe.labelAr : probe.labelEn}
             onAnswer={answerCalibration}
+            onObserved={() => { /* the record itself is built in answerCalibration */ }}
+            helperPresent={helperUsed}
+            hintMode="adaptive-assessment"
+            disabled={onBreak}
             onSpeak={(t, lang) => speak?.(t, lang ?? language)}
           />
           <EffortBurst burst={burst} ar={ar} />
         </div>
+        {/* §5 parity: calibration gets the SAME break the probe has. It is
+            10 games long and a child should never have to white-kuckle
+            through it. The stopwatch already excludes break time. */}
+        <AnimatePresence>
+          {onBreak && <BreakOverlay ar={ar} onContinue={endBreak} />}
+        </AnimatePresence>
       </Shell>
     );
   }
@@ -344,19 +592,7 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
         ar={ar}
         companion={busy ? 'thinking' : 'listening'}
         onExit={onExit ? exitMidRun : undefined}
-        breakAction={
-          <button
-            type="button"
-            className="ps-ghost-chip"
-            onClick={startBreak}
-            aria-label={ar ? 'خد بريك' : 'Take a break'}
-            title={ar ? 'خد بريك' : 'Take a break'}
-            style={{ cursor: 'pointer', minHeight: 40 }}
-          >
-            <span aria-hidden="true">✋☕</span>
-            <span style={{ marginInlineStart: 6 }}>{ar ? 'بريك' : 'Break'}</span>
-          </button>
-        }
+        breakAction={<BreakChip ar={ar} onStart={startBreak} />}
       >
         <div className="ps-progress">
           <LadderProgress
@@ -375,8 +611,10 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
             ar={ar}
             item={item}
             onAnswer={answerItem}
+            helperPresent={helperUsed}
+            hintMode="adaptive-assessment"
             onSpeak={(t, lang) => speak?.(t, lang ?? language)}
-            disabled={busy || onBreak || capAsk}
+            disabled={busy || onBreak || capAsk || visitRetry}
           />
           <EffortBurst burst={burst} ar={ar} />
         </div>
@@ -387,19 +625,34 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
             honest thing it always meant here: nothing moves, and the same
             game will still be on the plate when they press continue. */}
         <AnimatePresence>
-          {onBreak && (
-            <KidOverlay key="break" ar={ar}>
+          {onBreak && <BreakOverlay ar={ar} onContinue={endBreak} />}
+
+          {/* ── §1.6 RETRY-WITH-SUPPORTS ───────────────────────────────────
+              An invalid visit scored NOTHING — the child must not feel it
+              either. "مفيش مشكلة" first, then a free choice: try the same
+              games again (the supports stay on) or move on. Moving on is
+              always allowed; that is what makes the retry an offer. */}
+          {visitRetry && (
+            <KidOverlay key="visitretry" ar={ar}>
               <IrisBuddy mood="encourage" />
-              <h2 className="lc-hero-title" style={{ fontSize: 28 }}>{ar ? 'خد راحتك! 🎈' : 'Take your time! 🎈'}</h2>
+              <h2 className="lc-hero-title" style={{ fontSize: 26 }}>
+                {ar ? 'مفيش مشكلة! 🎈' : 'No problem at all! 🎈'}
+              </h2>
               <p className="lc-hero-sub" style={{ margin: 0 }}>
                 {ar
-                  ? 'لما تكون جاهز دوس نكمل — مفيش وقت بيعدّي، وإيريس مستنياك هنا.'
-                  : 'When you are ready, press continue — nothing counts down, and IRIS is right here waiting.'}
+                  ? 'مفيش مشكلة! نعمل حاجة تانية وبعدين نرجع — أو نرجع دلوقتي على مهل.'
+                  : 'No problem! We can do something else and come back later — or go again now, slowly.'}
               </p>
-              <button type="button" className="lc-pill lc-pill--blue lc-pill--primary" onClick={endBreak}>
-                <Play aria-hidden="true" />
-                <span>{ar ? 'يلا نكمّل' : "Let's continue"}</span>
-              </button>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button type="button" className="lc-pill lc-pill--blue lc-pill--primary" onClick={retryVisit} style={{ minHeight: 48 }}>
+                  <Play aria-hidden="true" />
+                  <span>{ar ? 'نرجع للعبة تاني' : 'Try these games again'}</span>
+                </button>
+                <button type="button" className="lc-pill lc-pill--ghost" onClick={() => { void moveOnFromVisit(); }} style={{ minHeight: 48 }}>
+                  <Check aria-hidden="true" />
+                  <span>{ar ? 'نعمل حاجة تانية' : 'Do something else'}</span>
+                </button>
+              </div>
             </KidOverlay>
           )}
 
@@ -440,9 +693,15 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
         ? 'مش كل حاجة قدرنا نقيسها النهارده — وده طبيعي. هنكمل مرة تانية'
         : 'We could not measure everything today — and that is normal. We will finish another time.')
     : (ar ? 'خلّصنا. شكراً إنك لعبت معانا!' : "That's it. Thanks for playing with us!");
+  /* §6 per-domain one-liners, words only — no numbers anywhere. Built from
+     the run's outcome log plus the gates; the engine indicators travel in
+     the record itself, and the confidence WORDS are what the tones express. */
+  const domainLines = (() => {
+    try { return buildDomainLines(iris.ladderObservations, { gates: iris.ladderGates }); } catch { return []; }
+  })();
   return (
     <Shell ar={ar}>
-      <DonePlate ar={ar} body={doneBody} onFinish={onFinish} />
+      <DonePlate ar={ar} body={doneBody} onFinish={onFinish} domainLines={domainLines} />
     </Shell>
   );
 }
@@ -454,14 +713,19 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
  * child: the companion the child will play with, the invitation, and one
  * blue button. No score, no countdown, nothing that says "test".
  *
- * Two additions, both parent-facing and neither touching scoring:
+ * Three additions, all parent-facing and none of them touching scoring:
  *   - the helper switch (accommodation record — "someone was with the child",
- *     logged for comparability, never for placement), and
+ *     logged for comparability, never for placement),
  *   - the gentle hydration retry (audit W4): when the server did not answer,
- *     the app says so in a soft voice and offers one button.
+ *     the app says so in a soft voice and offers one button, and
+ *   - the av2 §3 opportunity chips: when a grown-up already told us the
+ *     child has not had the chance at letters or numbers, those academic
+ *     tracks start CLOSED with an explicit opt-in. Default off. Opting in
+ *     is always possible and always reversible until the first game.
  */
 function IntroPlate({
   ar, hasSaved, onStart, helperUsed, onToggleHelper, loadError, onRetryLoad,
+  rawGates, optIn, onToggleOptIn,
 }: {
   ar: boolean;
   hasSaved: boolean;
@@ -470,8 +734,15 @@ function IntroPlate({
   onToggleHelper: () => void;
   loadError: boolean;
   onRetryLoad: () => void;
+  rawGates: any;
+  optIn: { LITERACY: boolean; NUMERACY: boolean };
+  onToggleOptIn: (k: 'LITERACY' | 'NUMERACY') => void;
 }) {
   const reduceMotion = useReducedMotion();
+  const gateNames: Record<'LITERACY' | 'NUMERACY', { ar: string; en: string }> = {
+    LITERACY: { ar: 'الحروف والقراية', en: 'letters and reading' },
+    NUMERACY: { ar: 'الأرقام والحساب', en: 'numbers and maths' },
+  };
   return (
     <motion.section
       className="lc-hero"
@@ -509,7 +780,7 @@ function IntroPlate({
             onClick={onToggleHelper}
             aria-pressed={helperUsed}
             className="ps-ghost-chip"
-            style={{ marginTop: 18, cursor: 'pointer', minHeight: 44, maxWidth: 420 }}
+            style={{ marginTop: 18, cursor: 'pointer', minHeight: 48, maxWidth: 420 }}
           >
             <span aria-hidden="true">{helperUsed ? '🤝' : '🫱'}</span>
             <span style={{ marginInlineStart: 8 }}>
@@ -518,9 +789,44 @@ function IntroPlate({
                 : (ar ? 'لو محتاج يساعد معاه — اضغط هنا' : 'If someone helps them — tap here')}
             </span>
           </button>
+          {/* ── av2 §3 opportunity opt-ins (default OFF) ────────────────────
+              Only rendered when a caregiver answer CLEARLY said "no chance
+              yet". Closed means the track is logged as no-opportunity —
+              never failure, never absence — and one press reopens it. */}
+          {rawGates && (['LITERACY', 'NUMERACY'] as const).map((k) => (rawGates[k] === 'not_yet' ? (
+            <button
+              key={k}
+              type="button"
+              onClick={() => onToggleOptIn(k)}
+              aria-pressed={optIn[k]}
+              aria-label={ar
+                ? `${gateNames[k].ar}: لسه ماخدش فرصة. ${optIn[k] ? 'اختارتم التجربة على أي حال' : 'مقفولة دلوقتي — اضغط للتجربة على أي حال'}`
+                : `${gateNames[k].en}: no opportunity yet. ${optIn[k] ? 'trying anyway is on' : 'closed now — press to try anyway'}`}
+              className="ps-ghost-chip"
+              style={{ display: 'block', marginTop: 12, cursor: 'pointer', minHeight: 48, maxWidth: 420, textAlign: 'start' }}
+            >
+              <span aria-hidden="true">{optIn[k] ? '✅' : '🔒'}</span>
+              <span style={{ marginInlineStart: 8 }}>
+                {optIn[k]
+                  ? (ar
+                      ? `${gateNames[k].ar}: تمام، هنجرّبها على أي حال`
+                      : `${gateNames[k].en}: alright, we will try it anyway`)
+                  : (ar
+                      ? `${gateNames[k].ar}: قالوا لسه ماخدش فرصة — لو تحبوا نجرّب على أي حال، دوس هنا`
+                      : `${gateNames[k].en}: you said he has not had the chance — tap here to try anyway`)}
+              </span>
+              {!optIn[k] && (
+                <p className="t-small text-ink-muted" style={{ margin: '6px 0 0', marginInlineStart: 26 }}>
+                  {ar
+                    ? 'من غير الضغط هنسجّلها «لسه ماخدش فرصة» — ده مش فشل، ودايماً نقدر نرجعلها.'
+                    : 'Left as is, we simply log "no chance yet" — that is not failure, and it is always reopenable.'}
+                </p>
+              )}
+            </button>
+          ) : null))}
           {loadError && (
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <button type="button" onClick={onRetryLoad} className="lc-pill lc-pill--yellow" style={{ minHeight: 44 }}>
+              <button type="button" onClick={onRetryLoad} className="lc-pill lc-pill--yellow" style={{ minHeight: 48 }}>
                 <span>{ar ? 'التحميل اتأخر — جرّب تاني' : 'Loading took too long — try again'}</span>
               </button>
             </div>
@@ -534,8 +840,15 @@ function IntroPlate({
   );
 }
 
-/** The well-done plate, in the same hero language. */
-function DonePlate({ ar, body, onFinish }: { ar: boolean; body: string; onFinish: () => void }) {
+/** The well-done plate, in the same hero language, plus the §6 domain lines. */
+function DonePlate({
+  ar, body, onFinish, domainLines,
+}: {
+  ar: boolean;
+  body: string;
+  onFinish: () => void;
+  domainLines: any[];
+}) {
   const reduceMotion = useReducedMotion();
   return (
     <motion.section
@@ -551,6 +864,29 @@ function DonePlate({ ar, body, onFinish }: { ar: boolean; body: string; onFinish
             <span className="lc-hero-mark">{ar ? 'برافو عليك!' : 'Well done!'}</span>
           </h1>
           <p className="lc-hero-sub">{body}</p>
+          {/* §6: one honest line per domain, in confidence WORDS. No numbers,
+              no scores, no ranks — and a pre-closed track gets its "no
+              chance yet" line rather than silence or a failure. */}
+          {domainLines.length > 0 && (
+            <div
+              role="list"
+              aria-label={ar ? 'اللي اتعلمناه النهارده' : 'What we learned today'}
+              style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 460 }}
+            >
+              {domainLines.map((l) => (
+                <p
+                  key={l.key}
+                  role="listitem"
+                  dir="auto"
+                  className="ps-ghost-chip"
+                  style={{ padding: '10px 14px', fontSize: 15, lineHeight: 1.5 }}
+                >
+                  <strong style={{ fontWeight: 900 }}>{ar ? l.nameAr : l.nameEn}: </strong>
+                  {ar ? l.ar : l.en}
+                </p>
+              ))}
+            </div>
+          )}
           <div className="lc-hero-actions">
             <button type="button" className="lc-pill lc-pill--blue lc-pill--primary" onClick={onFinish}>
               <Check aria-hidden="true" />
@@ -563,6 +899,42 @@ function DonePlate({ ar, body, onFinish }: { ar: boolean; body: string; onFinish
         </div>
       </div>
     </motion.section>
+  );
+}
+
+/** The header break chip — same gesture, same affordance, calibration AND probe. */
+function BreakChip({ ar, onStart }: { ar: boolean; onStart: () => void }) {
+  return (
+    <button
+      type="button"
+      className="ps-ghost-chip"
+      onClick={onStart}
+      aria-label={ar ? 'خد بريك' : 'Take a break'}
+      title={ar ? 'خد بريك' : 'Take a break'}
+      style={{ cursor: 'pointer', minHeight: 48 }}
+    >
+      <span aria-hidden="true">✋☕</span>
+      <span style={{ marginInlineStart: 6 }}>{ar ? 'بريك' : 'Break'}</span>
+    </button>
+  );
+}
+
+/** The break overlay (KidOverlay 'break' variant), shared by both phases. */
+function BreakOverlay({ ar, onContinue }: { ar: boolean; onContinue: () => void }) {
+  return (
+    <KidOverlay ar={ar}>
+      <IrisBuddy mood="encourage" />
+      <h2 className="lc-hero-title" style={{ fontSize: 28 }}>{ar ? 'خد راحتك! 🎈' : 'Take your time! 🎈'}</h2>
+      <p className="lc-hero-sub" style={{ margin: 0 }}>
+        {ar
+          ? 'لما تكون جاهز دوس نكمل — مفيش وقت بيعدّي، وإيريس مستنياك هنا.'
+          : 'When you are ready, press continue — nothing counts down, and IRIS is right here waiting.'}
+      </p>
+      <button type="button" className="lc-pill lc-pill--blue lc-pill--primary" onClick={onContinue} style={{ minHeight: 48 }}>
+        <Play aria-hidden="true" />
+        <span>{ar ? 'يلا نكمّل' : "Let's continue"}</span>
+      </button>
+    </KidOverlay>
   );
 }
 
