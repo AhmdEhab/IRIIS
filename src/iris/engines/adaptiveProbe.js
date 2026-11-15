@@ -89,6 +89,27 @@ export const PROBE_CONFIG = {
   _source: 'ASSESSMENT_RESEARCH_MATRIX.md §8 and F2/F6',
 };
 
+export const PROBE_PROFILES = {
+  /** The research-length session — unchanged default for tests and callers. */
+  clinical: PROBE_CONFIG,
+  /**
+   * The FAMILY profile (P62): the shipped onboarding budget for real
+   * households. Fewer repeats per skill, fewer climbs per track, and a hard
+   * session ceiling that matches the UI's own engagement cap — so the child
+   * is offered the stop-choice exactly where the engine would stop anyway,
+   * and nobody ever stares at a twentieth card. Also an
+   * ENGINEERING_ASSUMPTION: shorter by product judgement, not by evidence.
+   */
+  family: {
+    ITEMS_PER_VISIT: 2,
+    STOP_AFTER_EMPTY_RUNGS: PROBE_CONFIG.STOP_AFTER_EMPTY_RUNGS,
+    MAX_VISITS_PER_TRACK: 3,
+    SESSION_ITEM_BUDGET: 16,
+    _validation: PROBE_CONFIG._validation,
+    _source: 'P62 family profile — shorter session by product judgement (ENGINEERING_ASSUMPTION), to be validated with real timings',
+  },
+  _validation: VALIDATION.ENGINEERING_ASSUMPTION,
+};
 export const PROBE_STOP = {
   LADDER_TOP: 'LADDER_TOP',
   EMPTY_RUNGS: 'EMPTY_RUNGS',
@@ -134,7 +155,7 @@ function calibrationCorrectStrands(calibration) {
 }
 
 /** Fresh probe state from a calibration result. */
-export function startProbe(calibration) {
+export function startProbe(calibration, config = PROBE_CONFIG) {
   const rescue = calibrationCorrectStrands(calibration);
   const tracks = {};
   /**
@@ -187,6 +208,7 @@ export function startProbe(calibration) {
     };
   }
   return {
+    config,
     tracks,
     items_used: 0,
     results: [],            // one row per strand visit
@@ -242,8 +264,9 @@ function pairedTemplate(strandId, templateId) {
  * still has something to say about every domain.
  */
 export function nextProbe(state) {
+  const cfg = state.config ?? PROBE_CONFIG;
   if (state.finished) return null;
-  if (state.items_used >= PROBE_CONFIG.SESSION_ITEM_BUDGET) return null;
+  if (state.items_used >= cfg.SESSION_ITEM_BUDGET) return null;
 
   const keys = Object.keys(state.tracks).sort();
   // Round-robin: fewest visits first, ties broken by track name.
@@ -263,7 +286,7 @@ export function nextProbe(state) {
       ladder: t.ladder,
       track: t.track,
       rung: t.rung,
-      item_count: PROBE_CONFIG.ITEMS_PER_VISIT,
+      item_count: cfg.ITEMS_PER_VISIT,
       // On a paired-modality retry the visit carries the twin format, so the
       // screen renders the OTHER route to the same rung rather than asking the
       // identical question again. `template` stays the strand default for
@@ -504,7 +527,7 @@ export function recordProbe(state, visit, result) {
     }
   }
 
-  if (!t.done && t.visits >= PROBE_CONFIG.MAX_VISITS_PER_TRACK) {
+  if (!t.done && t.visits >= (state.config ?? PROBE_CONFIG).MAX_VISITS_PER_TRACK) {
     t.done = true;
     t.stop_reason = PROBE_STOP.TRACK_VISIT_CAP;
   }
@@ -512,7 +535,7 @@ export function recordProbe(state, visit, result) {
   const items_used = state.items_used + total;
   const tracks = { ...state.tracks, [key]: t };
 
-  if (items_used >= PROBE_CONFIG.SESSION_ITEM_BUDGET) {
+  if (items_used >= (state.config ?? PROBE_CONFIG).SESSION_ITEM_BUDGET) {
     for (const k of Object.keys(tracks)) {
       if (!tracks[k].done) {
         tracks[k] = { ...tracks[k], done: true, stop_reason: PROBE_STOP.SESSION_BUDGET };

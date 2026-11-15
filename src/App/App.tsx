@@ -21,6 +21,7 @@ const lazyN = (loader: () => Promise<Record<string, any>>, name: string) =>
   React.lazy(async () => ({ default: await loader().then((m) => m[name]) } as any));
 const CaregiverProfileScreen = lazyN(() => import('./components/CaregiverProfileScreen'), 'CaregiverProfileScreen');
 const IrisFirstPlan = lazyN(() => import('./components/iris/IrisFirstPlan'), 'IrisFirstPlan');
+const IrisResultsScreen = lazyN(() => import('./components/iris/IrisResultsScreen'), 'IrisResultsScreen');
 const IrisFamilyProfile = lazyN(() => import('./components/iris/IrisFamilyProfile'), 'IrisFamilyProfile');
 const LandingChildMode = lazyN(() => import('./components/LandingChildMode'), 'LandingChildMode');
 const IrisParentDashboard = lazyN(() => import('./components/iris/IrisParentDashboard'), 'IrisParentDashboard');
@@ -163,7 +164,7 @@ function AppContent() {
         verify is the deliberate product order)
       · signed-in AND verified on login/register/verify → straight to
         the hub: no repeat onboarding, no assessment restart, no loops */
-  const PROTECTED_SCREENS: string[] = ['iris-parent', 'iris-snapshot', 'iris-progress', 'iris-tips', 'iris-parent-chat', 'iris-community', 'iris-specialists', 'parent-settings', 'child-mode', 'verify-email', 'iris-ladder-assessment', 'iris-ladder-practice', 'rewards', 'caregiver-profile', 'ladder-plan', 'iris-family-profile',
+  const PROTECTED_SCREENS: string[] = ['iris-parent', 'iris-snapshot', 'iris-progress', 'iris-tips', 'iris-parent-chat', 'iris-community', 'iris-specialists', 'parent-settings', 'child-mode', 'verify-email', 'iris-ladder-assessment', 'iris-ladder-practice', 'rewards', 'caregiver-profile', 'ladder-results', 'ladder-plan', 'iris-family-profile',
     /* Every route is now addressable, so every route must answer to the
        guards. The old list skipped all child activities — a signed-out
        stranger could deep-link /play/letters and land mid-game. */
@@ -479,7 +480,7 @@ function AppContent() {
       // Auth spec §3: after a fresh registration the forced assessment hands
       // over to email verification instead of the hub — the hub is the
       // reward for a verified account, not for a finished quiz.
-      return <IrisLadderAssessment key="ladder-forced" onFinish={() => navigateTo((emailVerified === false ? 'verify-email' : 'ladder-plan') as any)} />;
+      return <IrisLadderAssessment key="ladder-forced" onFinish={() => navigateTo((emailVerified === false ? 'verify-email' : 'ladder-results') as any)} />;
     }
     return null;
   };
@@ -509,6 +510,15 @@ function AppContent() {
             onComplete={(r: any, sc: any) => { handleCaregiverComplete(r, sc); navigateTo('iris-family-profile'); }}
           />
         );
+      case 'ladder-results': {
+        /* P62: the moment the child work ends — WHAT we saw, in words, from
+           both the games and the family file. The gate still owns the route:
+           land here with no finished ladder and the assessment is served
+           instead, so /results can never be browsed around onboarding. */
+        const gate = assessmentGate('ladder-results');
+        if (gate) return gate;
+        return <IrisResultsScreen key="ladder-results" />;
+      }
       case 'ladder-plan': {
         const gate = assessmentGate('ladder-plan');
         if (gate) return gate;
@@ -565,9 +575,13 @@ function AppContent() {
       case 'iris-tips': if (assessmentGate('iris-tips')) return assessmentGate('iris-tips');
         return <IrisHomeTips key="iris-tips" onBack={() => navigateTo('iris-parent')} />;
       case 'iris-ladder-assessment': if (assessmentGate('iris-ladder-assessment')) return assessmentGate('iris-ladder-assessment');
-        return <IrisLadderAssessment key="iris-ladder-assessment" onFinish={() => navigateTo('iris-snapshot')} onExit={() => navigateTo('iris-snapshot')} />;
+        /* P62: finishing the ladder — first time OR a retake from the
+           snapshot — now lands on the family-facing RESULTS screen, which
+           replaced the old snapshot hand-off as the reward moment. Mid-run
+           exits still return to the snapshot so the draft has a home. */
+        return <IrisLadderAssessment key="iris-ladder-assessment" onFinish={() => navigateTo('ladder-results')} onExit={() => navigateTo('iris-snapshot')} />;
       case 'iris-ladder-practice': if (assessmentGate('iris-ladder-practice')) return assessmentGate('iris-ladder-practice');
-        return <IrisLadderPractice key="iris-ladder-practice" onFinish={() => navigateTo('iris-snapshot')} />;
+        return <IrisLadderPractice key="iris-ladder-practice" onFinish={() => navigateTo('ladder-results')} />;
       case 'iris-snapshot': if (assessmentGate('iris-snapshot')) return assessmentGate('iris-snapshot');
         return (
           <IrisLearningSnapshot

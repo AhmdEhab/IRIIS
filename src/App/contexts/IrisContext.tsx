@@ -13,7 +13,7 @@ import {
   // Phase 5 — the ladder assessment.
   ladderCalibrationProbes, runLadderAssessment, planLadderContent,
   ladderSnapshot, recordPracticeSession, toAssessmentRecord,
-  runCalibration, startProbe, nextProbe, recordProbe, finaliseLadderAssessment,
+  runCalibration, startProbe, PROBE_PROFILES, nextProbe, recordProbe, finaliseLadderAssessment,
  fromAssessmentRecord} from '../../iris/journey.js';
 /* Namespace import so the OPTIONAL av2 engine exports (gatesFromCaregiver)
    can be probed at call time without breaking this build while the engine
@@ -829,7 +829,12 @@ function useIrisState() {
        state as an explicit NO_OPPORTUNITY stop before the first visit — the
        engine never scores what the child never had the chance to meet, and
        no other track can feel the difference. */
-    const state = closeGatedTracks(startProbe(calibration), ladderGates);
+    /* P62 family profile: real households get the short session — 2 items per
+       skill, max 3 climbs per track, 16 items ceiling. The profile travels
+       inside the probe state, so a reload-resume keeps the SAME budget the
+       run started with, and hydration of pre-P62 drafts (no stored config)
+       keeps the historical clinical default. */
+    const state = closeGatedTracks(startProbe(calibration, PROBE_PROFILES.family), ladderGates);
     const visit = nextProbe(state);
     setProbeCalibration(calibration);
     setProbeState(state);

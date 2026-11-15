@@ -25,7 +25,7 @@ import { progressSnapshot, reassessmentTriggers } from './engines/progress.js';
 
 // ── Phase 5: the ladder assessment ────────────────────────────────────────
 import { runCalibration, calibrationProbesFor } from './engines/calibration.js';
-import { startProbe, nextProbe, recordProbe, runProbe, stopSummary } from './engines/adaptiveProbe.js';
+import { startProbe, PROBE_PROFILES, nextProbe, recordProbe, runProbe, stopSummary } from './engines/adaptiveProbe.js';
 import { scoreProbe, strandProfile, learningPriorities, domainSummary, OUTCOME } from './engines/indicators.js';
 import {
   emptyLedger, putEstimate, newEstimate, updateEstimate, getEstimate, PROVENANCE,
@@ -707,7 +707,7 @@ export function toAssessmentRecord(assessment) {
 export {
   TASKS, GOAL_BY_ID, isMastered, classifyBand, filterAccommodationsForTask,
   // Phase 5 pieces, re-exported so callers have one import site.
-  runCalibration, startProbe, nextProbe, recordProbe, stopSummary,
+  runCalibration, startProbe, PROBE_PROFILES, nextProbe, recordProbe, stopSummary,
   scoreProbe, strandProfile, learningPriorities, domainSummary,
   emptyLedger, getEstimate, STRAND_BY_ID,
 };

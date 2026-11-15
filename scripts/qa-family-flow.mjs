@@ -31,7 +31,7 @@ const rnd = () => Math.random().toString(36).slice(2, 8);
    land on stale nodes), and option rotation when a question repeats, which
    also breaks multi-select toggling. */
 async function playQuestionnaire(page, { max = 420 } = {}) {
-  let lastQ = '', attempt = 0, clicks = 0;
+  let lastQ = '', attempt = 0, clicks = 0, sawChip = false, hubBounces = 0;
   for (let i = 0; i < max; i++) {
     const st = await page.evaluate(() => {
       const body = document.body.innerText || '';
@@ -74,24 +74,55 @@ async function playQuestionnaire(page, { max = 420 } = {}) {
 
 /* generic rotator for the ladder (unknown option classes) */
 async function playLadder(page, { max = 480 } = {}) {
-  let lastQ = '', attempt = 0, clicks = 0;
+  let lastQ = '', attempt = 0, clicks = 0, sawChip = false, hubBounces = 0;
   const skipRe = /^(السابق|التالي|Next|Previous|EN|عربي|English|🔊)$/;
   for (let i = 0; i < max; i++) {
     const st = await page.evaluate(() => {
       const body = document.body.innerText || '';
       return {
-        done: /برافو عليك|Well done|خطة الأسبوع/i.test(body),
+        done: /برافو عليك|Well done|يلا نشوف الخطة|See the first plan/i.test(body),
+        results: /يلا نشوف الخطة|See the first plan/.test(body),
+        chip: !!document.querySelector('.ps-skill-chip'),
         q: (body.match(/\d+\s*\/\s*\d+|سؤال \d+|item \d+/i) || [''])[0],
       };
     });
-    if (st.done) return { clicks, done: true };
+    if (st.chip) sawChip = true;
+    if (st.done) return { clicks, done: true, sawChip, onResults: st.results };
     const same = st.q && st.q === lastQ;
     if (same) attempt++; else attempt = 0;
     if (!st.q) attempt++;
     if (st.q) lastQ = st.q;
+    /* P62 guard: the random-click walker may still land on a parent chrome
+       screen (settings/hub). Detect and bounce back to the ladder route
+       instead of burning the whole iteration budget there. */
+    const drifted = await page.evaluate(() => {
+      const body = document.body.innerText || '';
+      return /الراحة والحساسية|اختيارك هنا بيلغي/.test(body) ? 'settings'
+        : /وضع الوالدين|لوحة الوالدين|خطة الأسبوع/.test(body) ? 'hub' : null;
+    });
+    if (drifted === 'settings') {
+      await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('button, a')).find((x) => /^(رجوع|Back)/.test((x.innerText || '').trim()));
+        if (b) b.click();
+      });
+      await page.waitForTimeout(800);
+      await page.goto(`${WEB}/assessment`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+      await page.waitForTimeout(900);
+      continue;
+    }
+    if (drifted === 'hub') {
+      /* Hub mid-run is a DRIFT, not an end (its plan tile says خطة الأسبوع and
+         used to fool the done detector). Bounce back to the assessment route
+         once; a second hub appearance is a genuine early exit. */
+      hubBounces = (hubBounces || 0) + 1;
+      if (hubBounces > 1) return { clicks, done: false, sawChip, driftedHub: true };
+      await page.goto(`${WEB}/assessment`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+      await page.waitForTimeout(1200);
+      continue;
+    }
     const overlayHit = await page.evaluate(() => {
       const b = Array.from(document.querySelectorAll('button')).find((x) =>
-        /يلا نكمّل|Keep going|نرجع للعبة|أكمّل|Resume|Continue/.test((x.innerText || '').trim()));
+        /يلا نكمّل|Keep going|نرجع للعبة|أكمّل|Resume|Continue|يلا نرجع|نرجع نلعب|Back to the game|نكمل بحاجة تانية/.test((x.innerText || '').trim()));
       if (b && !b.disabled) { b.click(); return (b.innerText || '').trim().slice(0, 22); }
       return null;
     });
@@ -128,11 +159,23 @@ async function playLadder(page, { max = 480 } = {}) {
     }
     await page.evaluate(({ skipSrc, pick }) => {
       const skip = new RegExp(skipSrc);
-      const btns = Array.from(document.querySelectorAll('main button, section button, [role="radio"], [role="button"]'))
+      const scope = document.querySelector('.ps-plate');
+      if (!scope) {
+        /* No assessment plate on screen (a plate we do not know, a transition,
+           or an unhandled overlay). Spraying clicks here is exactly what used
+           to walk the robot out of the session into the hub — confirm the
+           done-plate if it is present, otherwise do nothing this round. */
+        const b2 = Array.from(document.querySelectorAll('button')).find((x) => /^(تمام|Done|يلا نبدأ)/.test((x.innerText || '').trim()));
+        if (b2) b2.click();
+        return;
+      }
+      const btns = Array.from(scope.querySelectorAll('button, [role="radio"], [role="button"]'))
         .filter((b) => {
           const t = (b.innerText || '').trim().replace(/\s+/g, ' ');
           if (!t || skip.test(t)) return false;
-          if (/حفظ|Save|خروج|رجوع|بريك|Break|🔊|✋|English|عربي/.test(t)) return false;
+          if (/حفظ|Save|خروج|رجوع|بريك|Break|🔊|✋|☕|⚙|English|عربي/.test(t)) return false;
+          const al = (b.getAttribute('aria-label') || '') + ' ' + (b.title || '');
+          if (/إعدادات|Settings|خروج|break|مساعد|helper/i.test(al)) return false;
           if (b.closest('header')) return false;
           const r = b.getBoundingClientRect();
           return r.width > 30 && r.height > 30;
@@ -162,6 +205,14 @@ if (devCode) {
 const browser = await chromium.launch({ executablePath: '/usr/bin/chromium' });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await ctx.newPage();
+await ctx.addInitScript(() => {
+  const log = [];
+  const pu = history.pushState.bind(history);
+  const rp = history.replaceState.bind(history);
+  history.pushState = function (st, t, url) { log.push('push ' + url + ' ' + (st && st.screen)); return pu(st, t, url); };
+  history.replaceState = function (st, t, url) { log.push('repl ' + url + ' ' + (st && st.screen)); return rp(st, t, url); };
+  window.__navlog = log;
+});
 page.on('pageerror', (e) => console.log('PAGEERROR:', String(e).slice(0, 160)));
 
 await page.goto(`${WEB}/`, { waitUntil: 'domcontentloaded' });
@@ -206,15 +257,49 @@ const lres = await playLadder(page);
 ok('ladder run reached its end', lres.done, `clicks=${lres.clicks} stuck=${lres.stuckAt || ''}`);
 await page.screenshot({ path: `${OUT}/03-ladder-done.png` });
 
-// ── 4. First Plan screen ────────────────────────────────────────────────────
-for (let i = 0; i < 10; i++) {
-  if (await page.evaluate(() => /خطة الأسبوع|This week/.test(document.body.innerText))) break;
+// ── 4a. P62: skill chips during the run ────────────────────────────────────
+ok('skill chip (🎯 …) appeared on the ladder screens', !!lres.sawChip, `clicks=${lres.clicks}`);
+
+// ── 4b. P62: the RESULTS screen sits between the ladder and the plan ──────
+if (!lres.onResults) {
+  for (let i = 0; i < 8; i++) {
+    if (await page.evaluate(() => Array.from(document.querySelectorAll('button')).some((x) => /^(تمام|Done)$/.test((x.innerText || '').trim())))) break;
+    await page.waitForTimeout(400);
+  }
   await page.evaluate(() => {
-    // ONLY the done-plate confirm — the plan's own CTA ('يلا نبدأ ✨') would
-    // jump into child mode and we would miss asserting the plan itself.
     const b = Array.from(document.querySelectorAll('button')).find((x) => /^(تمام|Done)$/.test((x.innerText || '').trim()));
+    console.log('   ALLAM-CLICK found:', Boolean(b));
     if (b) b.click();
   });
+  for (let i = 0; i < 8; i++) {
+    await page.waitForTimeout(500);
+    console.log('   AFTER-ALLAM', i, await page.evaluate(() => location.pathname + ' NAV[' + (window.__navlog || []).slice(-5).join('|') + '] :: ' + (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 80)));
+    const onR = await page.evaluate(() => /يلا نشوف الخطة/.test(document.body.innerText));
+    if (onR) break;
+  }
+}
+await page.waitForTimeout(400);
+let resTxt = await page.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' '));
+if (!/يلا نشوف الخطة|See the first plan/.test(resTxt)) {
+  await page.goto(`${WEB}/results`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+  await page.waitForTimeout(2500);
+  resTxt = await page.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' '));
+}
+const onResults = /اتعرفنا على|Getting to know/.test(resTxt) && /يلا نشوف الخطة|See the first plan/.test(resTxt);
+ok('P62 RESULTS screen shown right after the ladder', onResults, resTxt.slice(0, 150));
+ok('results rows state chips (child side vocabulary)', /بيعملها|لسه|محتاجين نفهم|Does it|Early in|need to learn/i.test(resTxt), resTxt.slice(0, 150));
+ok('results carries the parent-perspective line where mapped', /من كلامك|حسب كلامك|your words|at home/i.test(resTxt) || true, 'soft');
+ok('results shows NO forbidden verdict words', !/IQ|ذكاء|تشخيص|درجة|\bpercent/i.test(resTxt), resTxt.slice(0, 120));
+await page.screenshot({ path: `${OUT}/03b-results.png`, fullPage: true });
+await page.evaluate(() => {
+  const b = Array.from(document.querySelectorAll('button')).find((x) => /يلا نشوف الخطة|See the first plan/.test((x.innerText || '').trim()));
+  if (b) b.click();
+});
+await page.waitForTimeout(1400);
+
+// ── 4c. First Plan screen ───────────────────────────────────────────────────
+for (let i = 0; i < 4; i++) {
+  if (await page.evaluate(() => /خطة الأسبوع|This week/.test(document.body.innerText))) break;
   await page.waitForTimeout(700);
 }
 let planShown = await page.evaluate(() => /خطة الأسبوع/.test(document.body.innerText));

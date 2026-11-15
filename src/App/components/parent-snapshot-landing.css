@@ -198,3 +198,19 @@
   .ps-scope .ps-plate [data-response] > button,
   .ps-scope .ps-plate [data-response] > button:hover:not(:disabled) { transform: none; transition-duration: 1ms; }
 }
+
+/* P62 — skill chip under the ladder progress pill: calm, small, never shouty */
+.ps-scope .ps-skill-chip {
+  margin: -4px auto 10px;
+  padding: 6px 14px;
+  width: fit-content;
+  max-width: 92%;
+  text-align: center;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ps-ink, #33405c);
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 999px;
+}

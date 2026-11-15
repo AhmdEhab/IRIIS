@@ -8,6 +8,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudio } from '../../contexts/AudioContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { servableStrandItems } from '../../../iris/content/phase5Bank.js';
+import { STRAND_BY_ID } from '../../../iris/journey.js';
 import { LadderItemCard, LadderProgress, LadderRemainingChip } from './ui/LadderItemCard';
 import { IrisBuddy } from './ui/IrisBuddy';
 import { ChromeActions } from './ui/ChromeActions';
@@ -559,6 +560,13 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
         <div className="ps-progress">
           <LadderProgress current={calIndex + 1} total={probes.length} ar={ar} label={ar ? 'نتعرّف' : 'Getting to know you'} />
         </div>
+        {/* P62: every game says WHAT it is showing. One calm line under the
+            progress pill — never a score, never a test smell. */}
+        <p className="ps-skill-chip" aria-live="polite">
+          {'🎯 ' + (ar
+            ? 'هنشوف في اللعبة دي: ' + (probe.labelAr || '')
+            : 'In this game we are looking at: ' + (probe.labelEn || ''))}
+        </p>
         <div className="ps-plate" style={{ position: 'relative' }}>
           <LadderItemCard
             key={probe.id}
@@ -601,6 +609,17 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
             ar={ar}
             label={ar ? 'لعبة جديدة' : 'A new game'}
           />
+        {/* P62: name the skill being probed — the strand's own Arabic name,
+            authored in the ladders, not invented here. */}
+        {(() => {
+          const st = STRAND_BY_ID[visit.strand];
+          if (!st) return null;
+          return (
+            <p className="ps-skill-chip" aria-live="polite">
+              {'🎯 ' + (ar ? 'بنلعب عشان نشوف: ' + (st.nameAr || '') : 'Playing to see: ' + (st.nameEn || ''))}
+            </p>
+          );
+        })()}
           {/* std-accom §2: the child can always see roughly where the session
               is going. Soft number, honest "تقريباً", never a performance bar. */}
           <LadderRemainingChip itemsAnswered={(iris.probeState?.items_used ?? 0) + visitIndex} ar={ar} />

@@ -46,6 +46,7 @@ export type Screen =
   | 'parent-settings'
   | 'transition'
   | 'caregiver-profile'
+  | 'ladder-results'
   | 'ladder-plan'
   | 'iris-family-profile'
   | 'teaching-demo';
@@ -234,6 +235,7 @@ export const SCREEN_PATHS: Partial<Record<Screen, string>> = {
   'verify-email': '/verify',
   'iris-parent': '/parent',
   'caregiver-profile': '/caregiver',
+  'ladder-results': '/results',
   'ladder-plan': '/plan',
   'iris-family-profile': '/family',
   'iris-snapshot': '/snapshot',

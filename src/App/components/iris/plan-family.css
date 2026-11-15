@@ -109,3 +109,94 @@
   .fp-hero { flex-direction: column-reverse; align-items: flex-start; }
   .fp-prio-track { margin-inline-start: 0; }
 }
+
+/* ── IrisResultsScreen ──────────────────────────────────────────────────────
+   The "getting to know you" result screen (IrisResultsScreen.tsx). Same
+   vocabulary as the rules above — cream ground, white rounded cards, brand
+   washes, logical properties throughout so RTL needs no second stylesheet.
+   Chip inks are the AAA-retuned brand ink values from src/styles/iris.css;
+   the fourth state is warm sand, not cool slate, because the brand neutral
+   ramp is warm. */
+.irs-plate {
+  display: flex; gap: 18px; align-items: center; justify-content: space-between;
+  background: #fff; border: 2px solid rgba(36, 59, 85, 0.08); border-radius: 26px;
+  padding: clamp(16px, 2.6vw, 26px); margin: 18px 0 20px;
+  box-shadow: 0 10px 26px rgba(36, 59, 85, 0.06);
+}
+.irs-plate-text { min-width: 0; }
+.irs-headline {
+  font-family: var(--iris-font-display, 'Baloo 2', system-ui);
+  font-size: clamp(24px, 4vw, 36px); line-height: 1.2; margin: 0 0 10px;
+}
+.irs-honest {
+  display: flex; gap: 8px; align-items: flex-start; margin: 0;
+  background: rgba(125, 92, 196, 0.08); border-inline-start: 4px solid rgba(125, 92, 196, 0.45);
+  color: #4d3a80; border-radius: 16px; padding: 10px 14px;
+  font-size: clamp(14.5px, 1.9vw, 16px); line-height: 1.55; max-width: 62ch;
+}
+.irs-honest-mark { flex: 0 0 auto; opacity: .75; line-height: 1.4; }
+
+.irs-skills { display: grid; gap: 12px; margin: 0 0 18px; }
+.irs-skills > .fp-h2 { margin: 0 0 2px; }
+.irs-skill { margin-bottom: 0; }
+.irs-skill-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.irs-skill-name {
+  font-family: var(--iris-font-display, 'Baloo 2', system-ui);
+  font-size: clamp(19px, 2.8vw, 26px); line-height: 1.25; margin: 0; flex: 1 1 auto;
+}
+.irs-chip {
+  flex: 0 0 auto; border-radius: 999px; padding: 4px 14px;
+  font-size: 13.5px; font-weight: 800; border: 1.5px solid transparent;
+}
+.irs-chip--solo      { background: rgba(73, 184, 122, 0.18); border-color: rgba(73, 184, 122, 0.42); color: var(--brand-green-ink, #23583b); }
+.irs-chip--help      { background: rgba(254, 202, 52, 0.26); border-color: rgba(254, 202, 52, 0.52); color: var(--brand-yellow-ink, #614d14); }
+.irs-chip--emerging  { background: rgba(56, 152, 236, 0.16); border-color: rgba(56, 152, 236, 0.42); color: #0f4a80; }
+.irs-chip--more_info { background: rgba(42, 33, 24, 0.07);   border-color: rgba(42, 33, 24, 0.18);   color: var(--muted-text, #594d40); }
+.irs-evidence { margin: 8px 0 0; font-size: 15.5px; line-height: 1.6; color: var(--iris-ink, #243b55); }
+.irs-from-parent {
+  margin: 12px 0 0; padding-top: 10px; border-top: 1.5px dashed rgba(36, 59, 85, 0.16);
+  font-size: 14.5px; line-height: 1.55; color: rgba(36, 59, 85, 0.78);
+}
+.irs-from-parent-label {
+  display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .02em;
+  color: var(--brand-blue, #1f67b1); opacity: .9; margin-bottom: 2px;
+}
+
+.irs-strengths { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.irs-strength {
+  display: flex; gap: 7px; align-items: baseline; font-size: 15.5px; line-height: 1.45;
+  background: #fff; border: 1.5px solid rgba(73, 184, 122, 0.32); border-radius: 999px; padding: 6px 14px;
+}
+.irs-steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; counter-reset: irs; }
+.irs-step { display: flex; gap: 10px; align-items: flex-start; font-size: 15.5px; line-height: 1.55; }
+.irs-step-num {
+  flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 900; font-size: 14px; color: #fff; background: var(--brand-blue, #1f67b1);
+}
+
+.irs-note-card > .fp-h2 { line-height: 1.35; }
+.irs-note-card .fp-h3 { margin-top: 6px; }
+.irs-note-card .irs-steps { margin-top: 14px; }
+.irs-empty { text-align: center; display: grid; gap: 14px; justify-items: center; }
+
+.irs-actions { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.irs-cta { width: 100%; }
+.irs-edit {
+  font-family: inherit; font-weight: 700; font-size: 14.5px; cursor: pointer;
+  background: none; border: none; border-radius: 12px; padding: 6px 8px;
+  color: var(--brand-blue, #1f67b1); text-decoration: underline; text-underline-offset: 3px;
+}
+.irs-edit:hover { color: var(--brand-blue-ink, #18508a); }
+.irs-cta:focus-visible,
+.irs-edit:focus-visible {
+  outline: 3px solid var(--brand-blue, #1f67b1); outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(31, 103, 177, 0.25);
+}
+
+@media (max-width: 560px) {
+  .irs-plate { flex-direction: column-reverse; align-items: flex-start; }
+  .irs-chip { margin-inline-start: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .irs-skill, .irs-plate, .irs-note-card { transition: none; }
+}
