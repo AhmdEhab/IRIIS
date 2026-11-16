@@ -111,11 +111,14 @@ export const PHASE5_TEMPLATES = [
     id: 'TPL-AR_BLEND', strands: ['LIT.PHON_BLEND'],
     interaction: 'Hear separate sounds → choose the picture of the blended word',
     modality: 'AUDITORY_VISUAL', verbal_load: 'HIGH', wm_load: 'HIGH',
-    modality_pair_id: 'TPL-AR_BLEND_PICTURE_LED',
+    /* P63: its picture-led twin was RETIRED (identical data, fictional
+       picture) — the pairing link is removed so no retry can resurrect it. */
     labelAr: 'الأصوات دي بتعمل أنهي كلمة؟', labelEn: 'What word do these sounds make?',
     shows_letters: true, picture_supported: true,
   }),
-  t({
+  t({ /* P63 RETIRED: no items are generated against this template any more
+        and it is absent from its strand's served list — kept registered only
+        so historical item records can still resolve their template_id. */
     id: 'TPL-AR_BLEND_PICTURE_LED', strands: ['LIT.PHON_BLEND'],
     interaction: 'Picture-led variant of blending — the declared partner',
     modality: 'VISUAL_LED', verbal_load: 'MEDIUM', wm_load: 'MEDIUM',
