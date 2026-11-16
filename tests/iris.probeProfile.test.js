@@ -9,18 +9,34 @@ import { servableStrandItems } from '../src/iris/content/phase5Bank.js';
 
 const cal = runCalibration({ ageYears: 5 });
 
-/** Mirror of the UI picker (IrisLadderAssessment.loadVisit) for test use. */
+/** Mirror of the UI picker (IrisLadderAssessment.loadVisit) for test use.
+ *  P63: the screen now serves through pickVisitItems with a session ledger
+ *  rebuilt from the run's observations — the test does exactly the same so
+ *  the mirror never drifts from production behaviour. */
+import { pickVisitItems } from '../src/iris/content/visitPicker.js';
+import { ledgerFromObservations } from '../src/iris/content/visitPicker.js';
+const sessionLedger = { rows: [] };
 function pickIds(v) {
   const pool = servableStrandItems({ strand: v.strand, template_id: v.template });
   const fb = pool.length ? pool : servableStrandItems({ strand: v.strand });
-  const n = Math.max(1, v.item_count || 1);
-  const len = fb.length || 1;
-  const start = (((v.visit_offset || 0) % len) * n) % len;
-  return fb.slice(start).concat(fb.slice(0, start)).slice(0, Math.min(n, len)).map((i) => i.item_id);
+  const L = ledgerFromObservations(sessionLedger.rows);
+  return pickVisitItems({
+    pool: fb, itemCount: v.item_count, visitOffset: v.visit_offset || 0,
+    servedItemIds: L.servedItemIds, promptCounts: L.promptCounts, taskKeysUsed: L.taskKeysUsed,
+  }).map((i) => i.item_id);
 }
+function resetLedger() { sessionLedger.rows = []; }
+function noteServed(ids) { for (const id of ids) sessionLedger.rows.push({ item_id: id }); }
 
-function drive(responder, config) {
+function drive(responder, config, focusKey = null) {
   let state = startProbe(cal, config);
+  /* P63: with the 12-item ceiling a breadth-first round rarely re-enters a
+     track; the rotation test focuses one lane to force honest re-visits. */
+  if (focusKey) {
+    const tracks = {};
+    for (const [k, tr] of Object.entries(state.tracks)) tracks[k] = (k === focusKey ? tr : { ...tr, done: true });
+    state = { ...state, tracks };
+  }
   const visits = [];
   for (let guard = 0; guard < 300; guard++) {
     const v = nextProbe(state);
@@ -34,7 +50,7 @@ function drive(responder, config) {
 test('family profile is stamped into the state and travels with it', () => {
   const state = startProbe(cal, PROBE_PROFILES.family);
   assert.equal(state.config.ITEMS_PER_VISIT, 2);
-  assert.equal(state.config.SESSION_ITEM_BUDGET, 16);
+  assert.equal(state.config.SESSION_ITEM_BUDGET, 12); // P63: ~10 target / 12 ceiling (user-approved)
 });
 
 test('no config keeps the untouched clinical defaults', () => {
@@ -44,14 +60,14 @@ test('no config keeps the untouched clinical defaults', () => {
   assert.equal(state.config.SESSION_ITEM_BUDGET, PROBE_CONFIG.SESSION_ITEM_BUDGET);
 });
 
-test('a family session never exceeds its 16-item budget (mixed answers)', () => {
+test('a family session never exceeds its 12-item ceiling (P63, mixed answers)', () => {
   const { state } = drive((v, n) => ({
     correct: n % 3 === 0 ? 0 : 1,
     total: v.item_count,
     supported: 0,
     insufficient: n % 7 === 0 ? 1 : 0,
   }), PROBE_PROFILES.family);
-  assert.ok(state.items_used <= 16, `items_used=${state.items_used}`);
+  assert.ok(state.items_used <= 12, `items_used=${state.items_used}`);
   assert.equal(state.finished, true);
 });
 
@@ -64,26 +80,25 @@ test('every family visit carries item_count 2 and a visit_offset', () => {
   }
 });
 
-test('rotation: a strand visited twice at the same rung serves different cards', () => {
+test('P63 picker: a strand visited twice at the same rung serves different cards', () => {
+  resetLedger();
+  const focus = Object.keys(startProbe(cal, PROBE_PROFILES.family).tracks)[0];
   const { visits } = drive((v, n) => ({
-    correct: n % 2, total: v.item_count, supported: 0, insufficient: n % 5 === 0 ? 1 : 0,
-  }), PROBE_PROFILES.family);
+    correct: 0, total: v.item_count, supported: 0, insufficient: 1,
+  }), PROBE_PROFILES.family, focus);
   const byStrand = new Map();
   for (const v of visits) {
+    const ids = pickIds(v);
+    noteServed(ids);
     const key = `${v.strand}@${v.rung}`;
-    (byStrand.get(key) || byStrand.set(key, []).get(key)).push(v);
+    (byStrand.get(key) || byStrand.set(key, []).get(key)).push({ v, ids });
   }
   let revisited = 0;
   for (const [, list] of byStrand) {
     if (list.length < 2) continue;
     revisited++;
     const seen = new Set();
-    for (const v of list) {
-      // template may rotate (visual twin) — offsets must differ, and for the
-      // SAME template the served item ids must be fresh whenever the pool
-      // has room for it.
-      assert.ok(v.visit_offset >= 0);
-      const ids = pickIds(v);
+    for (const { v, ids } of list) {
       const pool = servableStrandItems({ strand: v.strand, template_id: v.template });
       if (pool.length >= ids.length * list.length) {
         for (const id of ids) {

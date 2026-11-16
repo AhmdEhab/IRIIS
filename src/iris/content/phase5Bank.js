@@ -201,9 +201,16 @@ ARABIC_LETTERS.slice(0, 12).forEach((L, i) => {
     item_id: nextId('AR-LNM'), strand: 'LIT.LETTER_NAME', rung: 2, tier,
     template_id: 'TPL-AR_LETTER_NAME',
     audio_ar: L.name_ar,
-    prompt: { ar: `فين حرف «${L.name_ar}»؟`, en: `Which letter is ${L.name_ar}?` },
+    /* P63 (user-approved): the name→grapheme ask got its own honest wording.
+       The old «فين حرف «X»؟» collided WORD-FOR-WORD with the dot-contrast
+       strand even though the two measure different skills (this one: recall
+       of the letter's name against unrelated letters; DOT: fine visual
+       discrimination among dot siblings). Skill, options and correct_index
+       are untouched. The hint also used to PRINT the answer letter — which
+       turned the hint into a solution — so it now only restates the name. */
+    prompt: { ar: `اختار الحرف اللي اسمه «${L.name_ar}»`, en: `Choose the letter named "${L.name_ar}"` },
     options, correct_index,
-    hint: { ar: `${L.name_ar} بتتكتب كده: ${L.letter}`, en: `${L.name_ar} is written ${L.letter}` },
+    hint: { ar: `اسمه «${L.name_ar}» — دور عليه على طول`, en: `It is called "${L.name_ar}" — look straight for it` },
     letter: L.letter, dialect_distance: L.dialect,
   }));
 });
@@ -304,11 +311,12 @@ TARGET_WORDS.slice(0, 8).forEach((w, i) => {
     template_id: 'TPL-AR_BLEND',
     prompt: { ar: `${w.sounds.join(' · ')} — الأصوات دي بتعمل أنهي كلمة؟`, en: `Which word do these sounds make?` },
   }));
-  items.push(mk({
-    ...base, item_id: nextId('AR-BLDP'), strand: 'LIT.PHON_BLEND', rung: 5, tier,
-    template_id: 'TPL-AR_BLEND_PICTURE_LED',
-    prompt: { ar: `الصورة دي أصواتها إيه؟`, en: 'What sounds make this picture?' },
-  }));
+  void nextId('AR-BLDP'); // retired — number CONSUMED in place (P63 id stability)
+  /* P63 (user-approved option أ): the PICTURE_LED twin retired — it carried
+     the identical stimulus, options and answer as the BLD item above while
+     asking about a picture that was never on screen. The blending strand is
+     served solely by the honest TPL-AR_BLEND items now. Old family records
+     that captured those item_ids are untouched — records freeze what ran. */
 });
 
 // ── LIT.PHON_SEGMENT ────────────────────────────────────────────────────────
@@ -494,7 +502,9 @@ for (let k = 1; k <= SUBITIZING_MAX; k++) {
 });
 
 // ── NUM.CARDINALITY — "give me n". Probed independently of counting. ────────
-[2, 3, 4, 5, 3, 4].forEach((k, i) => {
+/* P63: [2,3,4,5,3,4] produced AR-CRD-192/193 as EXACT copies of 189/190
+   (same n, same seeded distractor rotation) — retired; the set is 2..5 now. */
+[2, 3, 4, 5].forEach((k, i) => {
   items.push(mk({
     item_id: nextId('AR-CRD'), strand: 'NUM.CARDINALITY', rung: 1,
     tier: k <= 3 ? 'FOUNDATION' : 'PRACTICE',
@@ -507,6 +517,7 @@ for (let k = 1; k <= SUBITIZING_MAX; k++) {
     _why: 'matrix C1/D10 — cardinality is not gated behind counting',
   }));
 });
+void nextId('AR-CRD'); void nextId('AR-CRD'); // P63 retired 192/193 — ids consumed, later numbering frozen
 
 // ── NUM.NUMERAL (+ quantity partner) ────────────────────────────────────────
 ARABIC_NUMERALS.slice(1, 8).forEach((num, i) => {

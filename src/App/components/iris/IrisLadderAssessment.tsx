@@ -8,6 +8,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudio } from '../../contexts/AudioContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { servableStrandItems } from '../../../iris/content/phase5Bank.js';
+import { pickVisitItems, ledgerFromObservations } from '../../../iris/content/visitPicker.js';
 import { STRAND_BY_ID } from '../../../iris/journey.js';
 import { LadderItemCard, LadderProgress, LadderRemainingChip } from './ui/LadderItemCard';
 import { IrisBuddy } from './ui/IrisBuddy';
@@ -249,14 +250,22 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     if (!v) return;
     const pool = servableStrandItems({ strand: v.strand, template_id: v.template });
     const fallback = pool.length ? pool : servableStrandItems({ strand: v.strand });
+    /* P63 session-variety ledger (R1 prompt≤2, R2 same-task never twice,
+       R3 fresh-first) built from the run's own per-item observations —
+       which ride the draft, so a resumed session honours them too. */
+    const ledger = ledgerFromObservations(iris.ladderObservations);
     /* P62b ROTATION: visit N starts where visit N-1 ended (cyclic). The
        engine's template rotation already switches activity FORM for strands
        that have a listen/visual twin; this stops the same CARDS from being
        re-served inside one form. QA reads the accumulated list below. */
-    const n = Math.max(1, v.item_count || 1);
-    const len = fallback.length || 1;
-    const start = (((v.visit_offset || 0) % len) * n) % len;
-    const rotated = fallback.slice(start).concat(fallback.slice(0, start)).slice(0, Math.min(n, len));
+    const rotated = pickVisitItems({
+      pool: fallback,
+      itemCount: v.item_count,
+      visitOffset: v.visit_offset || 0,
+      servedItemIds: ledger.servedItemIds,
+      promptCounts: ledger.promptCounts,
+      taskKeysUsed: ledger.taskKeysUsed,
+    });
     setVisitItems(rotated);
     try {
       const w = window as any;
@@ -266,7 +275,8 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     setVisitCorrect(0);
     visitObsRef.current = [];   // fresh observation slice per visit
     visitRetriedRef.current = false;
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iris.ladderObservations]);
 
   useEffect(() => {
     try {

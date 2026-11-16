@@ -103,8 +103,19 @@ export const PROBE_PROFILES = {
   family: {
     ITEMS_PER_VISIT: 2,
     STOP_AFTER_EMPTY_RUNGS: PROBE_CONFIG.STOP_AFTER_EMPTY_RUNGS,
-    MAX_VISITS_PER_TRACK: 3,
-    SESSION_ITEM_BUDGET: 16,
+    /* P63 (user-approved): TWO visits per track by default. A third is
+       granted ONLY when the track is still asking for evidence — a pending
+       paired-modality retry or an insufficient-information flag — so the
+       diversity rules can never starve a skill that genuinely needs more
+       sampling. */
+    MAX_VISITS_PER_TRACK: 2,
+    TRACK_VISIT_EVIDENCE_EXTENSION: 1,
+    SESSION_ITEM_BUDGET: 12,
+    /* P63: target ≈10 items for a ~5-minute session, ceiling 12. Once the
+       target is met the session ends UNLESS a track has an outstanding
+       evidence obligation (retry / more-information). The child is never
+       forced to a fixed count when the obligations are satisfied. */
+    SESSION_TARGET_ITEMS: 10,
     _validation: PROBE_CONFIG._validation,
     _source: 'P62 family profile — shorter session by product judgement (ENGINEERING_ASSUMPTION), to be validated with real timings',
   },
@@ -263,10 +274,27 @@ function pairedTemplate(strandId, templateId) {
  * letters before touching numbers — and so a session that runs out of budget
  * still has something to say about every domain.
  */
+/** P63: does any OPEN track still owe an obligation? See nextProbe. */
+function stateHasEvidenceObligation(state, cfg) {
+  for (const t of Object.values(state.tracks)) {
+    if (t.done) continue;
+    if ((t.insufficient_retry && Object.keys(t.insufficient_retry).length)
+      || (t.needs_more_information && Object.keys(t.needs_more_information).length)) return true;
+    if (t.visits === 0 && pendingAtRung(t).length > 0) return true;
+  }
+  return false;
+}
 export function nextProbe(state) {
   const cfg = state.config ?? PROBE_CONFIG;
   if (state.finished) return null;
   if (state.items_used >= cfg.SESSION_ITEM_BUDGET) return null;
+  /* P63: past the TARGET the session stops on the spot — unless somebody
+     still owes evidence. `obligation` = a track that is open AND (awaits a
+     paired-modality / insufficient-information retry OR has not yet seen
+     its first visit). The clinical profile carries no target and is
+     therefore bit-for-bit unchanged. */
+  if (cfg.SESSION_TARGET_ITEMS && state.items_used >= cfg.SESSION_TARGET_ITEMS
+      && !stateHasEvidenceObligation(state, cfg)) return null;
 
   const keys = Object.keys(state.tracks).sort();
   // Round-robin: fewest visits first, ties broken by track name.
@@ -539,7 +567,13 @@ export function recordProbe(state, visit, result) {
     }
   }
 
-  if (!t.done && t.visits >= (state.config ?? PROBE_CONFIG).MAX_VISITS_PER_TRACK) {
+  /* P63: default cap TWO visits; a third is granted only while the track
+     is still signalling that its evidence is insufficient. */
+  const cfgX = state.config ?? PROBE_CONFIG;
+  const wantsMoreEvidence = !!(t.insufficient_retry && Object.keys(t.insufficient_retry).length)
+    || !!(t.needs_more_information && Object.keys(t.needs_more_information).length);
+  const effCap = cfgX.MAX_VISITS_PER_TRACK + (wantsMoreEvidence ? (cfgX.TRACK_VISIT_EVIDENCE_EXTENSION ?? 0) : 0);
+  if (!t.done && t.visits >= effCap) {
     t.done = true;
     t.stop_reason = PROBE_STOP.TRACK_VISIT_CAP;
   }
