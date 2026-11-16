@@ -166,13 +166,28 @@ function deriveTrackState({ scoredRows, indicators, stopReason }) {
   if (stopReason === PROBE_STOP.INSUFFICIENT_INFORMATION) return 'more_info';
   if (scoredRows.length === 0 && indicators.length === 0) return null; // not attempted
 
-  const measured = indicators.filter((i) => i.notMeasured !== true);
-  if (measured.length === 0) {
-    // Anything the engine reported as a floor was attempted and produced no
-    // demonstration; anything else (NOT_PROBED / NEEDS_MORE_INFORMATION /
-    // TOO_FEW_ITEMS) is simply not enough information yet.
-    if (indicators.some((i) => i.floor === true)) return 'emerging';
-    return 'more_info';
+  /* P64b (report adaptivity fix): the family session runs ONE visit per
+     track (2 items). The engine's indicator layer is deliberately
+     conservative — it marks such thin samples `notMeasured` because it
+     governs the CLINICAL ledger — but scored rows, when present, ARE real
+     valid answers the child gave. Before this fix, `measured.length === 0`
+     collapsed every track to 'more_info' no matter whether the child
+     answered 2/2 or 0/2, and the report parents read never moved with the
+     child's performance. Now the indicator-only collapse applies ONLY when
+     there are no scored rows; with rows, the quantities below decide. The
+     INSUFFICIENT_INFORMATION stop (disengaged child / failed
+     administration) still wins above — that genuinely is a no-measurement
+     case. Legacy/clinical records lacking these rows take the OLD path
+     byte-for-byte. */
+  if (scoredRows.length === 0) {
+    const measured = indicators.filter((i) => i.notMeasured !== true);
+    if (measured.length === 0) {
+      // Anything the engine reported as a floor was attempted and produced no
+      // demonstration; anything else (NOT_PROBED / NEEDS_MORE_INFORMATION /
+      // TOO_FEW_ITEMS) is simply not enough information yet.
+      if (indicators.some((i) => i.floor === true)) return 'emerging';
+      return 'more_info';
+    }
   }
 
   let presented = 0;
@@ -188,7 +203,14 @@ function deriveTrackState({ scoredRows, indicators, stopReason }) {
     supported += Math.min(r.supported ?? 0, g);
     if (g > 0 && (r.rung ?? 0) > base) climbed = true;
   }
-  if (presented <= 0 || gained <= 0) return 'more_info';
+  if (presented <= 0 || gained <= 0) {
+    /* P64b: a track the engine marked as a FLOOR was genuinely attempted
+       and produced no demonstration — that reads as 'emerging', whether or
+       not scored rows also exist. Only a track with no usable signal at
+       all stays 'more_info'. */
+    if (indicators.some((i) => i.floor === true)) return 'emerging';
+    return 'more_info';
+  }
 
   const supportShare = supported / gained;
   const successShare = gained / presented;
@@ -286,7 +308,7 @@ function parentLine(caregiverProfile, block) {
  * ladder profile strengths first, then any demonstrated strand, then the
  * caregiver's own strength notes and interests. Categorical, no numbers.
  */
-function buildStrengths({ lang, ladderResult, caregiverProfile, indicators }) {
+function buildStrengths({ lang, ladderResult, caregiverProfile, indicators, skills }) {
   const ar = lang !== 'en';
   const out = [];
   const profile = ladderResult?.profile ?? null;
@@ -299,6 +321,17 @@ function buildStrengths({ lang, ladderResult, caregiverProfile, indicators }) {
     out.push(ar
       ? `${i.nameAr} — دي حاجة ظهرت قوية النهاردة بالنسبة لبقية يومه.`
       : `${i.nameEn} — this showed up strongly today next to the rest of his day.`);
+  }
+  /* P64b: with the report now deriving real states from the family
+     session's scored rows, a track the child did independently IS a
+     strength the parent should see — even though the clinical indicator
+     layer stays conservative for a 2-item sample. */
+  if (out.length < 2) {
+    for (const sk of (skills ?? []).filter((x) => x.state === 'solo').slice(0, 2 - out.length)) {
+      out.push(ar
+        ? `${sk.nameAr} — دي حاجة حصلت النهاردة من غير مساعدة`
+        : `${sk.nameEn} — happened on screen today without help`);
+    }
   }
   if (out.length < 2) {
     const extra = demonstratedNames((indicators ?? []).filter(
@@ -448,7 +481,7 @@ export function buildGettingToKnowResult({
     honestLine: language === 'en' ? RESULT_HONEST_LINE.en : RESULT_HONEST_LINE.ar,
     skills,
     strengths: buildStrengths({
-      lang: language, ladderResult: lr, caregiverProfile, indicators: allTrackIndicators,
+      lang: language, ladderResult: lr, caregiverProfile, indicators: allTrackIndicators, skills,
     }),
     nextSteps: buildNextSteps({ lang: language, ladderResult: lr, hasChildEvidence }),
     hasChildEvidence,

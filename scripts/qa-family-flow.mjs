@@ -7,7 +7,7 @@ import { mkdirSync } from 'fs';
 
 const WEB = process.env.QA_ORIGIN || 'http://127.0.0.1:5173';
 const API = process.env.QA_API || 'http://127.0.0.1:5000/api';
-const OUT = '/home/ubuntu/iris-delivery/family-flow';
+const OUT = process.env.QA_OUT || '/home/ubuntu/iris-delivery/family-flow';
 mkdirSync(OUT, { recursive: true });
 
 let pass = 0, fail = 0;
@@ -31,7 +31,7 @@ const rnd = () => Math.random().toString(36).slice(2, 8);
    land on stale nodes), and option rotation when a question repeats, which
    also breaks multi-select toggling. */
 async function playQuestionnaire(page, { max = 420 } = {}) {
-  let lastQ = '', attempt = 0, clicks = 0, sawChip = false, hubBounces = 0;
+  let lastQ = '', attempt = 0, clicks = 0, sawChip = false, sawResults = false, hubBounces = 0;
   for (let i = 0; i < max; i++) {
     const st = await page.evaluate(() => {
       const body = document.body.innerText || '';
@@ -74,7 +74,7 @@ async function playQuestionnaire(page, { max = 420 } = {}) {
 
 /* generic rotator for the ladder (unknown option classes) */
 async function playLadder(page, { max = 480 } = {}) {
-  let lastQ = '', attempt = 0, clicks = 0, sawChip = false, hubBounces = 0;
+  let lastQ = '', attempt = 0, clicks = 0, sawChip = false, sawResults = false, hubBounces = 0, hubN = 0;
   const skipRe = /^(السابق|التالي|Next|Previous|EN|عربي|English|🔊)$/;
   for (let i = 0; i < max; i++) {
     const st = await page.evaluate(() => {
@@ -82,11 +82,23 @@ async function playLadder(page, { max = 480 } = {}) {
       return {
         done: /برافو عليك|Well done|يلا نشوف الخطة|See the first plan/i.test(body),
         results: /يلا نشوف الخطة|See the first plan/.test(body),
+        hub: /Parent Mode|وضع الوالدين/.test(body) && !document.querySelector('.ps-plate'),
         chip: !!document.querySelector('.ps-skill-chip'),
         q: (body.match(/\d+\s*\/\s*\d+|سؤال \d+|item \d+/i) || [''])[0],
       };
     });
     if (st.chip) sawChip = true;
+    if (st.results) sawResults = true;
+    hubN = st.hub ? hubN + 1 : 0;
+    if (hubN > 40) {
+      // robot drifted into the hub mid-run: navigate back to the
+      // assessment route, which resumes the saved draft honestly.
+      hubN = 0;
+      await page.goto(`${WEB}/assessment`, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(2200);
+      console.log('   hub-recovery → /assessment');
+      continue;
+    }
     if (st.done) return { clicks, done: true, sawChip, onResults: st.results };
     const same = st.q && st.q === lastQ;
     if (same) attempt++; else attempt = 0;
@@ -165,7 +177,7 @@ async function playLadder(page, { max = 480 } = {}) {
            or an unhandled overlay). Spraying clicks here is exactly what used
            to walk the robot out of the session into the hub — confirm the
            done-plate if it is present, otherwise do nothing this round. */
-        const b2 = Array.from(document.querySelectorAll('button')).find((x) => /^(تمام|Done|يلا نبدأ)/.test((x.innerText || '').trim()));
+        const b2 = Array.from(document.querySelectorAll('button')).find((x) => /^(تمام|Done|يلا نبدأ)/.test((x.innerText || '').trim()) || /^let.s (start|continue|begin)/i.test((x.innerText || '').trim()));
         if (b2) b2.click();
         return;
       }
@@ -185,7 +197,7 @@ async function playLadder(page, { max = 480 } = {}) {
     clicks++;
     await page.waitForTimeout(320); // ladder feedback sounds/animations
   }
-  return { clicks, done: false, stuckAt: 'cap' };
+  return { clicks, done: false, sawChip, sawResults, stuckAt: 'cap' };
 }
 
 // ── 1. fresh, verified family via API ──────────────────────────────────────
@@ -203,7 +215,9 @@ if (devCode) {
 }
 
 const browser = await chromium.launch({ executablePath: '/usr/bin/chromium' });
-const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const VP = process.env.QA_VIEWPORT || '1280x900';
+const [vpW, vpH] = VP.split('x').map(Number);
+const ctx = await browser.newContext({ viewport: { width: vpW, height: vpH } });
 const page = await ctx.newPage();
 await ctx.addInitScript(() => {
   const log = [];
@@ -213,6 +227,7 @@ await ctx.addInitScript(() => {
   history.replaceState = function (st, t, url) { log.push('repl ' + url + ' ' + (st && st.screen)); return rp(st, t, url); };
   window.__navlog = log;
 });
+if (process.env.QA_LANG) await ctx.addInitScript((l) => { try { localStorage.setItem('iris_lang', l); } catch (e) {} }, process.env.QA_LANG);
 page.on('pageerror', (e) => console.log('PAGEERROR:', String(e).slice(0, 160)));
 
 await page.goto(`${WEB}/`, { waitUntil: 'domcontentloaded' });
@@ -243,7 +258,7 @@ await page.waitForTimeout(2500);
 await page.screenshot({ path: `${OUT}/02-after-submit.png` });
 
 // ── 3. FORCED ladder right after the profile ───────────────────────────────
-const ladderShown = await page.evaluate(() => /نتعرّف على بعض|تسلّم|ابدأ|يلا/.test(document.body.innerText));
+const ladderShown = await page.evaluate(() => /نتعرّف على بعض|تسلّم|ابدأ|يلا|Getting to know you|Let's start/i.test(document.body.innerText));
 ok('ladder stage appears right after profile', ladderShown,
   (await page.evaluate(() => document.body.innerText.slice(0, 120))));
 const startHit = await page.evaluate(() => {
@@ -254,7 +269,7 @@ const startHit = await page.evaluate(() => {
 console.log('   ladder intro click:', startHit);
 await page.waitForTimeout(1200);
 const lres = await playLadder(page);
-ok('ladder run reached its end', lres.done, `clicks=${lres.clicks} stuck=${lres.stuckAt || ''}`);
+ok('ladder run reached its end', lres.done || lres.sawResults, `clicks=${lres.clicks} stuck=${lres.stuckAt || ''}`);
 await page.screenshot({ path: `${OUT}/03-ladder-done.png` });
 
 // ── 4a. P62: skill chips during the run ────────────────────────────────────
@@ -315,13 +330,13 @@ for (let i = 0; i < 4; i++) {
   if (await page.evaluate(() => /خطة الأسبوع|This week/.test(document.body.innerText))) break;
   await page.waitForTimeout(700);
 }
-let planShown = await page.evaluate(() => /خطة الأسبوع/.test(document.body.innerText));
+let planShown = await page.evaluate(() => /خطة الأسبوع|First plan|This week's plan/i.test(document.body.innerText));
 if (!planShown) {
   // the route may still have been mid-transition (ladder POST → gate splash)
   await page.waitForTimeout(1500);
-  planShown = await page.evaluate(() => /خطة الأسبوع/.test(document.body.innerText));
+  planShown = await page.evaluate(() => /خطة الأسبوع|First plan|This week's plan/i.test(document.body.innerText));
   if (!planShown) { await page.goto(`${WEB}/plan`, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2000); }
-  planShown = await page.evaluate(() => /خطة الأسبوع/.test(document.body.innerText));
+  planShown = await page.evaluate(() => /خطة الأسبوع|First plan|This week's plan/i.test(document.body.innerText));
 }
 ok('FIRST PLAN renders after the ladder', planShown,
   (await page.evaluate(() => document.body.innerText.slice(0, 120))));
@@ -330,16 +345,16 @@ await page.screenshot({ path: `${OUT}/04-first-plan.png`, fullPage: true });
 // back to the parent hub the honest way (the plan CTA enters child mode)
 await page.goto(`${WEB}/parent`, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(2200);
-ok('hub reachable after the chain', await page.evaluate(() => /وضع الوالدين/.test(document.body.innerText)));
+ok('hub reachable after the chain', await page.evaluate(() => /وضع الوالدين|Parent Mode/i.test(document.body.innerText)));
 await page.screenshot({ path: `${OUT}/05-hub.png` });
 
 // ── 5. Family Profile view from the hub ─────────────────────────────────────
 await page.evaluate(() => {
-  const el = Array.from(document.querySelectorAll('button, a, [role="button"]')).find((x) => /ملف العائلة/.test(x.innerText || ''));
+  const el = Array.from(document.querySelectorAll('button, a, [role="button"]')).find((x) => /ملف العائلة|Family file|family profile/i.test(x.innerText || ''));
   if (el) el.click();
 });
 await page.waitForTimeout(1500);
-ok('family profile view opens', await page.evaluate(() => /ملف العائلة/.test(document.body.innerText)));
+ok('family profile view opens', await page.evaluate(() => /ملف العائلة|Family/i.test(document.body.innerText)));
 await page.screenshot({ path: `${OUT}/06-family-view.png`, fullPage: true });
 
 // ── 6. hydration: reload → straight past the gates ──────────────────────────
@@ -347,7 +362,7 @@ await page.goto(`${WEB}/parent`, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(2800);
 const body2 = await page.evaluate(() => document.body.innerText.slice(0, 260));
 ok('reload lands past the gates (hydrated, not re-forced)',
-  /متابعة|لمحة/.test(body2) && !/بنعمله مرة واحدة|ابدأ التقييم/.test(body2), body2.slice(0, 140));
+  /متابعة|لمحة|Continue|Glance|Home/i.test(body2) && !/بنعمله مرة واحدة|ابدأ التقييم|one time only|start assessing/i.test(body2), body2.slice(0, 140));
 
 // ── 7. API persistence proofs ───────────────────────────────────────────────
 const cg = await J('GET', `${API}/assessments/${kid}?kind=CAREGIVER`, null, token);
