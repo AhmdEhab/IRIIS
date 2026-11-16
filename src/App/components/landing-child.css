@@ -9,11 +9,11 @@
   --lc-blue-ink: #18508A;
   --lc-surface: #FFFDF6;
   --lc-ink: #2A2118;
-  --lc-muted: #6B655D;
+  --lc-muted: #594D40; /* P64: the brand's retuned muted ink (8.01:1); the old warm grey sat under the stated AAA floor */
   position: relative;
   min-height: 100vh;
-  overflow-x: hidden;
-  padding-bottom: 72px;
+  overflow-x: clip; /* P64: hidden creates a scroll container that KILLED the sticky header (it scrolled away with the page); clip contains overflow without making one — same word the caregiver root uses */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
   background:
     radial-gradient(1200px 600px at 88% -6%, rgba(201, 229, 247, 0.55), transparent 60%),
     radial-gradient(900px 520px at 6% 108%, rgba(251, 231, 184, 0.5), transparent 62%),
@@ -32,7 +32,7 @@
   --lc-blue-ink: #18508A;
   --lc-surface: #FFFDF6;
   --lc-ink: #2A2118;
-  --lc-muted: #6B655D;
+  --lc-muted: #594D40; /* P64: the brand's retuned muted ink (8.01:1); the old warm grey sat under the stated AAA floor */
   font-family: var(--iris-font-body, 'Cairo', system-ui, sans-serif);
   color: var(--lc-ink);
 }
@@ -67,13 +67,13 @@
   min-height: 48px; padding: 8px 22px; border: 2px solid transparent; border-radius: 999px;
   cursor: pointer;
   font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive;
-  font-size: 15px; font-weight: 800; line-height: 1.5; white-space: nowrap;
+  font-size: 15px; font-weight: 800; line-height: 1.5; white-space: normal; text-align: center; overflow-wrap: anywhere;
   transition: background-color 170ms ease, border-color 170ms ease, box-shadow 170ms ease, transform 170ms ease, color 170ms ease;
 }
 .lc-pill--blue { background: var(--lc-blue); color: #fff; box-shadow: 0 10px 24px -10px rgba(31, 103, 177, 0.55); }
 .lc-pill--blue:hover { background: var(--lc-blue-ink); transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(31, 103, 177, 0.55); }
 .lc-pill--blue:active { transform: translateY(1px) scale(0.99); }
-.lc-pill--yellow { background: #FBE7B8; color: #8A5A00; border-color: rgba(222, 162, 26, 0.45); box-shadow: 0 10px 22px -12px rgba(222, 162, 26, 0.5); }
+.lc-pill--yellow { background: #FBE7B8; color: var(--brand-yellow-ink, #614D14); border-color: rgba(222, 162, 26, 0.45); box-shadow: 0 10px 22px -12px rgba(222, 162, 26, 0.5); }
 .lc-pill--yellow:hover { background: #F8DC9C; transform: translateY(-2px); }
 .lc-pill--yellow:active { transform: translateY(1px) scale(0.99); }
 .lc-pill--yellow svg { animation: none; }
@@ -157,7 +157,7 @@
   .lc-hero-grid { grid-template-columns: 1fr; }
   .lc-hero-mascot { order: -1; }
   .lc-pill { min-height: 44px; padding: 6px 16px; font-size: 13.5px; }
-  .lc-pill--primary { min-height: 52px; padding: 10px 24px; font-size: 16px; }
+  .lc-pill--primary { min-height: 56px; padding: 10px 24px; font-size: 16px; } /* P64: the documented 56px child touch floor */
   .lc-name-chip { min-height: 40px; padding: 4px 14px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -219,7 +219,7 @@
 .lc-card .lc-bubble--blue { color: var(--lc-blue); }
 .lc-card .lc-bubble--green { color: #2E965C; }
 .lc-card .lc-bubble--yellow { color: #B07A1A; }
-.lc-card .lc-bubble--coral { color: #D2464E; }
+.lc-card .lc-bubble--coral { color: var(--brand-coral-ink, #B23A42); }
 .lc-card .lc-bubble--purple { color: #6C4FA8; }
 .lc-card-emoji { filter: drop-shadow(0 3px 5px rgba(42, 33, 24, 0.18)); }
 .lc-card-chip { transform: rotate(-1deg); border-color: color-mix(in srgb, var(--lc-blue) 18%, white); }
@@ -240,7 +240,7 @@
 .lc-card-bubble { width: 58px; height: 58px; border-radius: 18px; }
 .lc-card-desc { font-size: 13.5px; color: var(--lc-muted); line-height: 1.6; min-height: 44px; }
 .lc-card-chip svg { width: 13px; height: 13px; }
-.lc-card-chip--soon { background: #FBE7B8; color: #8A5A00; border: 1px solid rgba(222, 162, 26, 0.35); }
+.lc-card-chip--soon { background: #FBE7B8; color: var(--brand-yellow-ink, #614D14); border: 1px solid rgba(222, 162, 26, 0.35); }
 .lc-header-side--parent { flex-wrap: wrap; justify-content: flex-end; }
 .lc-pill--ghost { background: var(--lc-surface); color: var(--lc-blue-ink); border: 2px solid var(--lc-border); }
 .lc-pill--ghost:hover { background: #EAF3FB; transform: translateY(-2px); }
@@ -291,3 +291,11 @@
 }
 .lc-gate-input:focus-visible { outline: 3px solid var(--lc-blue); outline-offset: 2px; }
 .lc-gate-error { color: #D2464E; font-weight: 700; font-size: 14px; margin: 0; }
+
+/* ══ P64 UX pass: the 390px header could not wrap, so the language control
+   was clipped off-screen (overflow-x was eating it). Wrap it. ══ */
+@media (max-width: 480px) {
+  .lc-header-inner { flex-wrap: wrap; row-gap: 8px; padding: 12px 14px; }
+  .lc-header-side { flex-wrap: wrap; gap: 8px; }
+  .lc-header-title, .ps-header-title { min-width: 0; overflow-wrap: anywhere; }
+}

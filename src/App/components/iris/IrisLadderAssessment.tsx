@@ -77,7 +77,7 @@ type Phase = 'INTRO' | 'CALIBRATION' | 'PROBE' | 'DONE';
 /* P62b: the family session budget is 16 items, so the cap question must
    sit ABOVE it — otherwise the break prompt pops one item before the engine
    ends the session and families who take the break never reach the report. */
-const SESSION_CAP_ITEMS = 18;
+const SESSION_CAP_ITEMS = 11; // P64: the family ceiling is 12 — ask about finishing ONE visit before the engine closes the session, so the choice is the family's, not the runtime's
 
 /**
  * Stop reasons that mean "the session was cut short" rather than "we
@@ -957,7 +957,7 @@ function BreakChip({ ar, onStart }: { ar: boolean; onStart: () => void }) {
       title={ar ? 'خد بريك' : 'Take a break'}
       style={{ cursor: 'pointer', minHeight: 48 }}
     >
-      <span aria-hidden="true">✋☕</span>
+      <span aria-hidden="true">☕</span>
       <span style={{ marginInlineStart: 6 }}>{ar ? 'بريك' : 'Break'}</span>
     </button>
   );
@@ -1000,7 +1000,7 @@ function EffortBurst({ burst, ar }: { burst: number; ar: boolean }) {
           role="status"
           aria-live="polite"
           dir={ar ? 'rtl' : 'ltr'}
-          className="absolute left-1/2 -translate-x-1/2 -top-3 z-30 flex flex-col items-center gap-1 rounded-full px-5 py-2"
+          className="absolute left-1/2 -translate-x-1/2 bottom-3 z-30 flex flex-col items-center gap-1 rounded-full px-5 py-2 pointer-events-none"
           style={{
             background: 'var(--lc-surface, #FFFDF6)',
             border: '2px solid var(--lc-border, rgba(31,103,177,0.16))',
@@ -1038,8 +1038,8 @@ function KidOverlay({ ar, children, onClose }: { ar: boolean; children: React.Re
       dir={ar ? 'rtl' : 'ltr'}
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[300] grid place-items-center p-6 lc-token-scope ps-scope"
-      style={{ background: 'rgba(253, 250, 241, 0.94)' }}
+      className="fixed inset-0 z-[300] grid place-items-center p-6 lc-token-scope ps-scope lc-root"
+      style={{ background: 'rgba(253, 250, 241, 0.94)', overflowY: 'auto', alignContent: 'safe center' }}
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -1104,7 +1104,7 @@ function Shell({
   onExit?: () => void;
 }) {
   return (
-    <div className="lc-root ps-scope" dir={ar ? 'rtl' : 'ltr'}>
+    <div className="lc-root ps-scope iris-child" dir={ar ? 'rtl' : 'ltr'}>
       <div className="lc-decor" aria-hidden="true">
         <Blob className="lc-blob lc-blob--1" fill="var(--brand-yellow-wash, #FBE7B8)" />
         <Blob className="lc-blob lc-blob--2" fill="var(--brand-blue-wash, #C9E5F7)" />

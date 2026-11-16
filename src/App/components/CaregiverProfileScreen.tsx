@@ -14,6 +14,7 @@ import { scoreCaregiverV2 } from '../../iris/caregiver/scoringV2.js';
  * SAME source, so a family never meets two vocabularies for one thing. */
 import { PARENT_STATE_WORDS, PARENT_CONFIDENCE_WORDS, BLOCK_LABELS } from '../../iris/caregiver/merge.js';
 import './caregiver-profile.css';
+import { IrisBuddy } from './iris/ui/IrisBuddy';
 
 /**
  * Instrument ① — the Family Profile (ملف العائلة).
@@ -551,6 +552,11 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
      every read, so `block` / `item` stay type-safe instead of being asserted. */
   const stepBlockId = step && step.kind !== 'review' ? step.block.id : '';
   const answeredQs = qs.filter(s => (s.kind === 'item' || s.kind === 'gate') && itemComplete(s.item, answers)).length;
+  /* P64 (UX audit): ONE answered-based percentage drives the label AND the
+     bar. The old bar used the POSITION index, which is -1+1 = 0 on every
+     block intro, care card, probe and the review screen — the rail visibly
+     drained to empty mid-flow. Monotonic now: it never goes backwards. */
+  const railPct = Math.min(100, Math.round((answeredQs / Math.max(1, qs.length)) * 100));
   const wash = WASHES[(blockOrder[stepBlockId] ?? 0) % WASHES.length];
 
   const T = useCallback((key: keyof typeof UI) => UI[key]?.[ar ? 'ar' : 'en'] ?? String(key), [ar]);
@@ -872,7 +878,7 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
     return (
       <div className={cx('cp-item', reduced && 'cp-item--still')} dir={ar ? 'rtl' : 'ltr'}>
         <p className="cp-q">{loc.q}</p>
-        {other.q && other.q !== loc.q && <p className="cp-q-alt">{other.q}</p>}
+        {other.q && other.q !== loc.q && <p className="cp-q-alt" dir={ar ? 'ltr' : 'rtl'}>{other.q}</p>}
         {loc.ex && <p className="cp-ex"><span className="cp-ex-label">{T('exampleWord')}</span>{loc.ex}</p>}
 
         {fmt === 'opentext' ? (
@@ -981,7 +987,7 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             <span>{T('suspend')}</span>
           </button>
-        ) : <span className="cp-home cp-home--spacer" aria-hidden="true" />}
+        ) : null}
         <span className={cx('cp-save', `cp-save--${saveState}`)} role="status" aria-live="polite">
           {saveState === 'server' ? T('savedServer')
             /* P1: 'pending' is honest — the write left the device and has
@@ -1002,12 +1008,17 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
                     ? T('followupWord')
                     : `${T('questionWord')} ${num(qNo)} ${T('ofWord')} ${num(coreQs.length)}`}
             </span>
-            <span className="cp-pct" aria-hidden="true">{num(Math.round((answeredQs / Math.max(1, qs.length)) * 100))}%</span>
+            <span className="cp-pct" aria-hidden="true">{num(railPct)}%</span>
           </div>
           {/* P3 (spec §9): the remaining count comes from the DERIVED step
               list, so follow-ups that just fired are in it and questions an
               edit removed are out — no minutes are promised anywhere. cv2
               adds its honest ceiling word. */}
+          {/* P64: the bar sits directly under its label, then the quiet
+              status line, then the dot map. One value, one direction. */}
+          <div className="cp-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={railPct} aria-label={ar ? 'تقدم ملف العائلة' : 'Family file progress'}>
+            <span className="cp-track-fill" style={{ inlineSize: `${railPct}%` }} />
+          </div>
           {phase === 'flow' && (
             <div className="cp-remaining" dir={ar ? 'rtl' : 'ltr'}>
               <span className="cp-remaining-count">
@@ -1018,10 +1029,9 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
               {vBank === CAREGIVER_V2_VERSION && (
                 <span className="cp-remaining-cap">{T('capWord')}</span>
               )}
+              <span className="cp-adjust-note">{T('adjustNote')}</span>
             </div>
           )}
-          {phase === 'flow' && <p className="cp-adjust-note" dir={ar ? 'rtl' : 'ltr'}>{T('adjustNote')}</p>}
-          <div className="cp-track" aria-hidden="true"><span className="cp-track-fill" style={{ inlineSize: `${(qNo / Math.max(1, coreQs.length)) * 100}%` }} /></div>
           <div className="cp-dots" role="group" aria-label={T('blockWord')}>
             {blocks.map(b => {
               const c = blockCounts(b, answers, months);
@@ -1046,7 +1056,7 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
         <section className={cx('cp-card', 'cp-card--block', `cp-wash--${wash}`, reduced && 'cp-item--still')} dir={ar ? 'rtl' : 'ltr'}>
           <span className="cp-block-icon" aria-hidden="true">{b.icon || '✨'}</span>
           <h2 className="cp-block-title">{ar ? b.titleAr : b.titleEn}</h2>
-          {b.titleEn && b.titleEn !== b.titleAr && <p className="cp-q-alt">{ar ? b.titleAr : b.titleEn}</p>}
+          {b.titleEn && b.titleEn !== b.titleAr && <p className="cp-q-alt" dir={ar ? 'ltr' : 'rtl'}>{ar ? b.titleAr : b.titleEn}</p>}
           {(b.blurbAr || b.blurbEn) && <p className="cp-block-blurb">{ar ? b.blurbAr : b.blurbEn}</p>}
           <p className="cp-normalise">{T('normalise')}</p>
           <div className="cp-nav">
@@ -1085,7 +1095,7 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
           </div>
           <p className="cp-q">{g.q || locOf(item, ar).q}</p>
           {(g.ex || locOf(item, ar).ex) && <p className="cp-ex"><span className="cp-ex-label">{T('exampleWord')}</span>{g.ex || locOf(item, ar).ex}</p>}
-          <p className="cp-q-alt">{otherLoc(item, ar).q || g.q || ''}</p>
+          <p className="cp-q-alt" dir={ar ? 'ltr' : 'rtl'}>{otherLoc(item, ar).q || g.q || ''}</p>
           <div className="cp-opts cp-opts--gate" role="radiogroup" aria-label={T('gateLead')}>
             {/* The opportunity answer is offered FIRST and reads as equally fine. */}
             {gopts.length ? gopts.map(o => (
@@ -1189,6 +1199,9 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
         {phase === 'intro' ? (
           <section className={cx('cp-card', 'cp-card--intro', reduced && 'cp-item--still')} dir={ar ? 'rtl' : 'ltr'}>
             <h1 className="cp-intro-title">{T('title')}</h1>
+            {/* P64: the buddy anchors this screen as IRIS, the way every
+                landing section and the child ladder already do. */}
+            <IrisBuddy mood="happy" className="cp-buddy" title={ar ? 'رفيق iris' : 'The IRIS buddy'} />
             <p className="cp-intro-lead">{T('introLead')}</p>
             <ul className="cp-intro-points">
               <li>{T('introTime')}</li>

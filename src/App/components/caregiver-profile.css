@@ -471,3 +471,85 @@
 .cp-sumrow-state { color: var(--cp-text, #3a4468); }
 .cp-sumrow-note { font-size: 12.5px; line-height: 1.7; color: var(--muted-text); margin: 8px 0 0; }
 .cp-soft { text-align: center; color: var(--muted-text); font-size: 15px; margin: 8px auto; }
+
+/* ══ P64 UX pass (audit-driven) ═══════════════════════════════════════════
+   Everything here answers a specific finding from the 2026-11-16 visual +
+   static audits: the language control lived in a fixed TOP corner where it
+   collided with the autosave chip (and at 390px the empty ghost pill made
+   the header read as a broken white bar), care-card colors fell back to
+   undefined tokens rendering off-brand violet that fails AA, buttons were
+   neither the landing pill nor the ladder pill but a third shape, and long
+   Arabic compounds could outrun their chips. The overrides below converge
+   all of it on the landing language: same glass circle, same pill, same
+   tokens, same confetti idiom — done properly this time. */
+
+/* — floating glass language circle: the landing's OWN control, re-skinned —
+   (was a fixed top-end pill overlapping the save status; now bottom-right
+   like the landing's .lp-lang-round, physical right on purpose — the user
+   anchored it there) */
+.cp-lang { position: fixed; inset-block-start: auto; inset-inline-end: auto; top: auto; right: 16px; inset-block-end: calc(18px + env(safe-area-inset-bottom)); z-index: 60; }
+.cp-langbtn {
+  display: grid; place-items: center; inline-size: 54px; block-size: 54px; min-inline-size: 54px; min-block-size: 54px; padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, .9); border-radius: 50%; cursor: pointer;
+  background: rgba(201, 229, 247, .52); color: var(--brand-blue-ink);
+  backdrop-filter: blur(16px) saturate(1.8); -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  box-shadow: 0 14px 34px -12px rgba(31, 103, 177, .45), 0 2px 8px rgba(42, 33, 24, .08), inset 0 1px 0 rgba(255, 255, 255, .9);
+  font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; font-size: 12.5px; font-weight: 800; line-height: 1.05; text-align: center;
+}
+.cp-langbtn:hover { background: var(--brand-blue); color: var(--surface); transform: scale(1.08); }
+@media (max-width: 599px) { .cp-lang { right: 14px; } .cp-langbtn { inline-size: 48px; block-size: 48px; min-inline-size: 48px; min-block-size: 48px; font-size: 11.5px; } }
+@media (prefers-reduced-motion: no-preference) {
+  .cp-langbtn { animation: cpLangBob 5.2s ease-in-out infinite; }
+}
+@keyframes cpLangBob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
+
+/* — header breathing room at the small widths the bar bug lived in — */
+@media (max-width: 480px) {
+  .cp-head { padding-block: 10px 6px; }
+  .cp-head-row { min-block-size: 0; }
+}
+
+/* — one button primitive everywhere: the landing pill — */
+.cp-cta, .cp-ghost { border-radius: 999px; min-block-size: 56px; font-family: var(--iris-font-display, 'Baloo Bhaijaan 2'), cursive; }
+.cp-cta { box-shadow: 0 10px 24px -10px rgba(31, 103, 177, .55); }
+.cp-cta--care { background: var(--brand-blue); /* was an off-brand violet gradient (AA fail: 3.73:1) */ }
+.cp-cta--care:hover { background: var(--brand-blue-ink); }
+
+/* — care card on REAL brand tokens (it was falling back to undefined vars
+   that painted off-palette navy/violet) — */
+.cp-card--care { background: var(--brand-blue-wash); border-color: color-mix(in srgb, var(--brand-blue) 45%, var(--border-soft)); }
+.cp-care-title { color: var(--text); }
+.cp-care-body { color: var(--muted-text); }
+
+/* — AA-clean status ink — */
+.cp-save--pending { color: var(--brand-yellow-ink); }
+
+/* — the rail honors its block accent; yellow gets a visible fill — */
+.cp-track { background: color-mix(in srgb, var(--cp-accent, var(--brand-blue)) 16%, var(--surface-sunk)); }
+.cp-wash--yellow { --cp-accent-fill: color-mix(in srgb, var(--brand-yellow-ink) 55%, var(--brand-yellow)); }
+.cp-track-fill { background: var(--cp-accent-fill, var(--cp-accent, var(--brand-blue))); }
+
+/* — the single stray dot was read as a rendering bug: make it the landing
+   confetti trio (same 3-dot mark the auth cards use, mirrored by ::after's
+   logical inset) — */
+.cp-card::after {
+  content: ''; position: absolute; inset-block-start: 16px; inset-inline-end: 20px;
+  inline-size: 7px; block-size: 7px; border-radius: 50%;
+  background: var(--cp-accent, var(--brand-blue));
+  box-shadow: -13px 0 0 1px var(--brand-yellow), 4px 11px 0 0 var(--brand-green);
+  opacity: .9;
+}
+
+/* — wrap defence: long Arabic compounds break instead of outrunning pills — */
+.cp-root :where(.cp-q, .cp-opt, .cp-opt-body, .cp-chip, .cp-care-title, .cp-care-body, .cp-intro-lead, .cp-block-blurb) { overflow-wrap: anywhere; }
+.cp-rtitle { white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: clip; overflow-wrap: anywhere; }
+
+/* — quieter status line under the bar (it used to compete with it) — */
+.cp-remaining { margin-top: 4px; row-gap: 2px; justify-content: space-between; }
+.cp-adjust-note { display: block; width: 100%; margin: 0; font-size: 12px; font-weight: 600; opacity: .82; }
+
+/* — gesture bar / notch safe landing for the CTA zone — */
+.cp-main { padding-block-end: calc(clamp(40px, 8vh, 72px) + env(safe-area-inset-bottom)); }
+
+/* — the buddy on the intro card, sized like the landing mascot band — */
+.cp-buddy { display: block; width: clamp(140px, 30vw, 168px); margin-inline: auto; }

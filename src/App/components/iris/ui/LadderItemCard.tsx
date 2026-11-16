@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Surface, ProgressTrack } from './brand';
-import { PROBE_CONFIG } from '../../../../iris/engines/adaptiveProbe.js';
+import { PROBE_PROFILES } from '../../../../iris/engines/adaptiveProbe.js';
+/* P64 (UX audit): the chip used to count against PROBE_CONFIG — the CLINICAL
+   budget (60 items, 3 per visit) — while this app always runs the FAMILY
+   profile (12 / 2). Every number it showed the child was wrong, and the
+   'قربنا نخلص' end-game branch was mathematically dead. Now it reads the
+   profile the session actually runs, and speaks in MISSIONS (a visit = the
+   two cards of one small game), which is what the child sees anyway. */
+const SESSION_BUDGET = PROBE_PROFILES.family.SESSION_ITEM_BUDGET;
+const PER_MISSION = Math.max(1, PROBE_PROFILES.family.ITEMS_PER_VISIT);
 import { decideOutcome, decideOutcomeFromCorrect } from '../ladderObservations.js';
 
 /**
@@ -80,8 +88,8 @@ export function LadderProgress({ current, total, ar, label }: { current: number;
  */
 export function LadderRemainingChip({ itemsAnswered, ar }: { itemsAnswered: number; ar: boolean }) {
   const done = Math.max(0, Math.round(itemsAnswered || 0));
-  const remainingItems = Math.max(0, PROBE_CONFIG.SESSION_ITEM_BUDGET - done);
-  const remainingMissions = Math.ceil(remainingItems / PROBE_CONFIG.ITEMS_PER_VISIT);
+  const remainingItems = Math.max(0, SESSION_BUDGET - done);
+  const remainingMissions = Math.ceil(remainingItems / PER_MISSION);
   // Arabic-Indic digits read more naturally to the child than Latin ones.
   const num = (v: number) => {
     try { return ar ? v.toLocaleString('ar-EG') : String(v); } catch { return String(v); }
@@ -89,8 +97,8 @@ export function LadderRemainingChip({ itemsAnswered, ar }: { itemsAnswered: numb
   const text = done > 0 && remainingMissions <= 1
     ? (ar ? 'قربنا نخلص!' : 'Almost done!')
     : (ar
-        ? `المهمة ${num(done + 1)} · فاضل كم little وهنخلص`
-        : `Mission ${done + 1} · a few little games to go`);
+        ? `المهمة ${num(Math.floor(done / PER_MISSION) + 1)} · فاضل شوية وهنخلص`
+        : `Mission ${Math.floor(done / PER_MISSION) + 1} · a few little games to go`);
   return (
     <p
       className="ps-ghost-chip"

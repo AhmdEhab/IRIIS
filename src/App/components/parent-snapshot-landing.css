@@ -77,7 +77,7 @@
 .ps-scope .ps-skill-note {
   grid-column: 1 / -1; margin: 2px 0 0; font-size: 13px; line-height: 1.65; font-weight: 600;
 }
-.ps-scope .ps-skill-note--caveat { color: #B07A1A; }
+.ps-scope .ps-skill-note--caveat { color: var(--brand-yellow-ink, #614D14); }
 .ps-scope .ps-skill-note--floor { color: var(--lc-muted); }
 
 /* ordered next-step list: discs come from StepDisc, layout is ours */
@@ -209,8 +209,8 @@
   font-size: 0.86rem;
   font-weight: 600;
   line-height: 1.45;
-  color: var(--ps-ink, #33405c);
-  background: rgba(96, 165, 250, 0.12);
-  border: 1px solid rgba(96, 165, 250, 0.28);
+  color: var(--brand-blue-ink, #17457a); /* P64: was Tailwind blue-400 rgba — off the brand palette */
+  background: var(--brand-blue-wash, rgba(31, 103, 177, 0.1));
+  border: 1px solid color-mix(in srgb, var(--brand-blue, #1F67B1) 28%, transparent);
   border-radius: 999px;
 }

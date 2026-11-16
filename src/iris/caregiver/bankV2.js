@@ -180,7 +180,7 @@ const BLOCK_A = {
 /* ── Block V-B · التعلم والاستقلالية والحركة ─────────────────────────────── */
 const BLOCK_B = {
   id: 'V-B', order: 2, icon: '🧩',
-  titleAr: 'التعلم، الاستقلالية، والحركة', titleEn: 'Learning, independence, and movement',
+  titleAr: 'التعلم، الاستقلالية، والحركة', titleEn: 'Learning and movement',
   blurbAr: 'بيتعلم إزاي، بيعتمد على نفسه قد إيه، وبيتحرك إزاي.', blurbEn: 'How he learns, how he manages his day, how he moves.',
   items: [
     q('VQ3',
@@ -417,7 +417,7 @@ const BLOCK_C = {
 /* ── Block V-D · عالمه واهتماماته ────────────────────────────────────────── */
 const BLOCK_D = {
   id: 'V-D', order: 4, icon: '🌟',
-  titleAr: 'عالمه واللي بيحبه', titleEn: 'His world and what he loves',
+  titleAr: 'عالمه واللي بيحبه', titleEn: 'His world and interests',
   blurbAr: 'الحاجات اللي بتنوّره واللي هنبني عليها الخطة.', blurbEn: 'What lights him up — the raw material of his plan.',
   items: [
     m('VQ10',
