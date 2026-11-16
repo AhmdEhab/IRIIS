@@ -487,7 +487,7 @@ const Chip = ({ active, onPress, children }: { active: boolean; onPress: () => v
 export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced = false }: CaregiverProfileScreenProps) {
   void demoSeed; // reserved: the bank is already deterministic, nothing to seed
 
-  const { childProfile } = useApp();
+  const { childProfile, saveCaregiverMirror } = useApp();
   /* The draft API is keyed on the CHILD ROW id (server ownership check);
      childProfile has no id field — IrisContext.childDbId is the real source. */
   const { childDbId } = useIris();
@@ -832,6 +832,27 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
        * and the honest cv2 limitation note. Only the fresh-completion path
        * lands here; edits and resumes never re-earn the summary. */
       summaryRef.current = { answers, scored };
+      /* P62c: mirror FIRST — even if every server call below fails (offline,
+         expired token, child row not yet bound during a cold boot), the next
+         boot hydration counts this family file as honestly finished and the
+         gate hands over to the child assessment instead of looping. */
+      try { saveCaregiverMirror({ responses: answers, scored }, draftChildId()); } catch { /* private mode */ }
+      /* P62c: the COMPLETE draft now carries the SCORED half too. Boot
+         hydration counts a COMPLETE draft with a scored profile as a
+         finished family file — so a family that submits and then closes the
+         tab BEFORE the big CTA is still, honestly, done. The old behaviour
+         (answers without scored) made the gate present the questionnaire
+         again and again — the loop users reported. */
+      try {
+        await fetch(`${API_URL}/caregiver/draft`, {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({
+            childId: draftChildId(), clientRef,
+            responses: { responses: answers, scored },
+            status: 'COMPLETE', bankVersion: vBank, updatedAt: new Date().toISOString(),
+          }),
+        });
+      } catch { /* the local mirror below still stands; login retries */ }
       setPhase('summary');
     } catch {
       setSubmitError(T('submitError'));

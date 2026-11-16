@@ -138,3 +138,23 @@ hydration بلا إعادة فرض. (الأرجل القديمة كان فيها
   بحث لمرحلة التحقق.
 - **إعادة تقييم الطفل**: لو اتعملت جلستان، النتيجة بتعرض آخر جلسة بس؛ دمج الجلسات لسه ما
   اتعملش.
+
+## P62c — Parent→child handoff repair (2026-11-16)
+Production DB inspection (Vercel Blob snapshot read) proved the failure classes:
+1. A submitted family file only became a formal record when the summary CTA was
+   clicked. Close/refresh before that CTA and the questionnaire restarts forever.
+2. The COMPLETE draft stored answers WITHOUT the scored profile, so boot hydration
+   could not honour it either.
+3. After a finished ladder run the client wrote an IN_PROGRESS draft ~1s LATER
+   (async setState race), leaving completed runs offering 'resume'.
+4. A cold-boot failure to bind the child row stranded every write (childId null)
+   with silent 400/404s — the account that reported this had ZERO server rows.
+Repairs: submit now (a) writes the local family mirror, (b) persists the COMPLETE
+draft with the scored envelope, and boot backfills the formal record under the
+deterministic clientRef `cg-<childId>` (server dedups); completed ladder records
+beat any draft (resume is refused and the draft is reconciled to COMPLETE);
+IN_PROGRESS draft writes are refused once the run is complete; the boot bind
+retries up to 3x for signed-in cold starts and honours the local mirror offline.
+Verified live by scripts/qa-handoff.mjs (11/11) plus the full battery: unit
+250/250, family 23/23, cv2 35/35, av2 28/28, auth 47/47, nav 27/27,
+account-switch PASS.

@@ -158,6 +158,7 @@ interface AppContextType {
       the parent finishes the questionnaire. Never used for ability levels. */
   caregiver: { responses: Record<string, any>; scored: Record<string, any> } | null;
   setCaregiver: (v: { responses: Record<string, any>; scored: Record<string, any> } | null, childId?: number | string | null) => void;
+  saveCaregiverMirror: (v: { responses: Record<string, any>; scored: Record<string, any> }, childId?: number | string | null) => void;
   /** Read the locally mirrored Family Profile for a given child row id. */
   caregiverForChild: (childId: number | string | null) => { responses: Record<string, any>; scored: Record<string, any> } | null;
   /** True only when the backend reported the registration OTP email sent. */
@@ -740,6 +741,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(FAMILY_KEY, JSON.stringify(map));
     } catch { /* private mode — in-memory state still serves this session */ }
   }, [readFamilyMap]);
+  /* P62c: mirror-only write used by the questionnaire's SUBMIT (not just the
+     CTA). If the formal record POST never lands — offline, expired token, an
+     unbound child row during a cold boot — the next boot's hydration falls
+     back to this mirror and the family file is honestly DONE. The in-memory
+     gate is deliberately left alone: the summary plate must stay on screen
+     until the family presses the big button. */
+  const saveCaregiverMirror = useCallback((v: { responses: Record<string, any>; scored: Record<string, any> }, childId?: number | string | null) => {
+    try {
+      const map = readFamilyMap();
+      const cid = String(childId ?? 'current');
+      map[cid] = v;
+      try { map[cid].owner = localStorage.getItem('iris_auth_email') || null; } catch { /* best-effort */ }
+      localStorage.setItem(FAMILY_KEY, JSON.stringify(map));
+    } catch { /* private mode */ }
+  }, [readFamilyMap]);
   const caregiverForChild = useCallback((childId: number | string | null) => {
     const map = readFamilyMap();
     const rec = map[String(childId ?? 'current')] ?? map['current'] ?? null;
@@ -941,6 +957,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshVerifyStatus,
         caregiver,
         setCaregiver,
+        saveCaregiverMirror,
         caregiverForChild,
         authError: authErrorCode,
         clearAuthError,
@@ -990,6 +1007,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshVerifyStatus,
         caregiver,
         setCaregiver,
+        saveCaregiverMirror,
         caregiverForChild,
         authErrorCode,
         clearAuthError,

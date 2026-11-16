@@ -150,6 +150,8 @@ function AppContent() {
   // ── Onboarding gate: no entry to Parent/Child Mode until the getting-to-know
   // ladder assessment (reference repo IRIS flow) is COMPLETE for this child.
   const [ladderChecked, setLadderChecked] = React.useState(false);
+  const [bindRetryTick, setBindRetryTick] = React.useState(0); // P62c cold-bind retry
+  const bindAttemptsRef = React.useRef(0);
   /* Research framework: the FAMILY FILE (caregiver questionnaire) gates the
      hub exactly the way the ladder did — see ASSESSMENT_FRAMEWORK §1. */
   const [caregiverChecked, setCaregiverChecked] = React.useState(false);
@@ -288,17 +290,40 @@ function AppContent() {
           setLadderChecked(true); // brand-new child: nothing server-side yet
         } else if (!cancelled) {
           setLadderChecked(true);
+          // P62c: a refused/failed bind still deserves another chance.
+          try {
+            const mirrored = caregiverForChild(null);
+            if (mirrored?.scored) { setCaregiver(mirrored, null); setCaregiverChecked(true); }
+          } catch { /* private mode */ }
+          bindAttemptsRef.current += 1;
+          if (readAuthToken() && bindAttemptsRef.current < 3) {
+            setTimeout(() => { if (!cancelled) setBindRetryTick((x) => x + 1); }, 2500);
+          }
         }
       } catch {
-        if (!cancelled) setLadderChecked(true);
-        // Offline or unauthenticated: the adaptive loop still runs in state,
-        // and IrisContext surfaces the unsaved condition to the parent.
+        // P62c: cold-boot /children failure used to strand the session with a
+        // null childDbId — every later write then failed 400/404 SILENTLY and
+        // the family file looped forever ('child assessment never appears').
+        // Now: honour any local mirror so an already-finished file still
+        // counts, say checked so the gate can act on the mirror, and retry
+        // the bind up to three times for the signed-in cold start.
+        if (!cancelled) {
+          try {
+            const mirrored = caregiverForChild(null);
+            if (mirrored?.scored) { setCaregiver(mirrored, null); setCaregiverChecked(true); }
+          } catch { /* private mode */ }
+          setLadderChecked(true);
+          bindAttemptsRef.current += 1;
+          if (readAuthToken() && bindAttemptsRef.current < 3) {
+            setTimeout(() => { if (!cancelled) setBindRetryTick((x) => x + 1); }, 2500);
+          }
+        }
       }
     })();
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [childProfile?.name, iris.childDbId]);
+  }, [childProfile?.name, iris.childDbId, bindRetryTick]);
 
   // Time tracking effect
   const startTimeRef = React.useRef<number | null>(null);
@@ -397,7 +422,21 @@ function AppContent() {
           const resp: any = draft.responses || {};
           const scored = resp.scored ?? (resp.responses ? resp : null);
           const responses = resp.responses ?? resp ?? {};
-          if (scored) { setCaregiver({ responses, scored }, childId); setCaregiverChecked(true); return true; }
+          if (scored) {
+            setCaregiver({ responses, scored }, childId); setCaregiverChecked(true);
+            /* P62c: a submitted file that never clicked the big CTA still
+               deserves its formal record. Backfill it here under the SAME
+               deterministic clientRef the CTA path uses — the server's
+               clientRef idempotency collapses any double write. */
+            try {
+              void fetch(`${API_URL}/assessments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(readAuthToken() ? { Authorization: `Bearer ${readAuthToken()}` } : {}) },
+                body: JSON.stringify({ childId, assessment_kind: 'CAREGIVER', clientRef: `cg-${childId}`, item_results: { responses, scored } }),
+              });
+            } catch { /* best effort — the draft itself already counts */ }
+            return true;
+          }
         }
       }
     } catch { /* offline — the local mirror below still counts */ }
@@ -413,7 +452,7 @@ function AppContent() {
     setCaregiverChecked(true);
     const id = iris.childDbId;
     if (!id || !readAuthToken()) return; // demo/offline: local mirror is enough for now
-    const clientRef = `cg-${id}-${Date.now()}`;
+    const clientRef = `cg-${id}`; // P62c deterministic: server idempotency dedups CTA + boot backfill
     try {
       await fetch(`${API_URL}/assessments`, {
         method: 'POST',

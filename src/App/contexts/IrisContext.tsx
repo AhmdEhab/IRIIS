@@ -332,6 +332,13 @@ function useIrisState() {
     override: { state?: any; clientRef?: string | null } | null = null,
   ) => {
     if (!childDbId) return; // no bound child row — local net carries the run
+    /* P62c: once a run is COMPLETE on the server, no late autosave may
+       resurrect it as IN_PROGRESS — setState is async, and the post-
+       consume effect used to land an empty IN_PROGRESS write ~1s after
+       the terminal COMPLETE (observed in production: completed runs still
+       offering 'resume'). Only explicit COMPLETE/INVALID transitions may
+       follow a finished ladder. */
+    if (status === 'IN_PROGRESS' && ladder) return;
     const d = ladderDraftRef.current ?? {};
     const clientRef = override?.clientRef !== undefined ? override.clientRef : (d.clientRef ?? null);
     if (!clientRef && !d.probeState && !d.cal?.calResponses?.length) return; // nothing to save yet
@@ -349,7 +356,7 @@ function useIrisState() {
         body: JSON.stringify({ childId: childDbId, clientRef, status, bankVersion: 'av2', state, updatedAt: state.updatedAt }),
       });
     } catch { /* offline: localStorage is already written; resume falls back to it */ }
-  }, [childDbId, buildLadderDraftState]);
+  }, [childDbId, buildLadderDraftState, ladder]);
   const postLadderDraftRef = useRef(postLadderDraft);
   postLadderDraftRef.current = postLadderDraft;
 
@@ -394,6 +401,23 @@ function useIrisState() {
     const local = readLocalLadderDraft();
     const lStamp = localDraftStamp(local);
     if (!childDbId) return null;
+    if (ladder) {
+      /* P62c: a COMPLETED ladder record is the end of the story — the draft
+         is history, not a resume point. Production showed exactly this bug:
+         the final visit's queued IN_PROGRESS write landed one second AFTER
+         the terminal COMPLETE, so finished runs kept offering 'resume' and
+         users replayed an assessment the server already had. Reconcile
+         server-side (mark the draft COMPLETE) and drop every local half. */
+      try {
+        void fetch(`${API_URL}/ladder/draft`, {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ childId: childDbId, clientRef: local?.clientRef ?? null, status: 'COMPLETE', bankVersion: 'av2', state: { probeState: null, currentVisit: null, updatedAt: new Date().toISOString() } }),
+        });
+      } catch { /* best effort */ }
+      try { localStorage.removeItem(LADDER_DRAFT_KEY); } catch { /* private mode */ }
+      setProbeState(null); setProbeCalibration(null); setCurrentVisit(null);
+      return null;
+    }
     try {
       const res = await fetch(
         `${API_URL}/ladder/draft?childId=${encodeURIComponent(String(childDbId))}`,
@@ -424,7 +448,7 @@ function useIrisState() {
       if (cal) setLadderCalDraft(cal);
       return { cal, resumed: true };
     } catch { return null; } // offline / endpoint absent: the local copy decides
-  }, [childDbId]);
+  }, [childDbId, ladder]);
 
   /* ── av2 run accumulators — the actions the assessment screen calls ───── */
   /** One observation per presented item (spec §1). Stored sanitized. */
@@ -924,11 +948,16 @@ function useIrisState() {
     setCurrentVisit(visit);
     if (!visit) setProbeCalibration(null);
 
-    /* §5: a visit boundary is a FORCED flush — no debounce waiting. */
-    writeLadderDraft();
-    void postLadderDraft('IN_PROGRESS');
-
-    if (visit) return { visit, finished: false, assessment: null };
+    if (visit) {
+      /* §5: a visit boundary is a FORCED flush — no debounce waiting. */
+      writeLadderDraft();
+      void postLadderDraft('IN_PROGRESS');
+      return { visit, finished: false, assessment: null };
+    }
+    /* P62c: with no next visit this is the session END — an IN_PROGRESS
+       write here would race the terminal COMPLETE and the record POST, and
+       production proved it LOSES that race by landing last (zombie drafts
+       on completed runs). The finalise block owns the ending now. */
 
     /* The final observation log: item rows + this last visit + one
        domain-level no_opportunity row per closed track (§3). */
