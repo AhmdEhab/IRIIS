@@ -120,9 +120,8 @@ export const PHASE5_TEMPLATES = [
         and it is absent from its strand's served list — kept registered only
         so historical item records can still resolve their template_id. */
     id: 'TPL-AR_BLEND_PICTURE_LED', strands: ['LIT.PHON_BLEND'],
-    interaction: 'Picture-led variant of blending — the declared partner',
+    interaction: 'Picture-led variant of blending — P63 RETIRED, unpaired both ways',
     modality: 'VISUAL_LED', verbal_load: 'MEDIUM', wm_load: 'MEDIUM',
-    modality_pair_id: 'TPL-AR_BLEND',
     labelAr: 'الصورة دي أصواتها إيه؟', labelEn: 'What sounds make this picture?',
     shows_letters: true, picture_supported: true,
   }),
