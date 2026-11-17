@@ -53,6 +53,15 @@ interface AudioContextType {
   playSound: (type: SoundName) => void;
   speak: (text: string, language?: Lang) => void;
   /**
+   * P71: speak a list of short parts back-to-back, one clip per part. Used by
+   * screens whose runtime narration COMPOSES a sentence from collected pieces
+   * (e.g. a skill title then a fixed phrase). Each part is looked up in the
+   * shared file-clip manifest individually, so the whole chain stays in the
+   * same recorded voice. A part with no clip falls back to the browser voice
+   * for that fragment only, then the chain continues.
+   */
+  speakParts: (parts: string[], language?: Lang) => void;
+  /**
    * P68b: honest answer to "will THIS text actually be audible?". True when
    * audio is on and either a shipped clip covers it or the browser reports a
    * usable voice for the language. Callers use it to offer the parent-read
@@ -541,6 +550,50 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     el.play().catch(() => { if (seq === speakSeqRef.current && isEnabledRef.current) browserSpeak(clean, language); });
   };
 
+  const speakParts = useCallback(
+    (parts: string[], language: Lang = 'ar') => {
+      const list = parts.filter((x) => x && String(x).trim());
+      if (!list.length) return;
+      const seq = ++speakSeqRef.current;
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      stopNarrationEl();
+      if (audioRef.current) audioRef.current.pause();
+      if (!isEnabled) return;
+      const playNext = (i: number) => {
+        if (seq !== speakSeqRef.current) return;
+        if (i >= list.length) { setIsSpeaking(false); setCaption(''); duckMusic(false); return; }
+        const clean = cleanSpeechText(list[i], language);
+        if (!clean) { playNext(i + 1); return; }
+        setCaption(list[i]);
+        const clip = fileClipFor(clean);
+        if (clip) {
+          const el = getNarrationEl();
+          el.src = clip;
+          el.volume = Math.max(0, Math.min(1, volumeRef.current));
+          el.onplay = () => { setIsSpeaking(true); duckMusic(true); };
+          el.onended = () => { if (seq === speakSeqRef.current) playNext(i + 1); };
+          el.onerror = () => { if (seq === speakSeqRef.current) playNext(i + 1); };
+          el.play().catch(() => { if (seq === speakSeqRef.current) playNext(i + 1); });
+          return;
+        }
+        if (!window.speechSynthesis) { playNext(i + 1); return; }
+        const u = new SpeechSynthesisUtterance(clean);
+        const v = pickVoice(language);
+        if (v) u.voice = v;
+        u.lang = v?.lang || (language === 'ar' ? 'ar-EG' : 'en-GB');
+        u.rate = language === 'ar' ? 0.82 : 0.86;
+        u.pitch = 1.0;
+        u.volume = Math.max(0, Math.min(1, volumeRef.current));
+        u.onstart = () => { setIsSpeaking(true); duckMusic(true); };
+        u.onend = () => { if (seq === speakSeqRef.current) playNext(i + 1); };
+        u.onerror = () => { if (seq === speakSeqRef.current) playNext(i + 1); };
+        utteranceRef.current = u;
+        window.speechSynthesis.speak(u);
+      };
+      playNext(0);
+    },
+    [isEnabled, getNarrationEl, stopNarrationEl, pickVoice, duckMusic]
+  );
   const [voicesTick, setVoicesTick] = useState(0);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -780,6 +833,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         setVolume,
         playSound,
         speak,
+        speakParts,
         canSpeak,
         stopSpeaking,
         playAudio,

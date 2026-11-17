@@ -41,7 +41,17 @@ try {
 // Local dev with a pulled token must NOT sync: it would push throwaway QA
 // rows into the production snapshot. Only Vercel runtime (or an explicit
 // BLOB_SYNC=1) activates the durable layer.
-const active = !!blob && (process.env.VERCEL === '1' || process.env.BLOB_SYNC === '1');
+// P71b HARD GUARD: a NON-Vercel process may never bind the DEFAULT
+// production key, even with BLOB_SYNC=1 — that is how inherited QA-shell
+// env once leaked test rows into prod and wiped QA mid-suite. Local test
+// instances must set an explicit throwaway BLOB_SNAPSHOT_KEY (see
+// scripts/qa-cross-instance.mjs) or blob sync stays off entirely.
+let active = !!blob && (process.env.VERCEL === '1' || process.env.BLOB_SYNC === '1');
+if (active && process.env.VERCEL !== '1' && !process.env.BLOB_SNAPSHOT_KEY) {
+  console.error('[blobsync] GUARD: refusing DEFAULT production key off-Vercel; sync DISABLED (set BLOB_SNAPSHOT_KEY for tests)');
+  active = false;
+  blob = null;
+}
 console.log(`[blobsync] module loaded: sdk=${!!blob} active=${active} VERCEL=${process.env.VERCEL || '-'} token=${process.env.BLOB_READ_WRITE_TOKEN ? 'set' : 'unset'}`);
 let dbPath = null;
 let lastHash = null;

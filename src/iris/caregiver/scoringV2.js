@@ -111,11 +111,6 @@ const EMIT = {
     school: { X2: A('school_full') },
     school_therapy: { X2: A('school_part') },
   },
-  VPREF: {
-    text: { X5: A('text') },
-    audio: { X5: A('audio') },
-    both: { X5: A('both') },
-  },
 };
 
 /* VQ8 chips → legacy multi responses. Codes verified against cv1's option
@@ -238,10 +233,10 @@ export function scoreCaregiverV2({ responses = {}, meta = {} } = {}) {
   const scored = scoreCaregiverProfile({ responses: legacy, meta: { ...meta, completed: true } });
 
   /* re-stamp as cv2 — honest completeness measured on the cv2 flow itself */
-  const v2Ids = ['VQ1', 'VQ1v', 'VQ2', 'VQ6s', 'VQ3', 'VQ3f', 'VQ4', 'VQ5', 'VQ5f', 'VQ6', 'VQ6m', 'VQ13', 'VQ7', 'VQ8', 'VQ9', 'VQ9f', 'VQ10', 'VQ10b', 'VQ11', 'VQ12', 'VPREF'];
+  const v2Ids = ['VQ1', 'VQ1v', 'VQ2', 'VQ6s', 'VQ3', 'VQ3f', 'VQ4', 'VQ5', 'VQ5f', 'VQ6', 'VQ6m', 'VQ13', 'VQ7', 'VQ8', 'VQ9', 'VQ9f', 'VQ10', 'VQ10b', 'VQ11', 'VQ12'];
   const probeIds = ['VQ1v', 'VQ6s', 'VQ3f', 'VQ5f', 'VQ5h', 'VQ6m', 'VQ9f']; /* never counted against core totals */
   const months = typeof meta.childAgeMonths === 'number' ? meta.childAgeMonths : null;
-  const totalCore = 13 + (months !== null && months >= 60 ? 1 : 0) + 1; /* 13 always-on + letters if 5y + VPREF */
+  const totalCore = 13 + (months !== null && months >= 60 ? 1 : 0); /* P70b: VPREF left the questionnaire — interface preference now lives ONLY in settings/localStorage, never in the child's file */
   const answered = v2Ids.filter((id) => !probeIds.includes(id)).filter((id) => {
     const r = responses[id];
     if (!r) return false;

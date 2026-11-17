@@ -6,7 +6,7 @@
  * single / multi / opentext — NO gates, NO triplets: opportunity became a
  * visible option inside every scale, and the support triplet collapsed into
  * one consolidated follow-up (VQ5f + VQ5h). 13 core questions + VQ13 (age ≥5)
- * + VPREF (an app preference, not child information) + rare conditional
+ * + rare conditional
  * probes. Arabic is Egyptian-conversational; English mirrors it. No diagnosis
  * words, no scores, no levels (§0 banned register of cv1 still applies).
  *
@@ -481,22 +481,10 @@ const BLOCK_D = {
       { ar: 'المكان', en: 'Setting' },
       { feeds: 'plan' },
     ),
-    q('VPREF',
-      'سؤال أخير ملوش علاقة بيه: IRIS يعرض عليك إزاي؟',
-      'One last thing about the app, not about him: how should IRIS show things?',
-      [
-        { v: 'text', label: 'كلام مكتوب بس' },
-        { v: 'audio', label: 'صوت مسموع بس' },
-        { v: 'both', label: 'الاتنين مع بعض' },
-      ],
-      [
-        { v: 'text', label: 'Written words only' },
-        { v: 'audio', label: 'Spoken audio only' },
-        { v: 'both', label: 'Both together' },
-      ],
-      { ar: 'تفضيل العرض', en: 'Display preference' },
-      { feeds: 'prefs' },
-    ),
+    /* P70b: the old VPREF question moved OUT of the family file for good.
+       Interface preference is not child information — it lives in
+       localStorage iris_display_pref, defaults to 'both', and is editable
+       any time in Parent Settings. Nothing here feeds or scores it. */
   ],
 };
 

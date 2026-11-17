@@ -62,7 +62,7 @@ interface LifeSkill {
 
 export function LifeSkillsScreen() {
     const { navigateTo, incrementProgress, activeRules } = useApp();
-    const { speak, playSound, stopSpeaking } = useAudio();
+    const { speak, speakParts, playSound, stopSpeaking } = useAudio();
     const { t, language, dir } = useLanguage();
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -151,7 +151,7 @@ export function LifeSkillsScreen() {
             // Fragile X: Show Overview (Timeline) first
             setJourneyStep(-1);
             const title = language === 'ar' ? skill.titleAr : skill.titleEn;
-            speak(`${title}. ${language === 'ar' ? 'لنرَ الخطوات معاً' : 'Let\'s see the steps together.'}`, language);
+            speakParts(language === 'ar' ? [title, 'لنرَ الخطوات معاً'] : [title, "Let's see the steps together."], language);
         } else if (style === 'object-first') {
             // Down Syndrome: Focus on Step 1 immediately
             setJourneyStep(0);
@@ -161,7 +161,7 @@ export function LifeSkillsScreen() {
             // Williams / Default: Narrative Intro then steps
             setJourneyStep(-1);
             const title = language === 'ar' ? skill.titleAr : skill.titleEn;
-            speak(`${title}.`, language);
+            speak(title, language);
         }
     };
 
@@ -174,10 +174,7 @@ export function LifeSkillsScreen() {
             if (journeyStep === -1) {
                 // Play all steps summary
                 const title = language === 'ar' ? selectedSkill.titleAr : selectedSkill.titleEn;
-                const stepsText = selectedSkill.steps.map((step, i) =>
-                    `${language === 'ar' ? 'الخطوة' : 'Step'} ${i + 1}: ${language === 'ar' ? step.textAr : step.textEn}`
-                ).join('. ');
-                speak(`${title}. ${stepsText}.`, language);
+                speakParts([title, ...selectedSkill.steps.map((st) => language === 'ar' ? st.textAr : st.textEn)], language);
             } else {
                 // Play current step only
                 const step = selectedSkill.steps[journeyStep];

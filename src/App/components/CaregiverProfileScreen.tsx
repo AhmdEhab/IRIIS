@@ -525,7 +525,9 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [ownText, setOwnText] = useState<Record<string, string>>({}); // free-text 'add own' buffer per item
   const [restored, setRestored] = useState(false);
-  const startAtRef = useRef<number | null>(null);
+  // P71b: anchor at mount so durationSeconds is always a number; the
+  // per-answer set below still documents the first interaction.
+  const startAtRef = useRef<number | null>(Date.now());
   /* P2: the scored object is kept in a REF — the summary screen reads it,
      and only the CTA hands (answers, scored) to onComplete. */
   const summaryRef = useRef<{ answers: Answers; scored: object } | null>(null);
