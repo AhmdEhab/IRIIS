@@ -223,7 +223,14 @@ function scheduleFlush() {
 function middleware(req, res, next) {
   if (!active) return next();
   const mutating = req.method !== 'GET' && String(req.path || '').startsWith('/api');
-  flushPending().then(ensureFresh).finally(() => {
+  /* P71b ORDERING FIX. The old order (flush → fresh) let an instance whose
+     local file predates an admin data-clean (or another instance's newer
+     writes) RE-UPLOAD its stale bytes before it ever looked at the remote,
+     clobbering the cleaned snapshot on every write it served. Now the
+     remote is installed FIRST; a same-request pending flush is then either
+     a no-op (disk equals remote, hashes match) or a genuinely newer
+     local write, and the handler mutates on top of fresh bytes. */
+  ensureFresh().then(flushPending).finally(() => {
     if (mutating) {
         res.on('finish', () => {
     if (req.method !== 'GET' && res.statusCode < 400) {
