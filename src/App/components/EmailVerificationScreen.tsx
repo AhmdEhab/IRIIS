@@ -286,6 +286,12 @@ export function EmailVerificationScreen() {
         <div
           className="ir-verify-code"
           role="group"
+          /* P66: OTP digits are Latin and ALWAYS read left→right — including
+             in the Arabic UI. Under the card's dir=rtl the flex row painted
+             digit 1 on the right, so typing marched backwards and the code
+             looked reversed (user report). Pin the group to ltr; the labels,
+             buttons and prose around it stay rtl. */
+          dir="ltr"
           aria-label={ar ? 'كود التحقق من ستة أرقام' : 'Six digit verification code'}
         >
           {digits.map((d, i) => (

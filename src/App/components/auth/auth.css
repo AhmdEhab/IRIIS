@@ -688,7 +688,9 @@
   font-weight: 700; font-size: 15px; letter-spacing: 2px;
 }
 .ir-verify-devcode:hover { background: var(--brand-blue-wash, #e7f0fa); }
-.ir-verify-code { display: flex; justify-content: center; gap: 8px; }
+/* P66: OTP boxes are digits — visual order must be left→right even
+   inside the rtl card (JSX also pins dir=ltr; this is the belt). */
+.ir-verify-code { display: flex; justify-content: center; gap: 8px; direction: ltr; }
 .ir-verify-box {
   width: 46px; height: 56px; border-radius: 14px; text-align: center;
   font-size: 24px; font-weight: 800; color: var(--iris-ink, #2a2118);
