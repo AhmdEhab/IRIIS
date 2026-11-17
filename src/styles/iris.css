@@ -623,9 +623,14 @@ span a[href] {
    performance adapter) must grant the SAME floor without an OS setting:
    animation and transition become near-instant, information is untouched.
    ------------------------------------------------------------------------- */
-html[data-motion='low'] *,
-html[data-motion='low'] *::before,
-html[data-motion='low'] *::after {
+/* P66: scope to the APP only — `body.lp-body` (set by LandingPage) opts the
+   landing page out: calm mode is a child-screen accessibility floor, while
+   the landing's own motion already honours the OS prefers-reduced-motion
+   media contract. Without this, a REDUCED_ANIMATION accommodation from one
+   child's profile silently froze the marketing hero site-wide. */
+html[data-motion='low'] body:not(.lp-body) *,
+html[data-motion='low'] body:not(.lp-body) *::before,
+html[data-motion='low'] body:not(.lp-body) *::after {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;

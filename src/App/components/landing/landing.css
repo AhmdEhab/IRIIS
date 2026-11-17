@@ -155,7 +155,11 @@
 .lp-wave--hero { background: var(--background); margin-block-start: -1px; }
 
 /* Floating micro-motion, only when the OS allows it */
+@keyframes lpHeaderIn { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: no-preference) {
+  /* P66: the bar settles itself on load; the animation is one-shot, so the
+     sticky resting state (transform: none) never conflicts with pinning. */
+  .lp-header { animation: lpHeaderIn 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
   .lp-float { animation: lpFloat 5.6s ease-in-out infinite; }
   .lp-float--slow { animation: lpFloat 7.4s ease-in-out -2.2s infinite; }
   .lp-float--fast { animation: lpFloat 4.4s ease-in-out -1.1s infinite; }

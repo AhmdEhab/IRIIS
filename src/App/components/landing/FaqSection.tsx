@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { Reveal } from './LandingDecor';
 
 /**
  * FaqSection — six honest answers built from what the product actually does.
@@ -64,7 +65,7 @@ export function FaqSection() {
       {QUESTIONS.map((item, index) => {
         const isOpen = open === index;
         return (
-          <div className={`lp-faq-item${isOpen ? ' lp-faq-item--open' : ''}`} key={item.q.en}>
+          <Reveal as="div" delay={index * 0.06} y={18} className={`lp-faq-item${isOpen ? ' lp-faq-item--open' : ''}`} key={item.q.en}>
             <button
               type="button"
               aria-expanded={isOpen}
@@ -87,7 +88,7 @@ export function FaqSection() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </Reveal>
         );
       })}
     </div>

@@ -722,6 +722,21 @@ function AppContent() {
           live inside TopBar via <ChromeActions/>, in the layout rather than
           on top of it, so they cannot collide with anything. */}
 
+      {currentScreen === 'marketing' ? (
+        /* P66: the landing page renders in a STATIC shell. The page
+           transition's motion wrapper leaves a non-identity transform on
+           its subtree for a moment (and can rest mid-spring under some
+           motion settings), which silently breaks `position: sticky`
+           descendants — the header appeared with a few pixels of slack.
+           A marketing page has nothing to crossfade anyway. */
+        <div className="w-full relative z-10">
+          <React.Suspense fallback={<RouteFallback />}>
+            <RouteBoundary key={`rb-${currentScreen}`}>
+              {renderScreen()}
+            </RouteBoundary>
+          </React.Suspense>
+        </div>
+      ) : (
       <AnimatePresence mode="wait">
         <motion.div
           key={currentScreen}
@@ -741,6 +756,7 @@ function AppContent() {
           </React.Suspense>
         </motion.div>
       </AnimatePresence>
+      )}
     </div>
     </MotionConfig>
   );

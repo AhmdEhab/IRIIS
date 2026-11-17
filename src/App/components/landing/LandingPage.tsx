@@ -22,6 +22,16 @@ export function LandingPage({ onLogin, onRegister, onAppMode, isAuthenticated }:
   onAppMode: () => void;
   isAuthenticated: boolean;
 }) {
+  /* P66: the in-app 'هادئ/calm' motion floor must never reach the landing
+     page — it is an accessibility floor for the CHILD screens, and the
+     marketing hero's orbit/decor already honour the OS-level
+     prefers-reduced-motion contract on their own. The body flag lets the
+     global CSS scope the calm override to the app only. */
+  React.useEffect(() => {
+    document.body.classList.add('lp-body');
+    return () => document.body.classList.remove('lp-body');
+  }, []);
+
   const { language } = useLanguage();
   const ar = language === 'ar';
   const reduced = useReducedMotion();
