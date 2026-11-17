@@ -34,3 +34,7 @@ Thumbs.db
 .env*
 [SENSITIVE]
 public/audio/tts/*_transcription_*
+
+# P72: never let stray QA/prod sqlite snapshots sit untracked at the repo root
+/*.sqlite
+/*.sqlite.*
