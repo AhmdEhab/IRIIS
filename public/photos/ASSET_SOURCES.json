@@ -1,17 +1,21 @@
 {
   "emo-calm": {
-    "title": "File:A young child is focused on reading a worn yellow book while sitting in a comfortable environment.jpg",
-    "page": "https://commons.wikimedia.org/wiki/File%3AA_young_child_is_focused_on_reading_a_worn_yellow_book_while_sitting_in_a_comfortable_environment.jpg",
-    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/A_young_child_is_focused_on_reading_a_worn_yellow_book_while_sitting_in_a_comfortable_environment.jpg/1280px-A_young_child_is_focused_on_reading_a_worn_yellow_book_while_sitting_in_a_comfortable_environment.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "license": "CC BY 2.0",
-    "artist": "Shixart1985"
+    "title": "File:Nina leyendo - Feria del Libro 2015 - Madrid 01.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:Nina_leyendo_-_Feria_del_Libro_2015_-_Madrid_01.jpg",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Nina_leyendo_-_Feria_del_Libro_2015_-_Madrid_01.jpg/3840px-Nina_leyendo_-_Feria_del_Libro_2015_-_Madrid_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "license": "CC BY-SA 4.0",
+    "artist": "Javier Perez Montes",
+    "source": "hand-picked",
+    "note": "cropped square around the child face for the lesson tile"
   },
   "emo-excited": {
-    "title": "File:Ghanaian kid (skipping rope) 01.jpg",
-    "page": "https://commons.wikimedia.org/wiki/File%3AGhanaian_kid_(skipping_rope)_01.jpg",
-    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Ghanaian_kid_%28skipping_rope%29_01.jpg/1280px-Ghanaian_kid_%28skipping_rope%29_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "title": "File:Joy of childhood.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:Joy_of_childhood.jpg",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Joy_of_childhood.jpg/3840px-Joy_of_childhood.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "license": "CC BY-SA 4.0",
-    "artist": "Pambelle12"
+    "artist": "Muhammad Amdad Hossain",
+    "source": "hand-picked",
+    "note": "cropped to the laughing child for the lesson tile"
   },
   "fish": {
     "title": "File:Goldfish in Fish Tank.jpg",
@@ -95,7 +99,8 @@
     "page": "https://commons.wikimedia.org/wiki/File%3AGolden_Retriever_Puppy_Looking_Over_Gate.jpg",
     "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/74/Golden_Retriever_Puppy_Looking_Over_Gate.jpg/1280px-Golden_Retriever_Puppy_Looking_Over_Gate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "license": "CC BY-SA 4.0",
-    "artist": "Ceyockey"
+    "artist": "Ceyockey",
+    "note": "recomposed square around the puppy face"
   },
   "falcon": {
     "title": "File:African peregrine falcon (Falco peregrinus minor) Arusha.jpg",
@@ -123,7 +128,8 @@
     "page": "https://commons.wikimedia.org/wiki/File:Child_flying_a_kite_on_the_beach_at_sunset.jpg",
     "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Child_flying_a_kite_on_the_beach_at_sunset.jpg/1280px-Child_flying_a_kite_on_the_beach_at_sunset.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "license": "CC BY 4.0",
-    "artist": "M&amp;A"
+    "artist": "M&amp;A",
+    "note": "recomposed square around the child flying the kite"
   },
   "plane": {
     "title": "File:Commercial airliner flying over Dhaka.jpg",
@@ -147,11 +153,13 @@
     "artist": "Vicki Nunn"
   },
   "envelope": {
-    "title": "File:An envelope of the letter from President Theodore Roosevelt, 1909.jpg",
-    "page": "https://commons.wikimedia.org/wiki/File:An_envelope_of_the_letter_from_President_Theodore_Roosevelt,_1909.jpg",
-    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/An_envelope_of_the_letter_from_President_Theodore_Roosevelt%2C_1909.jpg/1280px-An_envelope_of_the_letter_from_President_Theodore_Roosevelt%2C_1909.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "title": "File:BPost stamp-free envelope (2019).jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:BPost_stamp-free_envelope_(2019).jpg",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/BPost_stamp-free_envelope_%282019%29.jpg/3840px-BPost_stamp-free_envelope_%282019%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "license": "CC BY-SA 4.0",
-    "artist": "This picture has been taken by Oleg Yunakov. Contact e-mail: yunakovgmail.com. Image can be used in accordance with the "
+    "artist": "Donald Trung Quoc Don (Ch\u1eef H\u00e1n: \u5fb5\u570b\u55ae) - Wikimedia Commons.(Want to use this image?)",
+    "source": "hand-picked",
+    "note": "clean modern envelope centred for the tile"
   },
   "xylophone": {
     "title": "File:Hanging Wood Xylophone.jpg",
@@ -257,12 +265,13 @@
     "source": "search-replay"
   },
   "color-yellow": {
-    "title": "File:Sunflower Field in Namisindwa – Blooms Beneath the Hills.jpg",
-    "page": "https://commons.wikimedia.org/wiki/File:Sunflower_Field_in_Namisindwa_–_Blooms_Beneath_the_Hills.jpg",
-    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Sunflower_Field_in_Namisindwa_%E2%80%93_Blooms_Beneath_the_Hills.jpg/1280px-Sunflower_Field_in_Namisindwa_%E2%80%93_Blooms_Beneath_the_Hills.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "license": "CC BY-SA 4.0",
-    "artist": "Ssemmanda will",
-    "source": "search-replay"
+    "title": "File:Sunflower head 2026 G1.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:Sunflower_head_2026_G1.jpg",
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/Sunflower_head_2026_G1.jpg/3840px-Sunflower_head_2026_G1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "license": "CC BY 4.0",
+    "artist": "George Chernilevsky",
+    "source": "hand-picked",
+    "note": "vibrant sunflower head centred for the colour tile"
   },
   "corn": {
     "title": "File:Pregermination maize 2014 05 15 10 38 33 7932.jpg",
@@ -349,7 +358,7 @@
     "page": "https://commons.wikimedia.org/wiki/File:Cat_Iran.jpg",
     "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/Cat_Iran.jpg/1280px-Cat_Iran.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "license": "CC BY-SA 3.0",
-    "artist": "درفش کاویانی",
+    "artist": "\u062f\u0631\u0641\u0634 \u06a9\u0627\u0648\u06cc\u0627\u0646\u06cc",
     "source": "search-replay-refreshed"
   },
   "color-orange": {
@@ -411,7 +420,7 @@
     "page": "https://commons.wikimedia.org/wiki/File:Baby_Goat_in_Margarita_Island,_Venezuela.jpg",
     "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Baby_Goat_in_Margarita_Island%2C_Venezuela.jpg/1280px-Baby_Goat_in_Margarita_Island%2C_Venezuela.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "license": "CC BY-SA 3.0",
-    "artist": "Béria Lima de Rodríguez",
+    "artist": "B\u00e9ria Lima de Rodr\u00edguez",
     "source": "search-replay"
   },
   "heart": {
@@ -442,7 +451,7 @@
     "page": "https://commons.wikimedia.org/wiki/File:Lemon.jpg",
     "url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Lemon.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
     "license": "CC BY-SA 2.5",
-    "artist": "André Karwath aka Aka",
+    "artist": "Andr\u00e9 Karwath aka Aka",
     "source": "search-replay"
   },
   "life-brushing-teeth": {
@@ -613,8 +622,8 @@
     "source": "search-replay"
   },
   "sun": {
-    "title": "File:Solar Orbiter’s widest high-res view of the Sun ESA508430.jpg",
-    "page": "https://commons.wikimedia.org/wiki/File:Solar_Orbiter’s_widest_high-res_view_of_the_Sun_ESA508430.jpg",
+    "title": "File:Solar Orbiter\u2019s widest high-res view of the Sun ESA508430.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:Solar_Orbiter\u2019s_widest_high-res_view_of_the_Sun_ESA508430.jpg",
     "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Solar_Orbiter%E2%80%99s_widest_high-res_view_of_the_Sun_ESA508430.jpg/1280px-Solar_Orbiter%E2%80%99s_widest_high-res_view_of_the_Sun_ESA508430.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "license": "CC BY-SA 3.0 igo",
     "artist": "European Space Agency",
@@ -629,11 +638,11 @@
     "source": "search-replay-refreshed"
   },
   "train": {
-    "title": "File:Steam locomotive gear (JŽ 06-018; Slovenia).jpg",
-    "page": "https://commons.wikimedia.org/wiki/File:Steam_locomotive_gear_(JŽ_06-018;_Slovenia).jpg",
+    "title": "File:Steam locomotive gear (J\u017d 06-018; Slovenia).jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:Steam_locomotive_gear_(J\u017d_06-018;_Slovenia).jpg",
     "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Steam_locomotive_gear_%28J%C5%BD_06-018%3B_Slovenia%29.jpg/1280px-Steam_locomotive_gear_%28J%C5%BD_06-018%3B_Slovenia%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "license": "CC BY-SA 4.0",
-    "artist": "Petar Milošević",
+    "artist": "Petar Milo\u0161evi\u0107",
     "source": "search-replay"
   },
   "truck": {
