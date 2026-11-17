@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { RealPhoto } from './ui/RealPhoto';
 import { RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -32,7 +33,7 @@ export function AnimalsScreen() {
             emoji: '🦁',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/lion.jpg'
         },
         {
             id: 'elephant',
@@ -41,7 +42,7 @@ export function AnimalsScreen() {
             emoji: '🐘',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/elephant.jpg'
         },
         {
             id: 'giraffe',
@@ -50,7 +51,7 @@ export function AnimalsScreen() {
             emoji: '🦒',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1547721064-36202634a13b?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/giraffe.jpg'
         },
         {
             id: 'monkey',
@@ -59,7 +60,7 @@ export function AnimalsScreen() {
             emoji: '🐒',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/monkey.jpg'
         },
         {
             id: 'cat',
@@ -68,7 +69,7 @@ export function AnimalsScreen() {
             emoji: '🐱',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/cat.jpg'
         },
         {
             id: 'dog',
@@ -77,7 +78,7 @@ export function AnimalsScreen() {
             emoji: '🐶',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/dog.jpg'
         },
         {
             id: 'panda',
@@ -86,7 +87,7 @@ export function AnimalsScreen() {
             emoji: '🐼',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1564349683136-77e08bef1ef1?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/panda.jpg'
         },
         {
             id: 'tiger',
@@ -95,7 +96,7 @@ export function AnimalsScreen() {
             emoji: '🐯',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1500463959177-e0869687df26?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/tiger.jpg'
         },
         {
             id: 'zebra',
@@ -104,7 +105,7 @@ export function AnimalsScreen() {
             emoji: '🦓',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1526081347589-7fa3cb41b4b2?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/zebra.jpg'
         },
         {
             id: 'rabbit',
@@ -113,7 +114,7 @@ export function AnimalsScreen() {
             emoji: '🐰',
             color: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/rabbit.jpg'
         }
     ];
 
@@ -172,9 +173,13 @@ export function AnimalsScreen() {
                                         onClick={() => handleAnimalSelect(animal)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : animal.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-8xl mb-4 group-hover:scale-110 transition-transform" aria-hidden="true">
-                                            {animal.emoji}
-                                        </div>
+                                        <RealPhoto
+                                            src={animal.contextImage}
+                                            alt={language === 'ar' ? animal.nameAr : animal.nameEn}
+                                            fallback={animal.emoji}
+                                            className="h-28 w-28 md:h-32 md:w-32 rounded-brand-xl"
+                                            wrapperClassName="group-hover:scale-110 transition-transform"
+                                        />
                                         <h3 className="text-2xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? animal.nameAr : animal.nameEn}
                                         </h3>

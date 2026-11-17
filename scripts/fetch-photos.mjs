@@ -32,11 +32,68 @@ const QUERIES = {
   eyes: ['Human eye close-up', 'eye'],
   ears: ['Human ear close-up', 'ear'],
   nose: ['Nose human', 'nose'],
-  mouth: ['lips smile closeup', 'lips|Lips|Mouth'],
+  mouth: ['Smiling child face close-up', 'smil|child|mouth|face'],
   hands: ['Human hands', 'hand'],
   feet: ['Human feet', 'foot'],
   heart: ['Heart shaped object symbol red photo', 'heart|Herz'],
   brain: ['Brain model anatomy education', 'brain'],
+
+  // ── P73: everything the child sees becomes a genuine photograph ──────────
+  duck: ['Domestic duck Anas platyrhynchos', 'duck|anas'],
+  fox: ['Red fox sitting vulpes', 'fox|vulpes'],
+  camel: ['Dromedary camel standing', 'camel'],
+  horse: ['Horse standing portrait', 'horse|equus'],
+  sheep: ['Domestic sheep Ovis aries', 'sheep|ovis'],
+  bear: ['Brown bear Ursus arctos', 'bear|ursus'],
+  corn: ['Maize cob ears Zea mays', 'maize|corn|zea'],
+  pomegranate: ['Pomegranate fruit open', 'pomegranate'],
+  fish: ['Goldfish aquarium orange', 'goldfish|fish'],
+  sun: ['The Sun in space', 'Sun'],
+  falcon: ['Peregrine falcon perched', 'falcon'],
+  frog: ['Tree frog green sitting', 'frog'],
+  gazelle: ['Gazelle standing savanna', 'gazelle'],
+  butterfly: ['Butterfly on flower', 'butterfly'],
+  book: ['Stack of books closed', 'book'],
+  lemon: ['Lemon fruit yellow', 'lemon'],
+  bee: ['Honey bee on flower apis', 'bee|apis'],
+  moon: ['Waxing crescent Moon', 'moon'],
+  rose: ['Red rose flower bloom', 'rose'],
+  ball: ['Association football ball', 'ball|football'],
+  goat: ['Goat', 'goat'],
+  ice: ['Ice cube closeup', 'ice'],
+  jam: ['Jam jar strawberry homemade', 'jam|preserv'],
+  kite: ['Kite in sky', 'kite'],
+  nest: ['Bird nest eggs twigs', 'nest'],
+  pencil: ['Colored pencils set', 'pencil'],
+  crown: ['Royal crown jewellery', 'crown'],
+  umbrella: ['Umbrella rain', 'umbrella'],
+  truck: ['Truck lorry road vehicle', 'truck|lorry'],
+  clock: ['Wall clock white', 'clock'],
+  gamepad: ['Game controller console modern', 'controller|gamepad|console'],
+  yak: ['Yak (animal)', 'yak|grunniens'],
+  rainbow: ['Rainbow sky landscape', 'rainbow'],
+  'color-red': ['Chilli peppers red', 'red|chilli|pepper'],
+  'color-blue': ['Blue sky clouds', 'blue|sky'],
+  'color-green': ['Green leaves macro summer', 'green|leaf|leaves'],
+  'color-yellow': ['Sunflower field bloom', 'sunflower|helianthus'],
+  'color-purple': ['Lavender field purple', 'lavender'],
+  'color-orange': ['Marigold flowers orange', 'marigold|calendula'],
+  'shape-circle': ['Ball', 'ball'],
+  'shape-square': ['Rubik cube puzzle solved', 'rubik|cube'],
+  'shape-triangle': ['Triangular warning road sign', 'triangle|sign'],
+  'shape-rectangle': ['Door house rectangular', 'door'],
+  'shape-star': ['Starfish sea orange', 'starfish|asterias'],
+  'shape-heart': ['Heart-shaped stones', 'heart'],
+  'emo-happy': ['Happy girl smiling portrait', 'girl|boy|smiling|child'],
+  'emo-sad': ['Crying child', 'cry|sad|child|baby'],
+  'emo-angry': ['Frustrated toddler toy', 'toddler|child|kid|boy|girl'],
+  'emo-excited': ['Children playing outdoors', 'children|child|kid'],
+  'emo-surprised': ['Surprised girl face hands', 'surprised|face|girl|boy'],
+  'emo-calm': ['Child reading picture book', 'child|girl|boy|reading'],
+  'life-washing-hands': ['Hand washing', 'wash|hand'],
+  'life-brushing-teeth': ['Child brushing teeth toothbrush', 'brush|tooth'],
+  'life-tidying': ['Toy box room', 'toy|box'],
+  'life-eating-healthy': ['Healthy food plate vegetables salad', 'vegetable|salad|plate|food'],
 };
 
 const UA = 'IRIS-Edu/1.0 (educational asset sourcing; local dev sandbox)';
@@ -53,7 +110,7 @@ async function apiJson(url, tries = 4) {
 
 async function searchFirst(term, keyword) {
   const url = 'https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=' +
-    encodeURIComponent(`filetype:bitmap ${term}`) + '&gsrlimit=10&prop=imageinfo&iiprop=url|mime|size&iiurlwidth=1024&format=json';
+    encodeURIComponent(`filetype:bitmap ${term}`) + '&gsrlimit=20&prop=imageinfo&iiprop=url|mime|size&iiurlwidth=1024&format=json';
   const j = await apiJson(url);
   const pages = Object.values(j?.query?.pages ?? {}).sort((a, b) => (a.index ?? 9) - (b.index ?? 9));
   for (const pg of pages) {

@@ -13,7 +13,9 @@
     "demo:ladder": "node scripts/run-ladder-demo.mjs",
     "qa:loop": "node qa-adaptive-loop.mjs",
     "qa:gemini": "node qa-gemini.mjs",
-    "qa:gemini-wiring": "node qa-gemini-wiring.mjs"
+    "qa:gemini-wiring": "node qa-gemini-wiring.mjs",
+    "audit:photos": "node scripts/audit-child-photo-coverage.mjs",
+    "qa:photos": "node scripts/qa-photos.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

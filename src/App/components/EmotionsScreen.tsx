@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { RealPhoto } from './ui/RealPhoto';
 import { RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -30,7 +31,7 @@ export function EmotionsScreen() {
             nameEn: 'Happy',
             emoji: '😊',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1502781253272-4a0144b54e3f?auto=format&fit=crop&q=80&w=1000' // Happy kids playing
+            contextImage: '/photos/emo-happy.jpg' // Happy kids playing
         },
         {
             id: 'sad',
@@ -38,7 +39,7 @@ export function EmotionsScreen() {
             nameEn: 'Sad',
             emoji: '😢',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1516585427167-9f4af9627e6c?auto=format&fit=crop&q=80&w=1000' // Child feeling sad/lonely
+            contextImage: '/photos/emo-sad.jpg' // Child feeling sad/lonely
         },
         {
             id: 'angry',
@@ -46,7 +47,7 @@ export function EmotionsScreen() {
             nameEn: 'Angry',
             emoji: '😠',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1454418659174-8d4847e09968?auto=format&fit=crop&q=80&w=1000' // Angry stance/expression
+            contextImage: '/photos/emo-angry.jpg' // Angry stance/expression
         },
         {
             id: 'excited',
@@ -54,7 +55,7 @@ export function EmotionsScreen() {
             nameEn: 'Excited',
             emoji: '🤩',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&q=80&w=1000' // Excited celebration
+            contextImage: '/photos/emo-excited.jpg' // Excited celebration
         },
         {
             id: 'surprised',
@@ -62,7 +63,7 @@ export function EmotionsScreen() {
             nameEn: 'Surprised',
             emoji: '😲',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=1000' // Surprised expression
+            contextImage: '/photos/emo-surprised.jpg' // Surprised expression
         },
         {
             id: 'calm',
@@ -70,7 +71,7 @@ export function EmotionsScreen() {
             nameEn: 'Calm',
             emoji: '😌',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=1000' // Calm/Peaceful scene
+            contextImage: '/photos/emo-calm.jpg' // Calm/Peaceful scene
         }
     ];
 
@@ -129,9 +130,13 @@ export function EmotionsScreen() {
                                         onClick={() => handleEmotionSelect(emotion)}
                                         className={`w-full aspect-square rounded-full shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : emotion.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-brand" aria-hidden="true">
-                                            {emotion.emoji}
-                                        </div>
+                                        <RealPhoto
+                                            src={emotion.contextImage}
+                                            alt={language === 'ar' ? emotion.nameAr : emotion.nameEn}
+                                            fallback={emotion.emoji}
+                                            className="h-28 w-28 md:h-32 md:w-32 rounded-full"
+                                            wrapperClassName="group-hover:scale-110 transition-transform"
+                                        />
                                         <h3 className="text-3xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? emotion.nameAr : emotion.nameEn}
                                         </h3>

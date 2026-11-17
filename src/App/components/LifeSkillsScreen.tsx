@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { photoPath } from '../data/realPhotos';
+import { RealPhoto } from './ui/RealPhoto';
 import { Play, Pause, RotateCcw, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
+
+const LIFE_PHOTO: Record<string, string> = {
+    'washing-hands': 'life-washing-hands',
+    'brushing-teeth': 'life-brushing-teeth',
+    'tidying-up': 'life-tidying',
+    'eating-healthy': 'life-eating-healthy',
+};
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { BackButton } from './ui/BackButton';
@@ -229,9 +238,13 @@ export function LifeSkillsScreen() {
                         {skills.map((skill, index) => (
                             <motion.div key={skill.id} initial={{ x: index % 2 === 0 ? -100 : 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: index * 0.1, type: 'spring' }} whileHover={{ scale: 1.02 }}>
                                 <button onClick={() => handleSkillSelect(skill)} className={`w-full ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-surface'} rounded-brand-xl shadow-brand-lg overflow-hidden flex items-center p-8 gap-8 border-2 border-hairline transition-all hover:shadow-brand-lg group`}>
-                                    <div className={`size-24 rounded-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : skill.color} flex items-center justify-center text-5xl  flex-shrink-0 group-hover:scale-110 transition-transform`} aria-hidden="true">
-                                        {skill.emoji}
-                                    </div>
+                                    <RealPhoto
+                                        src={photoPath(LIFE_PHOTO[skill.id])}
+                                        alt={language === 'ar' ? skill.titleAr : skill.titleEn}
+                                        fallback={skill.emoji}
+                                        className="size-20 rounded-brand flex-shrink-0"
+                                        wrapperClassName="group-hover:scale-110 transition-transform"
+                                    />
                                     <div className="text-left flex-1">
                                         <h3 className="text-3xl font-black text-ink mb-2">
                                             {language === 'ar' ? skill.titleAr : skill.titleEn}
@@ -252,8 +265,13 @@ export function LifeSkillsScreen() {
                         {selectedSkill && (
                             <Card className={`overflow-hidden rounded-brand-xl shadow-brand-lg border-2 border-hairline ${activeRules?.sensoryProfile === 'low-arousal' ? 'bg-surface-sunk' : 'bg-surface'}`}>
                                 <div className={`bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color} p-12 text-center relative`} style={{ color: tileTextColor(activeRules?.sensoryProfile === 'low-arousal' ? ' ' : selectedSkill.color) }}>
-                                    <motion.div animate={{ scale: isPlaying ? [1, 1.1, 1] : 1 }} transition={{ duration: 2, repeat: isPlaying ? Infinity : 0 }} className="text-[8rem] mb-6 drop-shadow-brand-lg" aria-hidden="true">
-                                        {selectedSkill.emoji}
+                                    <motion.div animate={{ scale: isPlaying ? [1, 1.04, 1] : 1 }} transition={{ duration: 2, repeat: isPlaying ? Infinity : 0 }} className="mb-6 drop-shadow-brand-lg">
+                                        <RealPhoto
+                                            src={photoPath(LIFE_PHOTO[selectedSkill.id])}
+                                            alt={language === 'ar' ? selectedSkill.titleAr : selectedSkill.titleEn}
+                                            fallback={selectedSkill.emoji}
+                                            className="h-56 w-56 md:h-72 md:w-72 rounded-brand-xl mx-auto"
+                                        />
                                     </motion.div>
                                     <h2 className="t-title ">
  {language === 'ar' ? selectedSkill.titleAr : selectedSkill.titleEn}

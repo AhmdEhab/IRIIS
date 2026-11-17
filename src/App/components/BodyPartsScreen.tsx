@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { RealPhoto } from './ui/RealPhoto';
 import { RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -30,7 +31,7 @@ export function BodyPartsScreen() {
             nameEn: 'Eyes',
             emoji: '👀',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1544435253-f0ededca9617?auto=format&fit=crop&q=80&w=1000' // Eye close up
+            contextImage: '/photos/eyes.jpg' // Eye close up
         },
         {
             id: 'ears',
@@ -38,7 +39,7 @@ export function BodyPartsScreen() {
             nameEn: 'Ears',
             emoji: '👂',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1590650516494-0c8e4a09dd01?auto=format&fit=crop&q=80&w=1000' // Listening to music
+            contextImage: '/photos/ears.jpg' // Listening to music
         },
         {
             id: 'nose',
@@ -46,7 +47,7 @@ export function BodyPartsScreen() {
             nameEn: 'Nose',
             emoji: '👃',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?auto=format&fit=crop&q=80&w=1000' // Smelling flowers
+            contextImage: '/photos/nose.jpg' // Smelling flowers
         },
         {
             id: 'mouth',
@@ -54,7 +55,7 @@ export function BodyPartsScreen() {
             nameEn: 'Mouth',
             emoji: '👄',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1519704943960-da38fe96a433?auto=format&fit=crop&q=80&w=1000' // Eating/Smiling
+            contextImage: '/photos/mouth.jpg' // Eating/Smiling
         },
         {
             id: 'hands',
@@ -62,7 +63,7 @@ export function BodyPartsScreen() {
             nameEn: 'Hands',
             emoji: '🙌',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1511202824364-70656041130d?auto=format&fit=crop&q=80&w=1000' // Child painting with hands
+            contextImage: '/photos/hands.jpg' // Child painting with hands
         },
         {
             id: 'feet',
@@ -70,7 +71,7 @@ export function BodyPartsScreen() {
             nameEn: 'Feet',
             emoji: '👣',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1490650404312-a2175773bba5?auto=format&fit=crop&q=80&w=1000' // Child feet in colors
+            contextImage: '/photos/feet.jpg' // Child feet in colors
         },
         {
             id: 'heart',
@@ -78,7 +79,7 @@ export function BodyPartsScreen() {
             nameEn: 'Heart',
             emoji: '❤️',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1530737482833-2a07c3be137f?auto=format&fit=crop&q=80&w=1000' // Heart bokeh/light
+            contextImage: '/photos/shape-heart.jpg' // Heart bokeh/light
         },
         {
             id: 'brain',
@@ -86,7 +87,7 @@ export function BodyPartsScreen() {
             nameEn: 'Brain',
             emoji: '🧠',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80&w=1000' // Thinking child/Brain concept
+            contextImage: '/photos/brain.jpg' // Thinking child/Brain concept
         }
     ];
 
@@ -145,9 +146,13 @@ export function BodyPartsScreen() {
                                         onClick={() => handlePartSelect(part)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : part.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-7xl mb-4 group-hover:scale-110 transition-transform" aria-hidden="true">
-                                            {part.emoji}
-                                        </div>
+                                        <RealPhoto
+                                            src={part.contextImage}
+                                            alt={language === 'ar' ? part.nameAr : part.nameEn}
+                                            fallback={part.emoji}
+                                            className="h-28 w-28 md:h-32 md:w-32 rounded-brand-xl"
+                                            wrapperClassName="group-hover:scale-110 transition-transform"
+                                        />
                                         <h3 className="text-xl font-bold text-white drop-shadow-brand-sm">
                                             {language === 'ar' ? part.nameAr : part.nameEn}
                                         </h3>

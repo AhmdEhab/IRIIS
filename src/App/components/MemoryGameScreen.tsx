@@ -6,17 +6,36 @@ import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { RealPhoto } from './ui/RealPhoto';
 import { BackButton } from './ui/BackButton';
 import './memory-game-landing.css';
 
 interface CardItem {
     id: number;
     emoji: string;
+    photo: string;
     isFlipped: boolean;
     isMatched: boolean;
 }
 
-const EMOJI_POOL = ['🍎', '🐶', '🚗', '☀️', '🦁', '🐘', '🍦', '🚀', '🌈', '🎨', '🍕', '🎸', '🧸', '🎈', '🍭', '🐱'];
+const EMOJI_POOL = [
+    { emoji: '🍎', photo: '/photos/apple.jpg' },
+    { emoji: '🐶', photo: '/photos/dog.jpg' },
+    { emoji: '🚗', photo: '/photos/car.jpg' },
+    { emoji: '☀️', photo: '/photos/sun.jpg' },
+    { emoji: '🦁', photo: '/photos/lion.jpg' },
+    { emoji: '🐘', photo: '/photos/elephant.jpg' },
+    { emoji: '🚀', photo: '/photos/rocket.jpg' },
+    { emoji: '🌈', photo: '/photos/rainbow.jpg' },
+    { emoji: '🍌', photo: '/photos/banana.jpg' },
+    { emoji: '🍇', photo: '/photos/grapes.jpg' },
+    { emoji: '🪁', photo: '/photos/kite.jpg' },
+    { emoji: '🐱', photo: '/photos/cat.jpg' },
+    { emoji: '⚽', photo: '/photos/ball.jpg' },
+    { emoji: '🍉', photo: '/photos/watermelon.jpg' },
+    { emoji: '🍋', photo: '/photos/lemon.jpg' },
+    { emoji: '🐰', photo: '/photos/rabbit.jpg' },
+];
 
 export function MemoryGameScreen() {
     const { navigateTo, unlockBadge, incrementProgress, activeRules } = useApp();
@@ -48,9 +67,10 @@ export function MemoryGameScreen() {
             [pairEmojis[i], pairEmojis[j]] = [pairEmojis[j], pairEmojis[i]];
         }
 
-        const shuffledCards = pairEmojis.map((emoji, index) => ({
+        const shuffledCards = pairEmojis.map((item, index) => ({
             id: index,
-            emoji,
+            emoji: item.emoji,
+            photo: item.photo,
             isFlipped: false,
             isMatched: false,
         }));
@@ -221,9 +241,12 @@ export function MemoryGameScreen() {
                                             rotate-y-180 transition-colors
                                             ${card.isMatched ? (activeRules?.sensoryProfile === 'low-arousal' ? 'bg-ground-tint border-hairline' : 'bg-brand-green-wash border-brand-green') : ''}
                                         `}>
-                                            <span className={`text-[6rem] sm:text-[8rem] ${card.isMatched ? 'scale-110 drop-shadow-brand' : ''}`} aria-hidden="true">
-                                                {card.emoji}
-                                            </span>
+                                            <RealPhoto
+                                                src={card.photo}
+                                                alt={card.isMatched || card.isFlipped ? '' : (language === 'ar' ? 'كارت صورة' : 'Picture card')}
+                                                fallback={card.emoji}
+                                                className={`h-36 w-36 sm:h-44 sm:w-44 rounded-brand-xl ${card.isMatched ? 'scale-110' : ''}`}
+                                            />
                                             {card.isMatched && (
                                                 <motion.div
                                                     initial={{ scale: 0 }}

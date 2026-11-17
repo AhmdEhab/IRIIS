@@ -30,7 +30,7 @@ export function SyndromeLearningCard({
 }: SyndromeLearningCardProps) {
     const { activeRules, childProfile, reportPerformance } = useApp();
     const { speak, playSound } = useAudio();
-    const studyEntry = object3dFor(itemId);
+    const studyEntry = object3dFor(itemId) || (contextImage ? { photo: contextImage, fallbackEmoji: mainVisual } : undefined);
 
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [phase, setPhase] = useState<'intro' | 'learning' | 'feedback'>('intro');

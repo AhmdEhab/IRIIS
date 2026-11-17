@@ -401,6 +401,17 @@
 @media (max-width: 767px) { .cl-learn .os-hero, .cl-learn .os-name { min-height: 240px; } }
 .cl-learn .os-count { align-items: center; justify-content: center; min-height: 356px; }
 .cl-learn .os-dots { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: center; max-width: 86%; }
+/* P73 — counting dots are real-object photo thumbnails (quantity stays
+   countable); sized so 1..10 wraps cleanly inside the tile. */
+.cl-learn .os-dot-img {
+    width: clamp(38px, 9%, 64px);
+    aspect-ratio: 1;
+    border-radius: 14px;
+    object-fit: cover;
+    border: 3px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 4px 10px rgba(36, 27, 59, 0.18);
+    animation: os-pop 420ms ease backwards;
+}
 .cl-learn .os-dot {
   font-size: clamp(44px, 6vw, 64px); line-height: 1;
   background: rgba(255, 255, 255, 0.72); border-radius: 22px;

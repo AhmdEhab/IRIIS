@@ -1,12 +1,14 @@
 /**
  * ObjectStudy — the unified "Touch, Explore & Learn" block.
  *
+ * P73: every picture a child sees here is a genuine photograph.
  * ALWAYS a two-cell grid so every lesson screen looks the same:
- *   cell 1: an interactive 3D model (the same Object3DViewer the landing
- *           page uses, or a real-geometry R3F orb) — or, when the concept
- *           has no 3D form, a big pastel hero tile with the item visual.
- *   cell 2: an authentic photograph — or, when none exists, a brand name
- *           card. Never an empty gap.
+ *   cell 1: an interactive 3D model when the concept has one, otherwise the
+ *           real photograph itself, otherwise a pastel hero tile.
+ *   cell 2: for numbers — N thumbnails of ONE real object (the quantity
+ *           stays countable and photographic); for 3D items — the matching
+ *           real photograph; otherwise the brand name card. Never emoji as
+ *           a content image; emoji only survive as error fallbacks.
  * A reset pill returns the camera, one hint line sits under the grid.
  * All pointer events are contained: exploring never advances the card.
  */
@@ -21,7 +23,7 @@ interface ObjectStudyProps {
     nameAr: string;
     nameEn: string;
     language: 'ar' | 'en';
-    /** the item's visual emoji, used by the hero/name tiles */
+    /** the item's visual emoji, used only when there is no photograph */
     mainVisual?: string;
     compact?: boolean;
 }
@@ -75,6 +77,18 @@ export function ObjectStudy({ entry, nameAr, nameEn, language, mainVisual, compa
     const [washA, washB] = washFor(name);
     const heroBg = { background: `linear-gradient(160deg, ${washA}, ${washB})` };
 
+    const PhotoCell = (
+        <div className="os-cell os-photo">
+            <div className="os-tag">{ar ? 'صورة حقيقية' : 'Real photo'}</div>
+            <img
+                src={entry!.photo}
+                alt={ar ? `صورة حقيقية ${nameAr}` : `Real photograph of ${nameEn}`}
+                loading="lazy"
+                onError={() => setPhotoFailed(true)}
+            />
+        </div>
+    );
+
     return (
         <div
             className={`os-study${compact ? ' os-compact' : ''}`}
@@ -110,6 +124,8 @@ export function ObjectStudy({ entry, nameAr, nameEn, language, mainVisual, compa
                             ↺ {ar ? 'من الأول' : 'Reset'}
                         </button>
                     </div>
+                ) : photo ? (
+                    PhotoCell
                 ) : (
                     <div className="os-cell os-hero" style={heroBg}>
                         <div className="os-tag">{ar ? 'نظرة أولى' : 'First look'}</div>
@@ -122,26 +138,30 @@ export function ObjectStudy({ entry, nameAr, nameEn, language, mainVisual, compa
                         <div className="os-tag">{ar ? 'نعدّ سوا' : 'Count with me'}</div>
                         <div className="os-dots" role="img" aria-label={`${entry.count}`}>
                             {Array.from({ length: entry.count }).map((_, i) => (
-                                <span key={i} className="os-dot" style={{ animationDelay: `${i * 90}ms` }}>
-                                    {entry.fallbackEmoji ?? '⭐'}
-                                </span>
+                                photo ? (
+                                    <img
+                                        key={i}
+                                        src={entry!.photo}
+                                        alt=""
+                                        aria-hidden="true"
+                                        loading="lazy"
+                                        className="os-dot-img"
+                                        style={{ animationDelay: `${i * 90}ms` }}
+                                    />
+                                ) : (
+                                    <span key={i} className="os-dot" style={{ animationDelay: `${i * 90}ms` }}>
+                                        {entry.fallbackEmoji ?? '⭐'}
+                                    </span>
+                                )
                             ))}
                         </div>
                     </div>
-                ) : photo ? (
-                    <div className="os-cell os-photo">
-                        <div className="os-tag">{ar ? 'صورة حقيقية' : 'Real photo'}</div>
-                        <img
-                            src={entry!.photo}
-                            alt={ar ? `صورة حقيقية ${nameAr}` : `Real photograph of ${nameEn}`}
-                            loading="lazy"
-                            onError={() => setPhotoFailed(true)}
-                        />
-                    </div>
+                ) : hasModel && photo ? (
+                    PhotoCell
                 ) : (
                     <div className="os-cell os-name" style={heroBg}>
                         <div className="os-tag">{ar ? 'بطاقة الاسم' : 'Name card'}</div>
-                        <span className="os-hero-emoji" aria-hidden="true">{visual}</span>
+                        {!photo && <span className="os-hero-emoji" aria-hidden="true">{visual}</span>}
                         <span className="os-name-word">{name}</span>
                     </div>
                 )}

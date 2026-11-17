@@ -38,7 +38,7 @@ export function StoriesScreen() {
       duration: '3 min',
       contentAr: 'كان هناك أرنب صغير يدعى بندق، يحب القفز في المروج الخضراء والبحث عن الجزر اللذيذ. في يوم من الأيام، وجد بندق جزرة عملاقة لم يرَ مثلها من قبل! حاول سحبها بكل قوته لكنها كانت ثقيلة جداً. نادى بندق أصدقاءه الأرانب وجاءوا جميعاً للمساعدة. وبفضل التعاون، استطاعوا سحب الجزرة الكبيرة وتقاسموها معاً في وجبة عشاء شهية وسعيدة.',
       contentEn: 'There was a little bunny named Bandaq who loved hopping in green meadows and searching for delicious carrots. One day, Bandaq found a giant carrot unlike any he had seen before! He tried pulling it with all his might, but it was too heavy. Bandaq called his bunny friends, and they all came to help. Thanks to their teamwork, they pulled out the giant carrot and shared a delicious and happy dinner together.',
-      thumbnail: 'https://images.unsplash.com/photo-1591073113125-e46713c829ed?auto=format&fit=crop&q=80&w=1000'
+      thumbnail: '/photos/rabbit.jpg',
     },
     {
       id: 'lion',
@@ -49,7 +49,7 @@ export function StoriesScreen() {
       duration: '4 min',
       contentAr: 'في غابة بعيدة، كان يعيش الأسد سيمبا، ملك الغابة القوي واللطيف. ذات يوم، رأى سيمبا عصفوراً صغيراً سقط من عشه ولا يستطيع الطيران. لم يزأر سيمبا، بل اقترب بلطف وحمل العصفور على ظهره حتى أعاده لعشه بأمان. شكرته أم العصفور وغردت له أجمل الألحان. تعلمت حيوانات الغابة أن القوة الحقيقية تكمن في مساعدة الضعفاء وحمايتهم.',
       contentEn: 'In a faraway forest lived Simba the lion, the strong yet gentle king of the woods. One day, Simba saw a tiny bird that had fallen from its nest and couldn\'t fly. Simba didn\'t roar; instead, he approached gently and carried the bird on his back until he returned it safely to its nest. The mother bird thanked him and sang the most beautiful songs. The forest animals learned that true strength lies in helping and protecting the weak.',
-      thumbnail: 'https://images.unsplash.com/photo-1614027126733-7276949f5f94?auto=format&fit=crop&q=80&w=1000'
+      thumbnail: '/photos/lion.jpg',
     },
     {
       id: 'stars',
@@ -60,7 +60,7 @@ export function StoriesScreen() {
       duration: '3 min',
       contentAr: 'في ليلة صافية، قررت النجمة الصغيرة "لولو" أن تزور الأرض لترى الزهور الجميلة. نزلت لولو بهدوء وجلست على بتلة وردة حمراء، فتعجبت الوردة من نورها الساطع. تبادلت لولو والوردة الأحاديث عن جمال السماء وسحر الأرض حتى الفجر. عندما حان وقت العودة، وعدت لولو الوردة بأن تلمع لها كل ليلة من فوق. ومنذ ذلك الحين، والوردة تنظر للسماء كل ليلة لترى صديقتها النجمة تبتسم لها.',
       contentEn: 'On a clear night, a little star named Lulu decided to visit Earth to see the beautiful flowers. Lulu descended quietly and sat on a red rose petal, and the rose was amazed by her bright light. Lulu and the rose talked about the beauty of the sky and the magic of the Earth until dawn. When it was time to return, Lulu promised the rose she would shine for her every night from above. Since then, the rose looks up at the sky every night to see her star friend smiling back.',
-      thumbnail: 'https://images.unsplash.com/photo-1472500662861-a5c248be4274?auto=format&fit=crop&q=80&w=1000'
+      thumbnail: '/photos/shape-star.jpg',
     },
     {
       id: 'rainbow',
@@ -71,7 +71,7 @@ export function StoriesScreen() {
       duration: '3 min',
       contentAr: 'بعد عاصفة مطرية، تجمعت الألوان السبعة لتصنع قوس قزح رائعاً في السماء. بدأ كل لون يفتخر بجماله، فالأحمر قال أنا الأقوى والأزرق قال أنا الأهدأ. حزنت الشمس وقالت: لا يكتمل الجمال إلا بوجودكم جميعاً متشابكين معاً. فهمت الألوان الدرس وتعاونت لتظهر في أجمل صورة، فرسمت ابتسامة كبيرة على وجوه كل من رآها. ومنذ ذلك اليوم، أصبح قوس قزح يذكرنا دائماً بجمال التنوع والوحدة.',
       contentEn: 'After a rainstorm, the seven colors gathered to make a magnificent rainbow in the sky. Each color began to boast of its beauty: Red said "I am the strongest," and Blue said "I am the calmest." The sun grew sad and said, "Beauty is only complete when you are all intertwined together." The colors understood the lesson and cooperated to appear in the most beautiful way, drawing a big smile on the faces of all who saw them. Since that day, the rainbow always reminds us of the beauty of diversity and unity.',
-      thumbnail: 'https://images.unsplash.com/photo-1543363136-3fdb62e11be5?auto=format&fit=crop&q=80&w=1000'
+      thumbnail: '/photos/rainbow.jpg',
     }
   ];
 

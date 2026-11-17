@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { RealPhoto } from './ui/RealPhoto';
 import { RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -35,7 +36,7 @@ export function ColorsScreen() {
             hex: '#ef4444',
             colorClass: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=1000' // Apple orchard
+            contextImage: '/photos/color-red.jpg' // Apple orchard
         },
         {
             id: 'blue',
@@ -45,7 +46,7 @@ export function ColorsScreen() {
             hex: '#3b82f6',
             colorClass: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1000' // Sea
+            contextImage: '/photos/color-blue.jpg' // Sea
         },
         {
             id: 'green',
@@ -55,7 +56,7 @@ export function ColorsScreen() {
             hex: '#22c55e',
             colorClass: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=1000' // Forest
+            contextImage: '/photos/color-green.jpg' // Forest
         },
         {
             id: 'yellow',
@@ -65,17 +66,17 @@ export function ColorsScreen() {
             hex: '#eab308',
             colorClass: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1533324268742-6012ad3859e7?auto=format&fit=crop&q=80&w=1000' // Sunflowers
+            contextImage: '/photos/color-yellow.jpg' // Sunflowers
         },
         {
-            id: 'orange',
+            id: 'color-orange',
             nameAr: 'برتقالي',
             nameEn: 'Orange',
             emoji: '🍊',
             hex: '#f97316',
             colorClass: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&q=80&w=1000' // Oranges
+            contextImage: '/photos/color-orange.jpg' // Oranges
         },
         {
             id: 'purple',
@@ -85,7 +86,7 @@ export function ColorsScreen() {
             hex: '#a855f7',
             colorClass: ' ',
             soundEffect: 'success',
-            contextImage: 'https://images.unsplash.com/photo-1528484461741-01646a78dc71?auto=format&fit=crop&q=80&w=1000' // Lavender field
+            contextImage: '/photos/color-purple.jpg' // Lavender field
         }
     ];
 
@@ -144,9 +145,13 @@ export function ColorsScreen() {
                                         onClick={() => handleColorSelect(color)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : color.colorClass} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-8xl mb-4 group-hover:scale-110 transition-transform" aria-hidden="true">
-                                            {color.emoji}
-                                        </div>
+                                        <RealPhoto
+                                            src={color.contextImage}
+                                            alt={language === 'ar' ? color.nameAr : color.nameEn}
+                                            fallback={color.emoji}
+                                            className="h-28 w-28 md:h-32 md:w-32 rounded-brand-xl"
+                                            wrapperClassName="group-hover:scale-110 transition-transform"
+                                        />
                                         <h3 className={`text-2xl font-bold ${color.id === 'white' ? 'text-ink' : 'text-white'} drop-shadow-brand text-center`}>
                                             {language === 'ar' ? color.nameAr : color.nameEn}
                                         </h3>

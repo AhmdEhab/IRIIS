@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { RealPhoto } from './ui/RealPhoto';
 import { RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -34,7 +35,7 @@ export function FruitsScreen() {
             nameEn: 'Apple',
             emoji: '🍎',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1560806887-1e4cd0b60d05?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/apple.jpg'
         },
         {
             id: 'banana',
@@ -42,7 +43,7 @@ export function FruitsScreen() {
             nameEn: 'Banana',
             emoji: '🍌',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1571771894821-ad990241ec4a?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/banana.jpg'
         },
         {
             id: 'orange',
@@ -50,7 +51,7 @@ export function FruitsScreen() {
             nameEn: 'Orange',
             emoji: '🍊',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1582281298055-e25b84a30b44?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/color-orange.jpg'
         },
         {
             id: 'strawberry',
@@ -58,7 +59,7 @@ export function FruitsScreen() {
             nameEn: 'Strawberry',
             emoji: '🍓',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1464965911861-746a04b48ca6?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/strawberry.jpg'
         },
         {
             id: 'grapes',
@@ -66,7 +67,7 @@ export function FruitsScreen() {
             nameEn: 'Grapes',
             emoji: '🍇',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1537640538966-79f369b41f8f?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/grapes.jpg'
         },
         {
             id: 'watermelon',
@@ -74,7 +75,7 @@ export function FruitsScreen() {
             nameEn: 'Watermelon',
             emoji: '🍉',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1587049352846-4a222e783137?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/watermelon.jpg'
         }
     ];
 
@@ -133,9 +134,13 @@ export function FruitsScreen() {
                                         onClick={() => handleItemSelect(food)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : food.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-8xl mb-4 group-hover:scale-110 transition-transform" aria-hidden="true">
-                                            {food.emoji}
-                                        </div>
+                                        <RealPhoto
+                                            src={food.contextImage}
+                                            alt={language === 'ar' ? food.nameAr : food.nameEn}
+                                            fallback={food.emoji}
+                                            className="h-28 w-28 md:h-32 md:w-32 rounded-brand-xl"
+                                            wrapperClassName="group-hover:scale-110 transition-transform"
+                                        />
                                         <h3 className="text-2xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? food.nameAr : food.nameEn}
                                         </h3>

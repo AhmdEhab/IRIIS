@@ -7,6 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import { BackButton } from './ui/BackButton';
 import { getItemsByCategory } from '../data/MasterCurriculum';
+import { RealPhoto } from './ui/RealPhoto';
 import { SyndromeLearningCard } from './SyndromeLearningCard';
 import './learning-screens-landing.css';
 
@@ -124,6 +125,12 @@ export function LettersScreen() {
                                         <span className="text-6xl font-black drop-shadow-brand-sm" dir="ltr" style={{ color: tileTextColor(activeRules?.sensoryProfile === 'low-arousal' ? ' ' : letter.color) }}>
                                             {letter.emoji}
                                         </span>
+                                        {/* P73 — the letter's word as a real photograph */}
+                                        <RealPhoto
+                                            src={letter.contextImage}
+                                            alt={language === 'ar' ? letter.nameAr : letter.nameEn}
+                                            className="h-14 w-14 rounded-full mt-2 ring-2 ring-white/70"
+                                        />
                                         <h3 className="text-lg font-bold text-center drop-shadow-brand-sm mt-2" style={{ color: tileTextColor(activeRules?.sensoryProfile === 'low-arousal' ? ' ' : letter.color), opacity: 0.92 }}>
                                             {language === 'ar' ? letter.nameAr : letter.nameEn}
                                         </h3>
@@ -144,6 +151,7 @@ export function LettersScreen() {
                                     <SyndromeLearningCard
                                         itemId={selectedLetter.id}
                                         mainVisual={selectedLetter.emoji}
+                                        contextImage={selectedLetter.contextImage}
                                         nameAr={selectedLetter.nameAr}
                                         nameEn={selectedLetter.nameEn}
                                         soundEffect="success"

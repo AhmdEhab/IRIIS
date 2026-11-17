@@ -1,10 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { photoPath } from '../data/realPhotos';
+import { RealPhoto } from './ui/RealPhoto';
 import { Play, Pause, RotateCcw, CheckCircle2, Youtube, Music, Sparkles, Layout } from 'lucide-react';
 import YouTube, { YouTubeProps } from 'react-youtube';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
+
+const SONG_PHOTO: Record<string, string> = {
+    '🔤': 'book', '🔟': 'pencil', '🎨': 'rainbow', '🦁': 'lion',
+    '✨': 'shape-star', '🚌': 'truck', '🦈': 'fish',
+};
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { BackButton } from './ui/BackButton';
@@ -221,9 +228,13 @@ export function SongsScreen() {
                                         onClick={() => handleSongSelect(song)}
                                         className={`w-full aspect-video rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : song.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group relative overflow-hidden`}
                                     >
-                                        <div className="text-8xl mb-4 group-hover:scale-110 transition-transform z-10" aria-hidden="true">
-                                            {song.emoji}
-                                        </div>
+                                        <RealPhoto
+                                            src={photoPath(SONG_PHOTO[song.emoji] || 'book')}
+                                            alt={language === 'ar' ? song.titleAr : song.titleEn}
+                                            fallback={song.emoji}
+                                            className="h-28 w-40 rounded-brand-xl mb-4 z-10"
+                                            wrapperClassName="group-hover:scale-110 transition-transform"
+                                        />
                                         <h3 className="text-2xl font-bold text-white drop-shadow-brand z-10">
                                             {language === 'ar' ? song.titleAr : song.titleEn}
                                         </h3>
@@ -304,10 +315,13 @@ export function SongsScreen() {
                                                         <motion.div
                                                             initial={{ scale: 0 }}
                                                             animate={{ scale: 1.5 }}
-                                                            className="text-[120px] mb-4"
-                                                            aria-hidden="true"
                                                         >
-                                                            {selectedSong.emoji}
+                                                            <RealPhoto
+                                                                src={photoPath(SONG_PHOTO[selectedSong.emoji] || 'book')}
+                                                                alt={language === 'ar' ? selectedSong.titleAr : selectedSong.titleEn}
+                                                                fallback={selectedSong.emoji}
+                                                                className="h-56 w-56 rounded-brand-xl mx-auto"
+                                                            />
                                                         </motion.div>
                                                         <h3 className="t-heading text-brand-blue-ink">
                                                             {language === 'ar' ? selectedSong.titleAr : selectedSong.titleEn}

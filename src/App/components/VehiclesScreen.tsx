@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { RealPhoto } from './ui/RealPhoto';
 import { RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -30,7 +31,7 @@ export function VehiclesScreen() {
             nameEn: 'Car',
             emoji: '🚗',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/car.jpg'
         },
         {
             id: 'plane',
@@ -38,7 +39,7 @@ export function VehiclesScreen() {
             nameEn: 'Airplane',
             emoji: '✈️',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1436491865332-7a61a20fb2a5?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/plane.jpg'
         },
         {
             id: 'train',
@@ -46,7 +47,7 @@ export function VehiclesScreen() {
             nameEn: 'Train',
             emoji: '🚂',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/train.jpg'
         },
         {
             id: 'ship',
@@ -54,7 +55,7 @@ export function VehiclesScreen() {
             nameEn: 'Ship',
             emoji: '🚢',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1544654803-b69110bb8154?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/ship.jpg'
         },
         {
             id: 'bicycle',
@@ -62,7 +63,7 @@ export function VehiclesScreen() {
             nameEn: 'Bicycle',
             emoji: '🚲',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/bicycle.jpg'
         },
         {
             id: 'rocket',
@@ -70,7 +71,7 @@ export function VehiclesScreen() {
             nameEn: 'Rocket',
             emoji: '🚀',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&q=80&w=1000'
+            contextImage: '/photos/rocket.jpg'
         }
     ];
 
@@ -129,9 +130,13 @@ export function VehiclesScreen() {
                                         onClick={() => handleVehicleSelect(vehicle)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : vehicle.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-8xl mb-4 group-hover:scale-110 transition-transform" aria-hidden="true">
-                                            {vehicle.emoji}
-                                        </div>
+                                        <RealPhoto
+                                            src={vehicle.contextImage}
+                                            alt={language === 'ar' ? vehicle.nameAr : vehicle.nameEn}
+                                            fallback={vehicle.emoji}
+                                            className="h-28 w-28 md:h-32 md:w-32 rounded-brand-xl"
+                                            wrapperClassName="group-hover:scale-110 transition-transform"
+                                        />
                                         <h3 className="text-2xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? vehicle.nameAr : vehicle.nameEn}
                                         </h3>

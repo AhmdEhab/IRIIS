@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { RealPhoto } from './ui/RealPhoto';
 import { RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -31,7 +32,7 @@ export function ShapesScreen() {
             nameEn: 'Circle',
             icon: '🔴',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1559131397-f94da358f7ca?auto=format&fit=crop&q=80&w=1000' // Sun
+            contextImage: '/photos/shape-circle.jpg' // Sun
         },
         {
             id: 'square',
@@ -39,7 +40,7 @@ export function ShapesScreen() {
             nameEn: 'Square',
             icon: '⬛',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&q=80&w=1000' // Gift box
+            contextImage: '/photos/shape-square.jpg' // Gift box
         },
         {
             id: 'triangle',
@@ -47,7 +48,7 @@ export function ShapesScreen() {
             nameEn: 'Triangle',
             icon: '🔺',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=1000' // Pizza
+            contextImage: '/photos/shape-triangle.jpg' // Pizza
         },
         {
             id: 'rectangle',
@@ -55,7 +56,7 @@ export function ShapesScreen() {
             nameEn: 'Rectangle',
             icon: '▮',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&q=80&w=1000' // TV
+            contextImage: '/photos/shape-rectangle.jpg' // TV
         },
         {
             id: 'star',
@@ -63,15 +64,15 @@ export function ShapesScreen() {
             nameEn: 'Star',
             icon: '⭐',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&q=80&w=1000' // Stars
+            contextImage: '/photos/shape-star.jpg' // Stars
         },
         {
-            id: 'heart',
+            id: 'shape-heart',
             nameAr: 'قلب',
             nameEn: 'Heart',
             icon: '❤️',
             color: ' ',
-            contextImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=1000' // Heart cookie/shape
+            contextImage: '/photos/shape-heart.jpg' // Heart cookie/shape
         }
     ];
 
@@ -130,9 +131,13 @@ export function ShapesScreen() {
                                         onClick={() => handleShapeSelect(shape)}
                                         className={`w-full aspect-square rounded-brand-xl shadow-brand bg-surface-sunk ${activeRules?.sensoryProfile === 'low-arousal' ? ' ' : shape.color} flex flex-col items-center justify-center transition-all duration-300 hover:shadow-brand-lg border-2 border-hairline group`}
                                     >
-                                        <div className="text-9xl mb-4 group-hover:scale-110 transition-transform drop-shadow-brand-sm" aria-hidden="true">
-                                            {shape.icon}
-                                        </div>
+                                        <RealPhoto
+                                            src={shape.contextImage}
+                                            alt={language === 'ar' ? shape.nameAr : shape.nameEn}
+                                            fallback={shape.icon}
+                                            className="h-28 w-28 md:h-32 md:w-32 rounded-brand-xl"
+                                            wrapperClassName="group-hover:scale-110 transition-transform"
+                                        />
                                         <h3 className="text-3xl font-bold text-white drop-shadow-brand">
                                             {language === 'ar' ? shape.nameAr : shape.nameEn}
                                         </h3>
