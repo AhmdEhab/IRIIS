@@ -245,6 +245,11 @@ function useIrisState() {
    * when the server lane has not landed the endpoint yet.
    */
   const [ladderObservation, setLadderObservation] = useState<any>(savedProbe?.observation ?? null);
+  const lastFinalisedRef = React.useRef<string | null>(null);
+  /* P68b: the ghost guard blocks starting a second probe run while a
+     completed result exists. A deliberate parent retake (the family-file
+     CTA) arms exactly ONE start; any other path cannot clear the guard. */
+  const ladderRetakeArmedRef = useRef(false);
   const [ladderClientRef, setLadderClientRef] = useState<string | null>(
     typeof savedProbe?.clientRef === 'string' && savedProbe.clientRef ? savedProbe.clientRef : null,
   );
@@ -838,23 +843,32 @@ function useIrisState() {
     setLadderLoadError(null);
     try {
       let rows: any = null;
+      /* P68b: the PATH form is the shipped contract (GET /assessments/:childId
+         ?kind=…). It is tried FIRST; the older collection form is only a
+         fallback for any deployment that predates it. Trying the query form
+         first made every hydration log a spammable 404 into the console —
+         harmless to data, but it looked like the child had no history. */
       try {
-        const resQ = await fetch(`${API_URL}/assessments?childId=${childId}&kind=LADDER`, { headers: authHeaders() });
-        if (resQ.ok) {
-          const jsonQ = await resQ.json();
+        const res = await fetch(`${API_URL}/assessments/${childId}?kind=LADDER`, { headers: authHeaders() });
+        if (res.ok) {
+          const jsonQ = await res.json();
           if (Array.isArray(jsonQ)) rows = jsonQ;
-        }
-      } catch { /* collection form may not exist yet — fall through to the path form */ }
-      if (!Array.isArray(rows)) {
-        const res = await fetch(`${API_URL}/assessments/${childId}`, { headers: authHeaders() });
-        if (!res.ok) {
-          if (res.status !== 404) {
-            setLadderLoadError(`LOAD_FAILED_${res.status}`);
-            console.warn('IRIS ladder hydration failed:', `LOAD_FAILED_${res.status}`);
-          }
+        } else if (res.status !== 404) {
+          setLadderLoadError(`LOAD_FAILED_${res.status}`);
+          console.warn('IRIS ladder hydration failed:', `LOAD_FAILED_${res.status}`);
           return false;
+        } else {
+          return false; /* genuinely nothing yet */
         }
-        rows = await res.json();
+      } catch { /* offline — fall through to the collection form */ }
+      if (!Array.isArray(rows)) {
+        try {
+          const resQ = await fetch(`${API_URL}/assessments?childId=${childId}&kind=LADDER`, { headers: authHeaders() });
+          if (resQ.ok) {
+            const jsonQ = await resQ.json();
+            if (Array.isArray(jsonQ)) rows = jsonQ;
+          }
+        } catch { /* neither form reachable; caller keeps local state */ }
       }
       if (!Array.isArray(rows)) {
         setLadderLoadError('LOAD_FAILED_SHAPE');
@@ -896,7 +910,20 @@ function useIrisState() {
     }
   }, [childDbId]);
 
+  const armLadderRetake = useCallback(() => { ladderRetakeArmedRef.current = true; }, []);
   const beginLadderProbe = useCallback((calibrationResponses: any[]) => {
+    /* P68b GHOST-SESSION GUARD (the real root of "no report / answers that
+       were never mine"). Once a finished assessment exists for this child,
+       a probe may only begin through the explicit, parent-confirmed RETAKE
+       path. Without this, any stray click on a lingering intro CTA —
+       reachable in the ~2s window after the engine finalises — started a
+       second, UNANSWERED session whose auto-insufficient visits then
+       OVERWROTE the real record and produced a report that did not describe
+       the child's actual answers. */
+    if (ladder && typeof (ladder as any).items_presented === 'number' && !ladderRetakeArmedRef.current) {
+      return { visit: null, finished: true, calibration: null } as any;
+    }
+    ladderRetakeArmedRef.current = false; /* the arm is one-shot */
     const calibration = runCalibration({ ageYears: childAgeYears, responses: calibrationResponses });
     /* §3 opportunity gating: a closed MAIN track is folded into the probe
        state as an explicit NO_OPPORTUNITY stop before the first visit — the
@@ -924,7 +951,7 @@ function useIrisState() {
     }));
     setLadderClientRef((r: any) => (typeof r === 'string' && r ? r : newLadderClientRef()));
     return { calibration, visit };
-  }, [childAgeYears, ladderGates]);
+  }, [childAgeYears, ladderGates, ladder]);
 
   /**
    * Record one strand visit and hand back the next, or null when finished.
@@ -1042,13 +1069,21 @@ function useIrisState() {
     const observationMeta = normalizeObservationMeta(ladderObservation);
     const clientRef = typeof ladderClientRef === 'string' && ladderClientRef
       ? ladderClientRef
-      : newLadderClientRef();
+      /* P68b: a finished run consumed its ref below; if a second finished
+         submit sneaks in for the SAME run (double-click on the done plate,
+         a re-mounted intro that immediately re-stopped), minting a fresh
+         ref defeats the server's clientRef idempotency and writes a
+         duplicate record. Reuse the last finalised ref for repeats — the
+         POST dedupes server-side, and a genuinely NEW run always mints its
+         own ref at start (beginLadder). */
+      : (lastFinalisedRef.current || newLadderClientRef());
     /* Snapshot the resumable draft BEFORE the state below consumes it, so
        the terminal draft POST still carries the full run log under the
        right clientRef. */
     const finalDraftState = buildLadderDraftState();
     setLadderObservation(null);
     setLadderClientRef(null);
+    lastFinalisedRef.current = clientRef;
 
     if (invalidRun) {
       void postLadderDraft('INVALID', { state: finalDraftState, clientRef });
@@ -1263,7 +1298,7 @@ function useIrisState() {
     startChild, finishAssessment, loadNextActivity, submitSession,
     // Phase 5
     childAgeYears, getCalibrationProbes, runLadder, recordLadderPractice,
-    beginLadderProbe, submitLadderVisit, currentVisit, probeState, loadLadderFromServer,
+    beginLadderProbe, submitLadderVisit, currentVisit, probeState, loadLadderFromServer, armLadderRetake,
     ladder, ladderPlan, ladderLedger, learningSnapshot, ladderSaveError,
     // Ladder run experience (W13/W17/W4/W20): observation record, idempotency
     // key, hydration error surface, and the debounced draft with its flush.

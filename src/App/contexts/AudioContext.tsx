@@ -51,6 +51,13 @@ interface AudioContextType {
   setVolume: (volume: number) => void;
   playSound: (type: SoundName) => void;
   speak: (text: string, language?: Lang) => void;
+  /**
+   * P68b: honest answer to "will THIS text actually be audible?". True when
+   * audio is on and either a shipped clip covers it or the browser reports a
+   * usable voice for the language. Callers use it to offer the parent-read
+   * fallback instead of leaving a listen item silently dead.
+   */
+  canSpeak: (text: string, language?: Lang) => boolean;
   stopSpeaking: () => void;
   playAudio: (url: string) => void;
   stopAudio: () => void;
@@ -537,6 +544,32 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     el.play().catch(() => { if (seq === speakSeqRef.current && isEnabledRef.current) browserSpeak(clean, language); });
   };
 
+  const [voicesTick, setVoicesTick] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const bump = () => setVoicesTick((x) => x + 1);
+    try { window.speechSynthesis.onvoiceschanged = bump; } catch { /* older engines */ }
+    bump();
+    return () => { try { if (window.speechSynthesis.onvoiceschanged === bump) window.speechSynthesis.onvoiceschanged = null; } catch { /* noop */ } };
+  }, []);
+  const canSpeak = useCallback(
+    (text: string, language: Lang = 'ar') => {
+      if (!isEnabled || !text) return false;
+      const clean = cleanForSpeech(text);
+      if (!clean) return false;
+      if (fileClipFor(clean)) return true;
+      if (typeof window === 'undefined' || !window.speechSynthesis) return false;
+      let voices: SpeechSynthesisVoice[] = [];
+      try { voices = window.speechSynthesis.getVoices(); } catch { voices = []; }
+      if (!voices.length) return true; /* list still loading — give the engine a chance */
+      const want = (language === 'ar' ? 'ar' : 'en');
+      return voices.some((v) => String(v.lang || '').toLowerCase().startsWith(want))
+        /* any real voice beats a dead card: browserSpeak will still try. */
+        || voices.length > 0;
+    },
+    // voicesTick re-runs the memo when the engine finishes loading its list.
+    [isEnabled, voicesTick]
+  );
   const speak = useCallback(
     (text: string, language: Lang = 'ar') => {
       if (!text) return;
@@ -750,6 +783,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         setVolume,
         playSound,
         speak,
+        canSpeak,
         stopSpeaking,
         playAudio,
         stopAudio,

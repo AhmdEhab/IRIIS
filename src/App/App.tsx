@@ -579,7 +579,7 @@ function AppContent() {
             onBack={() => navigateTo('iris-parent')}
             onEditCaregiver={() => navigateTo('caregiver-profile')}
             onOpenSnapshot={() => navigateTo('iris-snapshot')}
-            onRetakeLadder={() => navigateTo('iris-ladder-assessment')}
+            onRetakeLadder={() => { iris.armLadderRetake(); navigateTo('iris-ladder-assessment'); }}
           />
         );
       case 'iris-parent': {

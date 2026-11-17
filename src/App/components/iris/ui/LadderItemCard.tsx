@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAudio } from '../../../contexts/AudioContext';
 import { Surface, ProgressTrack } from './brand';
 import { PROBE_PROFILES } from '../../../../iris/engines/adaptiveProbe.js';
 /* P64 (UX audit): the chip used to count against PROBE_CONFIG — the CLINICAL
@@ -201,6 +202,25 @@ export function LadderItemCard({
   const adaptive = hintMode === 'adaptive-assessment';
   const off = disabled || locked;
 
+  /* ── P68b: memory items must actually be MEMORY items ────────────────────
+     A disappeared-set card that shows every tile the whole time has no
+     question left to answer, and a first/last card shown as one static row
+     asks the child to remember something that never happened in time. The
+     bank always stores what came first (tiles_shown / sequence_shown) and
+     what remains (display_after); this is the presentation half of that.
+     Purely visual — nothing here changes keys, scoring or timing. */
+  const audio = useAudio();
+  const isDisappeared = Array.isArray(item?.tiles_shown) && !!item?.display_after;
+  const isTimedPair = Array.isArray(item?.sequence_shown) && item?.sequence_shown.length >= 2;
+  const [memPhase, setMemPhase] = useState(0); /* 0 study → 1 test */
+  useEffect(() => {
+    if (!isDisappeared && !isTimedPair) { setMemPhase(0); return; }
+    setMemPhase(0);
+    const t = setTimeout(() => setMemPhase(1), isTimedPair ? 900 * (item.sequence_shown.length - 1) + 700 : 1800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item?.item_id]);
+
   const prompt = (ar ? item?.prompt?.ar : item?.prompt?.en) ?? fallbackPrompt;
   const options: string[] = item?.options ?? [];
   const isTapEach = item?.expected_taps != null && options.length === 0;
@@ -254,7 +274,16 @@ export function LadderItemCard({
   const chooseOne = (i: number) => {
     if (off || picked !== null) return;
     setPicked(i);
-    const correct = i === (item?.correct_index ?? 0);
+    /* P68b (av2 §2 anti-rule, enforced at the screen level now, not only in
+       the bank): a choice board declares NO correct tile — it measures the
+       CHANNEL the child used, never which tile they liked. Without this,
+       slot 0 was silently "the answer" and every other pick was scored as a
+       miss, which read to the family as the app marking correct answers
+       wrong. Items WITH a key (labels, matching, odd-one-out) are untouched. */
+    const keylessBoard = item?.accepts_any_output === true
+      && item?.correct_index == null
+      && !Array.isArray(item?.correct_order);
+    const correct = keylessBoard ? true : i === (item?.correct_index ?? 0);
     if (!adaptive) { settle(correct); return; }
     if (correct) resolve(misses > 0 || hintShown ? 'retry-correct' : 'first-correct', { index: i });
     else if (misses === 0) offerHintOnce();
@@ -303,6 +332,7 @@ export function LadderItemCard({
     resolve('no-response', { reason: 'no_response' });
   };
 
+  const studyCount = memPhase === 0 ? 1 : (item?.sequence_shown?.length ?? 1);
   const audioText = typeof item?.audio_ar === 'string' && item.audio_ar.trim() ? item.audio_ar.trim() : null;
 
   // Listen items are blind unless the WORD itself is spoken — not the instruction.
@@ -344,13 +374,59 @@ export function LadderItemCard({
         <div className="text-center py-4 rounded-brand-sm bg-surface-sunk">
           <span className="text-5xl" role="img" aria-label={ar ? 'اسمع' : 'Listen'}>🔊</span>
           <p className="mt-2 text-lg font-black text-ink" dir="auto">{ar ? 'اسمع كويس' : 'Listen closely'}</p>
+          {/* P68b: a listen question with no sound path is not a question at
+              all — it looked like a broken/missing item to families. If the
+              browser has no voice and no shipped clip covers this word, the
+              grown-up reads it aloud instead (the MVP is parent-mediated by
+              design); the word is revealed HERE only, never in the child-
+              facing prompt, so reading kids still take the audio route
+              whenever audio exists. */}
+          {typeof audio.canSpeak === 'function' && !audio.canSpeak(audioText, 'ar') && (
+            <p className="mt-2 px-3 py-2 text-sm font-bold text-ink-muted" dir="auto">
+              🔇 {ar ? 'لو الصوت مش شغال عندك — قولها للطفل بنفسك:' : 'If sound is unavailable on this device — read it to the child:'}
+              <span className="block mt-1 text-lg font-black text-ink rounded-brand-sm bg-surface inline-block px-3 py-1">{audioText}</span>
+            </p>
+          )}
         </div>
       )}
-      {item?.stimulus && (
+      {isDisappeared ? (
+        <div
+          className="text-center py-4 rounded-brand-sm bg-surface-sunk"
+          data-mem-phase={memPhase}
+          aria-label={ar ? (memPhase === 0 ? 'بص كويس' : 'إيه اللي اختفت؟') : (memPhase === 0 ? 'Look closely' : 'What disappeared?')}
+        >
+          <div className="flex justify-center gap-3 text-5xl" dir="ltr">
+            {item.tiles_shown.map((t: string, k: number) => (
+              <span key={`${t}-${k}`} className={memPhase === 0 ? 'transition-opacity' : 'transition-opacity'}>
+                {memPhase >= 1 && t === item.disappeared ? '⬜' : t}
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-sm font-black text-ink-muted" aria-hidden={memPhase >= 1}>
+            {memPhase === 0 ? (ar ? '👀 بص كويس…' : '👀 Look closely…') : ''}
+          </p>
+        </div>
+      ) : isTimedPair ? (
+        <div
+          className="text-center py-4 rounded-brand-sm bg-surface-sunk"
+          data-mem-phase={memPhase}
+          aria-label={ar ? 'الصور ظهرت واحدة واحدة' : 'The pictures appeared one at a time'}
+        >
+          <div className="flex justify-center gap-3 text-5xl" dir="ltr">
+            {item.sequence_shown.slice(0, memPhase === 0 ? (studyCount) : item.sequence_shown.length).map((t: string, k: number) => (
+              <span key={`${t}-${k}`}>{t}</span>
+            ))}
+            {memPhase === 0 && item.sequence_shown.length > studyCount && (
+              <span className="opacity-40">…</span>
+            )}
+          </div>
+          <p className="mt-2 text-sm font-black text-ink-muted">{memPhase === 0 ? (ar ? '👀 بتظهر واحدة واحدة…' : '👀 One at a time…') : (ar ? '💭 فاكر؟' : '💭 Remember?')}</p>
+        </div>
+      ) : item?.stimulus ? (
         <div className="text-center py-4 rounded-brand-sm bg-surface-sunk">
           <span className="text-5xl font-black text-ink" dir="auto">{item.stimulus}</span>
         </div>
-      )}
+      ) : null}
 
       {/* The hint is help, never a correction. It never says what is wrong. */}
       {hintMode !== 'none' && item?.hint && (
