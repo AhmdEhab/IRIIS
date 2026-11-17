@@ -15,8 +15,8 @@ import {
 
 /* ── bank shape ─────────────────────────────────────────────────────────── */
 
-test('P63 bank: 269 items, retired ids gone, surviving ids frozen', () => {
-  assert.equal(PHASE5_BANK.length, 269);
+test('P63/P68 bank: 319 items, retired ids gone, surviving ids frozen', () => {
+  assert.equal(PHASE5_BANK.length, 319);
   const ids = new Set(PHASE5_BANK.map((i) => i.item_id));
   for (const gone of ['AR-BLDP-100', 'AR-BLDP-114', 'AR-CRD-192', 'AR-CRD-193']) {
     assert.ok(!ids.has(gone), `${gone} should be retired`);
@@ -27,7 +27,7 @@ test('P63 bank: 269 items, retired ids gone, surviving ids frozen', () => {
     assert.ok(ids.has(keep), `${keep} must keep its published id`);
   }
   assert.equal(PHASE5_BANK.filter((i) => /BLDP/.test(i.item_id)).length, 0);
-  assert.equal(PHASE5_BANK.filter((i) => i.strand === 'NUM.CARDINALITY').length, 4);
+  assert.equal(PHASE5_BANK.filter((i) => i.strand === 'NUM.CARDINALITY').length, 6); // P68 grew 2..5 to 2..7
 });
 
 test('P63 bank: zero strict duplicates (prompt+stimulus+options+answer)', () => {

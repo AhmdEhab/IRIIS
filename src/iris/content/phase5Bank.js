@@ -785,7 +785,7 @@ let av2Seed = 0;   // one deterministic salt counter for the whole av2 block
     prompt: s.rule === 'KIND'
       ? { ar: 'دي بتتجمع مع أنهي مجموعة؟', en: 'Which group does this one belong to?' }
       : { ar: 'دي بنفس لون أنهي مجموعة؟', en: 'Which group is the same colour as this one?' },
-    options, correct_index: (s.correct_group + shift) % n,
+    options, correct_index: (s.correct_group - shift + n) % n,   // P68 fix: inverse of the display rotation
     hint: s.rule === 'KIND'
       ? { ar: 'فكّر دي من نوع إيه', en: 'Think about what kind of thing it is' }
       : { ar: 'بصّ على اللون بس', en: 'Look at the colour only' },
@@ -1014,6 +1014,371 @@ const COMM_BOARD_BY_TIER = {
 // item set for itself (the VSP.PATTERN items re-hosted on TPL-AR_PATTERN do
 // exactly that, so a visual pattern is never rolled up with the numeric one).
 // It is a label used to group observations, never a score and never a diagnosis.
+// ══ P68 DEPTH ADDITIONS — anti-repetition growth of thin pools ════════════
+// Every item below is ADDITIVE and appended after every other section, so
+// the global nextId counter never moves an id that an existing child record,
+// draft or session ledger already references. Same rules, same answer-key
+// mechanics, same target_skill ids as their siblings — only the POOLS grow:
+// a strand can now serve four full sessions before any item is re-used.
+// ── LIT.LISTEN_INSTRUCTION: new two-step orders ─────────────────────────────
+[
+  { ar: 'المس الفانوس وبعدين الكرسي', seq: ['🏮', '🪑'], pool: ['🏮', '🪑', '⚽'] },
+  { ar: 'المس الآيس كريم وبعدين البالونة', seq: ['🍦', '🎈'], pool: ['🍦', '🎈', '🐟'] },
+  { ar: 'المس البطيخة وبعدين الشاحنة', seq: ['🍉', '🚚'], pool: ['🍉', '🚚', '🌙'] },
+].forEach((x) => {
+  items.push(mk({
+    item_id: nextId('AR-LSI'), strand: 'LIT.LISTEN_INSTRUCTION', rung: 2, tier: 'PRACTICE',
+    template_id: 'TPL-AR_LISTEN_INSTRUCTION',
+    audio_ar: x.ar,
+    prompt: { ar: x.ar, en: 'Do what you hear, in order' },
+    options: x.pool, correct_order: x.seq,
+    hint: { ar: 'الأول الحاجة الأولانية', en: 'The first one first' },
+  }));
+});
+// ── LIT.LISTEN_STORY: new mini-stories ──────────────────────────────────────
+[
+  { story: 'يوسف راح المخزن واشترى آيس كريم.', q: 'يوسف اشترى إيه؟', a: '🍦', d: ['⚽', '🎈'] },
+  { story: 'قطتنا شربت اللبن وبعدين نامت.', q: 'قطتنا شربت إيه؟', a: '🥛', d: ['💧', '🍌'] },
+  { story: 'هدى لبست الجاكيت عشان الجو برد.', q: 'هدى لبست إيه؟', a: '🧥', d: ['👟', '🎒'] },
+].forEach((x) => {
+  const { options, correct_index } = withOptions(x.a, x.d, av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-LST'), strand: 'LIT.LISTEN_STORY', rung: 3, tier: 'CHALLENGE',
+    template_id: 'TPL-AR_LISTEN_STORY',
+    audio_ar: x.story,
+    prompt: { ar: x.q, en: 'Listen and answer' },
+    options, correct_index,
+    hint: { ar: 'افتكر أول حاجة حصلت', en: 'Think about what happened first' },
+  }));
+});
+// ── LIT.PHON_RHYME: new rhyme pairs (real ending-sound matches) ─────────────
+[
+  { w: 'شَمْس', options: ['دَرْس', 'فِيل'], ci: 0 },
+  { w: 'لَيْل', options: ['نَجْم', 'خَيْل'], ci: 1 },
+].forEach((x) => {
+  items.push(mk({
+    item_id: nextId('AR-RHY'), strand: 'LIT.PHON_RHYME', rung: 4, tier: 'CHALLENGE',
+    template_id: 'TPL-AR_RHYME',
+    stimulus: x.w, audio_ar: x.w,
+    prompt: { ar: `«${x.w}» — أنهي كلمة بتخلص زيها؟`, en: `${x.w} — which word ends the same?` },
+    options: x.options, correct_index: x.ci,
+    hint: { ar: 'ركّز على آخر صوت في الكلمة', en: 'Listen to the last sound in the word' },
+    picture_supported: true, shows_letter: true, dialect_distance: 'SHARED',
+  }));
+});
+// ── LIT.READ_COMP + LIT.LISTEN_SENTENCE: two new sentences, both routes ────
+[
+  { s: 'الصَّبي يَركَبُ الدَّرَّاجَة.', q: 'الصبي بيركب إيه؟', a: '🚲', d: ['⚽', '🚗'] },
+  { s: 'الأُسْتَاذ يَكْتُبُ عَلَى السَّبُّورَة.', q: 'الأستاذ بيعمل إيه؟', a: '✏️', d: ['📕', '🍎'] },
+].forEach((x) => {
+  const { options, correct_index } = withOptions(x.a, x.d, av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-RCP'), strand: 'LIT.READ_COMP', rung: 9, tier: 'CHALLENGE',
+    template_id: 'TPL-AR_READ_COMP',
+    stimulus: x.s,
+    prompt: { ar: x.q, en: 'Read and answer' },
+    options, correct_index,
+    hint: { ar: 'اقرا الجملة تاني بالراحة', en: 'Read the sentence again slowly' },
+    vowelised: true,
+  }));
+});
+[
+  { a: 'الصَّبي يَركَبُ الدَّرَّاجَة.', options: ['🚲', '🚗', '⚽'], ci: 0 },
+  { a: 'الأُسْتَاذ يَكْتُبُ عَلَى السَّبُّورَة.', options: ['📕', '✏️', '🍌'], ci: 1 },
+].forEach((x) => {
+  items.push(mk({
+    item_id: nextId('AR-LSS'), strand: 'LIT.LISTEN_SENTENCE', rung: 1, tier: 'PRACTICE',
+    template_id: 'TPL-AR_LISTEN_SENTENCE',
+    audio_ar: x.a,
+    prompt: { ar: 'اسمع الجملة واختار الصورة', en: 'Listen and pick the picture' },
+    options: x.options, correct_index: x.ci,
+    hint: { ar: 'ركّز على الحاجة اللي بتحصل', en: 'Listen for what is happening' },
+  }));
+});
+// ── NUM.CARDINALITY: give me 6 and 7 — same tap-and-stop rule ───────────────
+[6, 7].forEach((k) => {
+  items.push(mk({
+    item_id: nextId('AR-CRD'), strand: 'NUM.CARDINALITY', rung: 1,
+    tier: k <= 6 ? 'PRACTICE' : 'CHALLENGE',
+    template_id: 'TPL-AR_GIVE_N',
+    audio_ar: `هاتلي ${toArabicNumeral(k)}`,
+    prompt: { ar: `هاتلي ${toArabicNumeral(k)}`, en: `Give me ${k}` },
+    pool_size: 8, expected_taps: k,
+    hint: { ar: 'لما توصل للعدد، قف', en: 'Stop when you reach the number' },
+    language_light: true,
+    _why: 'P68 depth addition — same cardinality rule as the 2..5 set.',
+  }));
+});
+// ── NUM.FUNCTIONAL: higher notes and full clock coverage ────────────────────
+[50, 100].forEach((v, i) => {
+  const correct = toArabicNumeral(v);
+  const d = distractors(['١', '٥', '١٠', '٢٠', '٥٠', '١٠٠'], correct, 2, i + 4);
+  const { options, correct_index } = withOptions(correct, d, i + 4);
+  items.push(mk({
+    item_id: nextId('AR-MON'), strand: 'NUM.FUNCTIONAL', rung: 7, tier: 'PRACTICE',
+    template_id: 'TPL-AR_MONEY',
+    stimulus: `💵 ${toArabicNumeral(v)} جنيه`,
+    prompt: { ar: 'ده كام جنيه؟', en: 'How many pounds is this?' },
+    options, correct_index,
+    hint: { ar: 'اقرا الرقم اللي على الورقة', en: 'Read the number on the note' },
+  }));
+});
+[
+  { stim: '🕕', a: '٦', d: ['٣', '٩'] },
+  { stim: '🕖', a: '٧', d: ['٦', '٨'] },
+  { stim: '🕙', a: '١٠', d: ['٦', '١٢'] },
+  { stim: '🕛', a: '١٢', d: ['١٠', '٦'] },
+].forEach((x, i) => {
+  const { options, correct_index } = withOptions(x.a, x.d, i);
+  items.push(mk({
+    item_id: nextId('AR-TIM'), strand: 'NUM.FUNCTIONAL', rung: 7, tier: 'PRACTICE',
+    template_id: 'TPL-AR_TIME',
+    stimulus: x.stim,
+    prompt: { ar: 'الساعة كام؟', en: 'What time is it?' },
+    options, correct_index,
+    hint: { ar: 'بصّ على العقرب القصير', en: 'Look at the short hand' },
+  }));
+});
+// ── VSP.DIFFERENCE: new odd-one-out rows ─────────────────────────────────────
+[
+  { tpl: 'TPL-AR_VSP_DIFFERENCE', listen: false, tier: 'PRACTICE', base: '🐶', odd: '🐱', near: false },
+  { tpl: 'TPL-AR_VSP_DIFFERENCE', listen: false, tier: 'CHALLENGE', base: '🎈', odd: '🎉', near: true },
+  { tpl: 'TPL-AR_VSP_DIFFERENCE_LISTEN', listen: true, tier: 'PRACTICE', base: '🍌', odd: '🍋', near: false },
+  { tpl: 'TPL-AR_VSP_DIFFERENCE_LISTEN', listen: true, tier: 'CHALLENGE', base: '🧢', odd: '🎩', near: true },
+].forEach((x, i) => {
+  const count = OPTIONS_PER_TIER[x.tier];
+  const oddAt = ((i + 1) % (count - 1)) + 1;
+  const options = Array.from({ length: count }, (_, t) => (t === oddAt ? x.odd : x.base));
+  items.push(mk({
+    item_id: nextId('AR-VSPD'), strand: 'VSP.DIFFERENCE', rung: 1, tier: x.tier,
+    template_id: x.tpl,
+    display: 'TILE_ROW',
+    ...(x.listen ? { audio_ar: 'في واحدة مش زي الباقي — دوس عليها' } : {}),
+    prompt: { ar: 'دوس على اللي مش زي الباقي', en: 'Tap the one that is not like the others' },
+    options, correct_index: oddAt,
+    hint: { ar: 'شوف اللي زي بعض الأول، وشوف التالتة مختلفة فين', en: 'Find the ones that match, then see how the other differs' },
+    language_light: true,
+    near_difference: x.near,
+    paired_modality: x.listen,
+    _tier_note: 'PRACTICE = 3 tiles from clearly different things; CHALLENGE = 4 tiles, and the odd one differs by a single attribute.',
+  }));
+});
+// ── VSP.SORT: new groups; keys computed the right way ───────────────────────
+[
+  {
+    tpl: 'TPL-AR_VSP_SORT', rule: 'KIND', tier: 'PRACTICE', target: '🍌', correct_group: 1,
+    groups: [['🐶', '🐘', '🦆'], ['🍎', '🍌', '🍇'], ['🚗', '🚲', '✈️']],
+  },
+  {
+    tpl: 'TPL-AR_VSP_SORT', rule: 'KIND', tier: 'CHALLENGE', target: '⚽', correct_group: 0,
+    groups: [['⚽', '🏀', '🎳'], ['🔨', '🪛', '✂️'], ['🍎', '🍌', '🍇'], ['🚗', '🚲', '🛴']],
+  },
+  {
+    tpl: 'TPL-AR_VSP_SORT_COLOR', rule: 'COLOUR', tier: 'PRACTICE', target: '❤️', correct_group: 0,
+    groups: [['🔴', '🍎', '❤️'], ['🔵', '💙', '🟦'], ['🟢', '💚', '🥒']],
+  },
+  {
+    tpl: 'TPL-AR_VSP_SORT_COLOR', rule: 'COLOUR', tier: 'CHALLENGE', target: '🍇', correct_group: 0,
+    groups: [['🟣', '💜', '🍇'], ['🔴', '🍎', '❤️'], ['🟢', '💚', '🥒'], ['🔵', '💙', '🟦']],
+  },
+].forEach((s, i) => {
+  const n = s.groups.length;
+  const shift = (i + 1) % n;
+  const options = s.groups.map((_, idx) => s.groups[(idx + shift) % n].join(' '));
+  const correct_index = (s.correct_group - shift + n) % n;   // P68: inverse of the rotation
+  items.push(mk({
+    item_id: nextId('AR-VSPS'), strand: 'VSP.SORT', rung: 2, tier: s.tier,
+    template_id: s.tpl,
+    stimulus: s.target,
+    display: 'TARGET_AND_GROUPS',
+    sort_rule: s.rule,
+    prompt: s.rule === 'KIND'
+      ? { ar: 'دي بتتجمع مع أنهي مجموعة؟', en: 'Which group does this one belong to?' }
+      : { ar: 'دي بنفس لون أنهي مجموعة؟', en: 'Which group is the same colour as this one?' },
+    options, correct_index,
+    hint: s.rule === 'KIND'
+      ? { ar: 'فكّر دي من نوع إيه', en: 'Think about what kind of thing it is' }
+      : { ar: 'بصّ على اللون بس', en: 'Look at the colour only' },
+    language_light: true,
+    _why: 'P68 depth addition — grouping by a property, no number in the item.',
+  }));
+});
+// ── VSP.PATTERN: new repeats, both formats ──────────────────────────────────
+[
+  { tpl: 'TPL-AR_VSP_PATTERN', tier: 'FOUNDATION', seq: ['⬜', '⬛', '⬜', '⬛', '⬜'], next: '⬛', d: ['⭐', '🟦'] },
+  { tpl: 'TPL-AR_VSP_PATTERN', tier: 'PRACTICE', seq: ['🔺', '🔵', '🔺', '🔵', '🔺'], next: '🔵', d: ['🔺', '⭐'] },
+  { tpl: 'TPL-AR_PATTERN', rehosted: true, tier: 'FOUNDATION', seq: ['🟥', '🟥', '🟦', '🟥', '🟥', '🟦', '🟥'], next: '🟦', d: ['🟨', '🟥'] },
+  { tpl: 'TPL-AR_PATTERN', rehosted: true, tier: 'CHALLENGE', seq: ['🎈', '🎈', '🎁', '🎈', '🎈', '🎁', '🎈', '🎈'], next: '🎁', d: ['🎈', '🎉', '🍭'] },
+].forEach((p) => {
+  const d = p.d.filter((x) => x !== p.next).slice(0, OPTIONS_PER_TIER[p.tier] - 1);
+  const { options, correct_index } = withOptions(p.next, d, av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-VSPP'), strand: 'VSP.PATTERN', rung: 3, tier: p.tier,
+    template_id: p.tpl,
+    target_skill: 'vsp-pattern-extend',
+    stimulus: p.seq.join(' '),
+    pattern_domain: 'VISUAL_ONLY',
+    prompt: { ar: 'إيه اللي جاي بعد كده؟', en: 'What comes next?' },
+    options, correct_index,
+    hint: { ar: 'شوف الشكل اللي بيتكرر إزاي', en: 'See how the shape repeats' },
+    language_light: true,
+    ...(p.rehosted
+      ? { _why: 'P68 depth addition on the rehosted numeric format — visual content only, its own target_skill.' }
+      : {}),
+  }));
+});
+// ── MEM.VISUAL_STM: new disappearance sets ──────────────────────────────────
+[
+  { tpl: 'TPL-AR_MEM_DISAPPEARED', listen: false, tier: 'PRACTICE', tiles: ['🐶', '🎈', '🌙'], gone: '🎈', foil: '⚽' },
+  { tpl: 'TPL-AR_MEM_DISAPPEARED', listen: false, tier: 'CHALLENGE', tiles: ['🍦', '🚿', '🐱'], gone: '🚿', foil: '🎩' },
+  { tpl: 'TPL-AR_MEM_DISAPPEARED_LISTEN', listen: true, tier: 'PRACTICE', tiles: ['🎈', '⭐', '🐥'], gone: '⭐', foil: '🍦' },
+  { tpl: 'TPL-AR_MEM_DISAPPEARED_LISTEN', listen: true, tier: 'CHALLENGE', tiles: ['🧢', '🐸', '🍉'], gone: '🧢', foil: '⚽' },
+].forEach((x) => {
+  const others = x.tiles.filter((t) => t !== x.gone);
+  const pool = x.tier === 'CHALLENGE' ? [...others, x.foil] : others;
+  const { options, correct_index } = withOptions(x.gone, pool, av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-MEMV'), strand: 'MEM.VISUAL_STM', rung: 0, tier: x.tier,
+    template_id: x.tpl,
+    set_size: x.tiles.length,
+    tiles_shown: [...x.tiles],
+    display_after: x.tiles.map((t) => (t === x.gone ? '⬜' : t)).join(' '),
+    stimulus: x.tiles.join(' '),
+    disappeared: x.gone,
+    ...(x.listen ? { audio_ar: 'إيه اللي اختفت من الصور؟' } : {}),
+    prompt: { ar: 'إيه اللي اختفت؟', en: 'What disappeared?' },
+    options, correct_index,
+    hint: { ar: 'افتكر الصور كانت إيه في الأول', en: 'Remember what the pictures were at the start' },
+    language_light: true,
+    paired_modality: x.listen,
+    _why: 'P68 depth addition — short-delay visual memory, no quantity judgement.',
+  }));
+});
+// ── MEM.SEQUENCE: new two-step orders to hold after they fade ───────────────
+[
+  { tpl: 'TPL-AR_MEM_SEQUENCE', audio_led: false, tier: 'PRACTICE', steps: ['🍌', '🚿'], pool: ['🐶'] },
+  { tpl: 'TPL-AR_MEM_SEQUENCE', audio_led: false, tier: 'CHALLENGE', steps: ['🌙', '🎩'], pool: ['🐘', '🍎'] },
+  { tpl: 'TPL-AR_MEM_SEQUENCE_LISTEN', audio_led: true, tier: 'PRACTICE', steps: ['🦋', '🐢'], pool: ['⚽'] },
+  { tpl: 'TPL-AR_MEM_SEQUENCE_LISTEN', audio_led: true, tier: 'CHALLENGE', steps: ['👟', '🎒'], pool: ['🧢', '🐶'] },
+].forEach((x) => {
+  const foils = x.tier === 'CHALLENGE' ? x.pool : x.pool.slice(0, 1);
+  const options = [...x.steps, ...foils];
+  const instruction = `دوس ${x.steps[0]} الأول وبعدين ${x.steps[1]}`;
+  items.push(mk({
+    item_id: nextId('AR-MEMS'), strand: 'MEM.SEQUENCE', rung: 1, tier: x.tier,
+    template_id: x.tpl,
+    steps: x.steps.length,
+    stimulus: x.steps.join('  →  '),
+    audio_ar: instruction,
+    audio_led: x.audio_led,
+    prompt: { ar: instruction, en: `Tap ${AV2_NAME_AR[x.steps[0]] ?? x.steps[0]} first, then ${AV2_NAME_AR[x.steps[1]] ?? x.steps[1]}` },
+    options, correct_order: [...x.steps],
+    hint: { ar: 'لو نسيان، هتشوفهم وتسمعهم تاني', en: 'If you forget, you will see and hear them again' },
+    language_light: true,
+    paired_modality: true,
+    _note_vs_listening: 'LIT.LISTEN_INSTRUCTION scores following words; this scores holding the order after the sentence is gone.',
+  }));
+});
+// ── MEM.MEDIAL: new first/last probes ───────────────────────────────────────
+[
+  { tpl: 'TPL-AR_MEM_MEDIAL_FIRST', term: 'FIRST', tier: 'PRACTICE', first: '🎈', second: '🍌', foil: '🚿' },
+  { tpl: 'TPL-AR_MEM_MEDIAL_FIRST', term: 'FIRST', tier: 'CHALLENGE', first: '🦋', second: '🐢', foil: '⚽' },
+  { tpl: 'TPL-AR_MEM_MEDIAL_LAST', term: 'LAST', tier: 'PRACTICE', first: '🍌', second: '🚲', foil: '🎈' },
+  { tpl: 'TPL-AR_MEM_MEDIAL_LAST', term: 'LAST', tier: 'CHALLENGE', first: '🐥', second: '🎈', foil: '🌙' },
+].forEach((x) => {
+  const answer = x.term === 'FIRST' ? x.first : x.second;
+  const shown = [x.first, x.second];
+  const pool = [...shown, x.foil];
+  const { options, correct_index } = withOptions(answer, pool.filter((t) => t !== answer), av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-MEMF'), strand: 'MEM.MEDIAL', rung: 2, tier: x.tier,
+    template_id: x.tpl,
+    sequence_shown: shown,
+    stimulus: `${x.first}  وبعدين  ${x.second}`,
+    temporal_term: x.term,
+    prompt: x.term === 'FIRST'
+      ? { ar: 'إيه اللي جه الأول؟', en: 'Which one came first?' }
+      : { ar: 'إيه اللي جه الآخر؟', en: 'Which one came last?' },
+    options, correct_index,
+    hint: x.term === 'FIRST'
+      ? { ar: 'أول حاجة ظهرت قدامك', en: 'The first thing that appeared' }
+      : { ar: 'آخر حاجة ظهرت قدامك', en: 'The last thing that appeared' },
+    language_light: true,
+    _render_note: 'The two tiles appear one after the other in sequence_shown order — a static row would make this a matching item, not a memory item.',
+  }));
+});
+// ── VSP.MATCH: two more exact-match pictures ────────────────────────────────
+[
+  { tpl: 'TPL-AR_VSP_MATCH', listen: false, tier: 'PRACTICE', pic: '🦋', d: ['🐢'] },
+  { tpl: 'TPL-AR_VSP_MATCH_LISTEN', listen: true, tier: 'CHALLENGE', pic: '🧢', d: ['🐢'] },
+].forEach((x) => {
+  const { options, correct_index } = withOptions(x.pic, x.d, av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-VSPM'), strand: 'VSP.MATCH', rung: 0, tier: x.tier,
+    template_id: x.tpl,
+    stimulus: x.pic,
+    ...(x.listen ? { audio_ar: 'اختار الصورة اللي زي دي بالظبط' } : {}),
+    prompt: { ar: 'اختار اللي زيها بالظبط', en: 'Pick the one that is exactly the same' },
+    options, correct_index,
+    hint: { ar: 'قارن الشكل واللون — واحدة واحدة', en: 'Compare the shape and the colour, one at a time' },
+    language_light: true,
+    paired_modality: x.listen,
+  }));
+});
+// ── COMM.EXPRESS_CHOICE: new boards — still no right tile ───────────────────
+[
+  { tpl: 'TPL-AR_COMM_CHOICE', listen: false, tier: 'FOUNDATION', board: ['🪁', '🦆'] },
+  { tpl: 'TPL-AR_COMM_CHOICE_LISTEN', listen: true, tier: 'PRACTICE', board: ['🍦', '🐢', '🪁'] },
+].forEach((x) => {
+  items.push(mk({
+    item_id: nextId('AR-CMEC'), strand: 'COMM.EXPRESS_CHOICE', rung: 0, tier: x.tier,
+    template_id: x.tpl,
+    display: 'CHOICE_BOARD',
+    options: [...x.board],
+    expected_taps: 1,
+    accepts_any_output: true,
+    helper_confirm: false,
+    any_response_is_success: true,
+    vocal_required: false,
+    response_modes: ['tap', 'point', 'gaze_adjacent_point', 'any_vocal_helper_confirmed', 'aac_press'],
+    ...(x.listen ? { audio_ar: COMM_CHOICE_ASK[x.tier].ar } : {}),
+    prompt: COMM_CHOICE_ASK[x.tier],
+    hint: { ar: 'خُد وقتك — أي حاجة تختارها تنفع', en: 'Take your time — anything you pick is fine' },
+    language_light: true,
+    paired_modality: x.listen,
+    _scoring_note: 'av2 §2 anti-rule: no tile is correct. The engine records the CHANNEL, never the preference.',
+    _tier_note: 'Only the number of competing choices changes across tiers — 2, then 3, then 4.',
+  }));
+});
+// ── COMM.LABEL: two more names, any channel counts ──────────────────────────
+[
+  { tpl: 'TPL-AR_COMM_LABEL', audio_led: false, tier: 'PRACTICE', pic: '🎈', name: 'بالونة', d: ['🚗', '🐟'] },
+  { tpl: 'TPL-AR_COMM_LABEL_POINT', audio_led: true, tier: 'PRACTICE', pic: '🍉', name: 'بطيخة', d: ['🍎', '⚽'] },
+].forEach((x) => {
+  const { options, correct_index } = withOptions(x.pic, x.d, av2Seed++);
+  items.push(mk({
+    item_id: nextId('AR-CMLB'), strand: 'COMM.LABEL', rung: 1, tier: x.tier,
+    template_id: x.tpl,
+    stimulus: x.pic,
+    expected_word_ar: x.name,
+    accepts_any_output: true,
+    helper_confirm: true,
+    any_response_is_success: true,
+    vocal_required: false,
+    never_vocal_required: true,
+    response_modes: ['any_vocal_helper_confirmed', 'vocal_attempt', 'sign', 'aac_press', 'point', 'tap'],
+    ...(x.audio_led ? { audio_ar: `دي ${x.name} — وريني فين ${x.name}` } : {}),
+    prompt: x.audio_led
+      ? { ar: `وريني فين ${x.name}`, en: `Show me the ${x.name}` }
+      : { ar: 'دي إيه؟ قولها، أو أشر على صورتها', en: 'What is this? Say it, or point to its picture' },
+    options, correct_index,
+    hint: { ar: 'مفيش غلط — أي صوت أو إشارة أو ضغطة تكفي', en: 'Nothing is wrong — any sound, sign or tap is enough' },
+    language_light: true,
+    paired_modality: x.audio_led,
+    _scoring_note: 'A helper-confirmed vocal attempt is scored exactly like the matching tap (matrix D9, av2 §2 anti-rule).',
+  }));
+});
+
 for (const it of items) it.target_skill ??= TARGET_SKILL_BY_TEMPLATE[it.template_id] ?? null;
 
 export const PHASE5_BANK = items;
