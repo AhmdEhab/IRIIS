@@ -359,7 +359,9 @@
 }
 /* viewer root is aspect-square; let the photo fill whatever height the row has */
 .cl-learn .os-3d > *:last-child { flex: 0 0 auto; }
-.cl-learn .os-3d canvas { width: 100% !important; min-height: 230px; height: 280px !important; }
+/* P72: the stage is the lesson — a taller canvas gives the object room to
+   breathe instead of a stamp-sized viewport. */
+.cl-learn .os-3d canvas { width: 100% !important; min-height: 250px; height: 340px !important; }
 .cl-learn .os-proc { width: 100% !important; aspect-ratio: 1; height: auto !important; min-height: 230px; }
 .cl-learn .os-photo img { width: 100%; flex: 1 1 auto; min-height: 230px; height: auto; object-fit: cover; border-radius: 18px; display: block; }
 /* hide the viewer's own gesture chip inside studies — we show one hint line below the grid */

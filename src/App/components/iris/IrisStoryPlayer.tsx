@@ -313,7 +313,9 @@ export function IrisStoryPlayer({ onExit }: { onExit: () => void }) {
   return (
     <div className="iris-child min-h-screen p-6 bg-ground">
       <BackButton onClick={closeStory} />
-      <div className="max-w-3xl mx-auto space-y-5">
+      {/* P72: the stage is the story — give it the widest column the reading
+          line stays calm at (was 3xl, which read as a small postcard). */}
+      <div className="max-w-4xl mx-auto space-y-5">
         <div className="flex items-center justify-between gap-3">
           <ChildProgressDots
             total={story.scenes.length}

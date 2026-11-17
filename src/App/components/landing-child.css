@@ -36,7 +36,14 @@
   font-family: var(--iris-font-body, 'Cairo', system-ui, sans-serif);
   color: var(--lc-ink);
 }
-.lc-root svg { width: 22px; height: 22px; }
+/* P72: this rule normalises the lucide ICON glyphs inside the child chrome.
+   It used to target every `svg` under .lc-root, which silently collapsed the
+   real artwork too — story scenes rendered as a 22px sliver clipped inside a
+   26px bar, story-picker covers shrank (utility classes like w-28 lose this
+   selector's specificity), the same for the mascot and any inline art.
+   Lucide icons always carry the `lucide` class, so the rule now targets
+   only them and illustrations keep their own sizing. */
+.lc-root svg.lucide { width: 22px; height: 22px; }
 /* ambient decor like the landing's corner blobs */
 .lc-decor { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .lc-blob { position: absolute; width: 340px; height: 340px; opacity: 0.5; }

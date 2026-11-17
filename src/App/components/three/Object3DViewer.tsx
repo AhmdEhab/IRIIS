@@ -92,6 +92,9 @@ const STRINGS = {
 } as const;
 
 const BOX = 'aspect-square w-full';
+/* P72: the world-space line every object rests on; the platter sits
+   a hair under it so the two never z-fight when the model touches down. */
+const GROUND_Y = -1.0;
 
 /* ── Static fallback (also the no-WebGL path) ─────────────────────────── */
 function StaticFallback({
@@ -210,7 +213,13 @@ function FittedModel({ src, onReady }: { src: string; onReady: () => void }) {
     inner.add(root);
     inner.position.set(-centre.x, -centre.y, -centre.z);
     group.add(inner);
-    group.scale.setScalar(2 / maxDim);
+    const s = 2 / maxDim;
+    group.scale.setScalar(s);
+    // P72: centring the box at the origin made short objects (an orange, a
+    // watermelon slice) float mid-frame above the platter, while tall ones sat
+    // almost right. Push the pivot up so the model's own bottom meets the
+    // resting line: world bottom after centring is -(size.y * s) / 2.
+    group.position.y = GROUND_Y + (size.y * s) / 2;
 
     // Clay-toy shading. The authored models carry flat brand colours with no
     // roughness map; forcing a matte response keeps them reading as plasticine
@@ -255,10 +264,19 @@ function FittedModel({ src, onReady }: { src: string; onReady: () => void }) {
  *  through space, and gives the drag gesture something to pivot around. */
 function Platter({ color }: { color: string }) {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.08, 0]}>
-      <circleGeometry args={[1.5, 48]} />
-      <meshStandardMaterial color={color} roughness={0.9} metalness={0} transparent opacity={0.55} />
-    </mesh>
+    /* P72: the old single r=1.5 disc read as a hard-edged grey hill. Two
+       concentric discs instead: a firm plate the object rests on, and a wide
+       faint halo that melts its edge into the wash behind it. */
+    <group rotation={[-Math.PI / 2, 0, 0]} position={[0, GROUND_Y - 0.02, 0]}>
+      <mesh>
+        <circleGeometry args={[1.02, 48]} />
+        <meshStandardMaterial color={color} roughness={0.9} metalness={0} transparent opacity={0.85} />
+      </mesh>
+      <mesh position={[0, 0, -0.004]}>
+        <circleGeometry args={[1.42, 48]} />
+        <meshStandardMaterial color={color} roughness={0.9} metalness={0} transparent opacity={0.3} />
+      </mesh>
+    </group>
   );
 }
 
@@ -338,7 +356,7 @@ export default function Object3DViewer({
             // controls call invalidate() on every change, so dragging still
             // tracks the finger exactly.
             frameloop={spinning ? 'always' : 'demand'}
-            camera={{ position: [0, 0.9, 3.6], fov: 42, near: 0.1, far: 40 }}
+            camera={{ position: [0, 0.62, 3.2], fov: 42, near: 0.1, far: 40 }}
             gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
           >
             <ambientLight intensity={0.85} />
@@ -355,6 +373,10 @@ export default function Object3DViewer({
             </Breathing>
             <OrbitControls
               makeDefault
+              // P72: with objects now resting on the plate, the mass sits a
+              // touch under the world origin; aim the turntable there so the
+              // object + its plate read centred in the frame.
+              target={[0, -0.28, 0]}
               // Children rotate by dragging. Zoom is available but narrow, so
               // a small hand cannot lose the object by zooming it away, and
               // panning is off entirely for the same reason.
