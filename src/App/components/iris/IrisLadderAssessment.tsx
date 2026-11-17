@@ -7,8 +7,8 @@ import { useApp } from '../../contexts/AppContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudio } from '../../contexts/AudioContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { servableStrandItems } from '../../../iris/content/phase5Bank.js';
-import { pickVisitItems, ledgerFromObservations } from '../../../iris/content/visitPicker.js';
+import { servableStrandItems, PHASE5_ITEM_BY_ID } from '../../../iris/content/phase5Bank.js';
+import { pickVisitItems, ledgerFromObservations, taskKeyOf } from '../../../iris/content/visitPicker.js';
 import { STRAND_BY_ID } from '../../../iris/journey.js';
 import { LadderItemCard, LadderProgress, LadderRemainingChip } from './ui/LadderItemCard';
 import { IrisBuddy } from './ui/IrisBuddy';
@@ -244,28 +244,67 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     [allProbes, closed],
   );
   const visit = iris.currentVisit;
+  /* P67b: the observation ledger is the ANSWER log; between serving a card
+     and its observation landing in state there is a window (fast advance,
+     batched visit-end flush) in which the SAME card could be served again
+     by a later visit. Remember every SERVED id for the whole run and feed
+     it into the picker too — served-once-means-served, answer or not.
+     The ref resets whenever a new run is minted (runSalt change). */
+  const servedThisRunRef = useRef<string[]>([]);
+  const lastSaltRef = useRef<number | null>(null);
+  if (iris.ladderRunSalt !== lastSaltRef.current) {
+    lastSaltRef.current = iris.ladderRunSalt;
+    servedThisRunRef.current = [];
+  }
 
   /** Load the items for a strand visit from the bank. */
   const loadVisit = useCallback((v: any) => {
     if (!v) return;
-    const pool = servableStrandItems({ strand: v.strand, template_id: v.template });
-    const fallback = pool.length ? pool : servableStrandItems({ strand: v.strand });
+    const templatePool = servableStrandItems({ strand: v.strand, template_id: v.template });
+    const strandPool = servableStrandItems({ strand: v.strand });
+    const fallback = templatePool.length ? templatePool : strandPool;
     /* P63 session-variety ledger (R1 prompt≤2, R2 same-task never twice,
        R3 fresh-first) built from the run's own per-item observations —
        which ride the draft, so a resumed session honours them too. */
     const ledger = ledgerFromObservations(iris.ladderObservations);
+    /* P67 CROSS-SESSION VARIETY: fold the child's most recent COMPLETED
+       runs into the SAME fresh-first preference — item ids and task keys
+       only. The per-session prompt cap (R1) deliberately does NOT carry
+       over: thin strands legitimately reuse a wording in a NEW session,
+       and starving coverage was never the point. Rotation gets the run
+       salt so two sessions do not start the cyclic slice at zero. */
+    const hist = iris.ladderHistoryObs || [];
+    const histIds = hist.map((o: any) => String(o.item_id));
+    const seenIds = [...new Set([...histIds, ...servedThisRunRef.current])];
+    const histTasks = seenIds
+      .map((id: string) => (PHASE5_ITEM_BY_ID as any)[id])
+      .filter(Boolean)
+      .map((it: any) => taskKeyOf(it));
     /* P62b ROTATION: visit N starts where visit N-1 ended (cyclic). The
        engine's template rotation already switches activity FORM for strands
        that have a listen/visual twin; this stops the same CARDS from being
        re-served inside one form. QA reads the accumulated list below. */
-    const rotated = pickVisitItems({
-      pool: fallback,
+    const serveOpts = {
       itemCount: v.item_count,
-      visitOffset: v.visit_offset || 0,
-      servedItemIds: ledger.servedItemIds,
+      visitOffset: (v.visit_offset || 0) + (iris.ladderRunSalt || 0),
+      servedItemIds: [...new Set([...ledger.servedItemIds, ...histIds, ...servedThisRunRef.current])],
       promptCounts: ledger.promptCounts,
-      taskKeysUsed: ledger.taskKeysUsed,
-    });
+      taskKeysUsed: [...ledger.taskKeysUsed, ...histTasks],
+    };
+    /* P67b LAST-RESORT WIDENING: when the template's own pool is so thin
+       that THIS visit can only repeat served cards, pull fresh ones from
+       the same STRAND (its paired-listen twin or other rungs) — a
+       guaranteed duplicate becomes genuinely new evidence for the same
+       skill. Only doomed-to-repeat visits change; everything else is
+       byte-identical, and the observation now records the item's REAL
+       template so the transparency log stays honest either way. */
+    let rotated = pickVisitItems({ pool: templatePool, ...serveOpts });
+    const seenSet = new Set(serveOpts.servedItemIds.map(String));
+    const allSeen = rotated.length > 0 && rotated.every((i: any) => seenSet.has(String(i.item_id ?? i.id ?? '')));
+    if (allSeen && strandPool.length > templatePool.length) {
+      rotated = pickVisitItems({ pool: strandPool, ...serveOpts });
+    }
+    servedThisRunRef.current = [...servedThisRunRef.current, ...rotated.map((i: any) => String(i.item_id ?? i.id ?? ''))];
     setVisitItems(rotated);
     try {
       const w = window as any;
@@ -276,7 +315,7 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
     visitObsRef.current = [];   // fresh observation slice per visit
     visitRetriedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iris.ladderObservations]);
+  }, [iris.ladderObservations, iris.ladderHistoryObs, iris.ladderRunSalt]);
 
   useEffect(() => {
     try {
@@ -400,7 +439,7 @@ export function IrisLadderAssessment({ onFinish, onExit }: { onFinish: () => voi
         latencyMs: latencyMs(),
         strand: meta?.strand ?? item?.strand ?? null,
         rung: meta?.rung ?? item?.rung ?? null,
-        templateId: meta?.template ?? item?.template_id ?? null,
+        templateId: item?.template_id ?? meta?.template ?? null,
       });
       iris.recordLadderObservation(obs);
     } catch { /* the observation net must never break the game */ }

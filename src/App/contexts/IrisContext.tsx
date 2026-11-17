@@ -254,6 +254,19 @@ function useIrisState() {
    * a gentle retry of `loadLadderFromServer`.
    */
   const [ladderLoadError, setLadderLoadError] = useState<string | null>(null);
+  /* P67 CROSS-SESSION VARIETY (user: 'same questions every time'): the
+     picker was session-scoped and rotation deterministic, so every NEW
+     run served the identical 12 cards. Two fixes, both variety-only —
+     scoring maths, budgets and per-session rules are untouched:
+       • runSalt — a per-RUN rotation offset minted when a probe starts and
+         carried in the draft so a reload keeps the SAME session's order;
+       • historyObs — item rows of the child's most recent COMPLETE
+         records, used as a fresh-first preference (never a starvation:
+         the picker still relaxes to coverage when a pool runs thin). */
+  const [ladderRunSalt, setLadderRunSalt] = useState<number | null>(
+    typeof savedProbe?.runSalt === 'number' ? savedProbe.runSalt : null,
+  );
+  const [ladderHistoryObs, setLadderHistoryObs] = useState<any[]>([]);
 
   const ladderDraftRef = useRef<any>(null);
   ladderDraftRef.current = {
@@ -261,6 +274,7 @@ function useIrisState() {
     // ── av2 additions (additive; an old envelope just lacks them) ──
     observations: ladderObservations, visitValidity: ladderVisitValidity,
     cal: ladderCalDraft, gates: ladderGates, caregiverRef: ladderCaregiverRef,
+    runSalt: ladderRunSalt,
   };
   const writeLadderDraft = useCallback(() => {
     try {
@@ -317,6 +331,7 @@ function useIrisState() {
       currentVisit: d.currentVisit ?? null,
       visitSeed: null,
       observations: Array.isArray(d.observations) ? d.observations : [],
+      runSalt: typeof d.runSalt === 'number' ? d.runSalt : null,
       visitValidity: Array.isArray(d.visitValidity) ? d.visitValidity : [],
       gates: d.gates ?? null,
       caregiverRef: d.caregiverRef ?? null,
@@ -442,6 +457,7 @@ function useIrisState() {
       setLadderGatesState(st.gates ?? null);
       setLadderCaregiverRef(st.caregiverRef ?? null);
       if (st.observation) setLadderObservation(st.observation);
+      if (typeof st.runSalt === 'number') setLadderRunSalt(st.runSalt);
       if (typeof draft.clientRef === 'string' && draft.clientRef) setLadderClientRef(draft.clientRef);
       const cal = st.cal ?? (Array.isArray(st.calResponses)
         ? { calIndex: st.calIndex ?? 0, calResponses: st.calResponses } : null);
@@ -491,12 +507,26 @@ function useIrisState() {
   /** Fresh run: clear the accumulators and mint the draft's idempotency key
    *  up front, so even the calibration games ride a flushable clientRef. */
   const resetLadderRun = useCallback(() => {
+    /* P67b: a retake on THIS device must inherit variety memory even
+       when the server list never hydrated it (offline, or a device where
+       boot skipped hydration). Fold the run we are about to clear into
+       the cross-session history BEFORE wiping it. */
+    setLadderHistoryObs((prev: any[]) => {
+      const ids = new Set(prev.map((o: any) => String(o.item_id)));
+      const next = prev.slice();
+      for (const o of ladderObservations) {
+        const id = typeof o?.item_id === 'string' ? o.item_id : null;
+        if (!id || ids.has(id)) continue;
+        ids.add(id); next.push({ item_id: id });
+      }
+      return next.slice(-400);
+    });
     setLadderObservations([]);
     setLadderVisitValidity([]);
     setLadderCalDraft(null);
     setProbeState(null); setProbeCalibration(null); setCurrentVisit(null);
     setLadderClientRef(newLadderClientRef());
-  }, []);
+  }, [ladderObservations]);
 
   /** Intake — the ONLY diagnosis touchpoint, and it sets access supports only. */
   const startChild = useCallback((name: string, cond: string, ageYears: number | null = null) => {
@@ -838,6 +868,18 @@ function useIrisState() {
           return kind === 'LADDER' && r.status === 'COMPLETE';
         })
         .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0];
+      /* P67: the same rows are the CROSS-SESSION ledger — take the item
+         rows out of the most recent COMPLETE runs (capped) so the picker
+         can prefer never-seen cards. Pure variety input; never gating. */
+      const hist: any[] = [];
+      for (const r of rows.filter((x: any) => x.status === 'COMPLETE').slice(0, 3)) {
+        const obs = (r.item_results && r.item_results.observations) || (r.observations) || [];
+        for (const o of Array.isArray(obs) ? obs : []) {
+          if (o && typeof o.item_id === 'string') hist.push({ item_id: o.item_id });
+          if (hist.length > 240) break;
+        }
+      }
+      setLadderHistoryObs(hist);
       if (!latest) return false;
       const assessment = fromAssessmentRecord(latest);
       const plan = planLadderContent({ assessment, accommodations: assessment.accommodations_used });
@@ -866,6 +908,10 @@ function useIrisState() {
        run started with, and hydration of pre-P62 drafts (no stored config)
        keeps the historical clinical default. */
     const state = closeGatedTracks(startProbe(calibration, PROBE_PROFILES.family), ladderGates);
+    /* P67: mint a per-RUN rotation salt. Saved into (and restored from)
+       the draft envelope by the paths above, so reload/resume replays the
+       SAME order — only a genuinely NEW run shifts the rotation. */
+    setLadderRunSalt(Math.floor(Math.random() * 99991));
     const visit = nextProbe(state);
     setProbeCalibration(calibration);
     setProbeState(state);
@@ -1228,6 +1274,7 @@ function useIrisState() {
     // validity, opportunity gates, calibration draft mirror, server-draft
     // resume, and the defensive caregiver-gate probe. ──
     ladderObservations, ladderVisitValidity, ladderGates, ladderCaregiverRef,
+    ladderRunSalt, ladderHistoryObs,
     recordLadderObservation, setLadderCalProgress, setLadderGating,
     ladderGatesFromCaregiver, resetLadderRun, resumeLadderDraft,
     // The adaptive decision trace — what changed, why, and on what evidence.
