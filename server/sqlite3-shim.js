@@ -8,12 +8,23 @@ const { EventEmitter } = require('events');
 class Database extends EventEmitter {
   constructor(path, mode, cb) {
     super();
-    this.client = typeof path === 'string' && (path.startsWith('libsql://') || path.startsWith('http'))
-      ? createClient({ url: path, authToken: process.env.TURSO_AUTH_TOKEN })
-      : createClient({ url: 'file:' + path });
+    this.__path = path;
+    this.client = this.__make(path);
     if (typeof mode === 'function') mode = null;
     if (typeof cb === 'function') queueMicrotask(() => cb.call(this));
   }
+  __make(path) {
+    return typeof path === 'string' && (path.startsWith('libsql://') || path.startsWith('http'))
+      ? createClient({ url: path, authToken: process.env.TURSO_AUTH_TOKEN })
+      : createClient({ url: 'file:' + path });
+  }
+  /** P69 SELF-HEALING CLOSE. blobsync hot-swaps a newer snapshot onto
+   *  the SAME path when another instance has written; the libsql client
+   *  keeps page-cache state over replaced bytes, so it must be reborn
+   *  from the fresh file. Some dialect versions reuse a closed Database
+   *  (older sqlite ConnectionManager singletons); recreating the client
+   *  here makes close() safe either way — the next query transparently
+   *  opens the new snapshot. */
   _norm(sql, params, cb) {
     if (Array.isArray(sql)) { cb = params; params = sql[1]; sql = sql[0]; }
     if (typeof params === 'function') { cb = params; params = []; }

@@ -45,6 +45,27 @@ const Session = require('./models/Session');
 const VerificationCode = require('./models/VerificationCode');
 const { mode: emailMode, sendVerificationEmail } = require('./lib/email');
 const blobsync = require('./lib/blobsync');
+/* P69: when blobsync hot-swaps a newer snapshot under us, pooled SQLite
+   handles point at replaced bytes. Close them; the next query reopens the
+   fresh file. Serverless runs one request at a time per instance, so no
+   concurrent query can be in flight here. */
+blobsync.onFresh(async () => {
+  /* P69 SNAPSHOT SWAP. Do NOT call sequelize.close(): the abstract
+     connection manager marks itself closed permanently and every later
+     query throws (which requireAuth then masks as UNAUTHENTICATED).
+     Instead, close each cached raw handle's libsql client — the file is
+     about to be replaced under it — and drop the dialect's cache entry.
+     The next getConnection() builds a fresh Database over the new bytes. */
+  const cm = sequelize.connectionManager;
+  const conns = (cm && cm.connections) || {};
+  for (const key of Object.getOwnPropertyNames(conns)) {
+    try {
+      const handle = conns[key];
+      if (handle && handle.client && typeof handle.client.close === 'function') handle.client.close();
+    } catch { /* best effort */ }
+    delete conns[key];
+  }
+});
 /* av2 (spec §10): the ladder autosave table — required here so
  * sequelize.sync() creates it whole, exactly like CaregiverDraft was. */
 const LadderDraft = require('./models/LadderDraft');

@@ -28,7 +28,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const SNAPSHOT_KEY = 'iris-db/snapshot.sqlite';
+// Overridable ONLY for local integration tests against the same blob
+// store; production never sets it, so the real snapshot path is stable.
+const SNAPSHOT_KEY = process.env.BLOB_SNAPSHOT_KEY || 'iris-db/snapshot.sqlite';
 let blob = null;
 try {
   if (process.env.BLOB_READ_WRITE_TOKEN) blob = require('@vercel/blob');
@@ -46,6 +48,24 @@ let lastHash = null;
 let timer = null;
 let inflight = null;
 let dirty = false;
+/* P69 CROSS-INSTANCE FRESHNESS. Vercel runs several warm function
+   instances and pins nothing between requests. A snapshot downloaded at
+   boot goes stale within seconds: a family could register on instance A
+   and hit /verify/confirm on instance B — whose local file predates the
+   account — so the CORRECT code is rejected with a generic error (and a
+   B-side mutation could push B's stale file over A's writes, losing
+   data). The fix: before every API request, cheaply HEAD the snapshot;
+   if its version changed since we last saw it, re-download and hot-swap
+   the SQLite file (closing pooled connections first via the freshHook).
+   Every push also records the new remote version from put()'s reply, so
+   an instance never re-pulls bytes it just wrote. */
+let remoteVer = null; /* version of the snapshot bytes currently on OUR disk (null = never installed) */
+let freshHook = null;
+function onFresh(fn) { freshHook = fn; }
+function versionOf(meta) {
+  if (!meta) return null;
+  return String(meta.etag || meta.uploadedAt || meta.addedTime || meta.lastModified || '');
+}
 
 function md5(buf) {
   return crypto.createHash('md5').update(buf).digest('hex');
@@ -77,6 +97,7 @@ async function restore(fileStoragePath) {
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
     fs.writeFileSync(dbPath, buf);
     lastHash = md5(buf);
+    remoteVer = versionOf(hd);
     console.log(`[blobsync] restored ${buf.length} bytes from snapshot`);
     return 'restored';
   } catch (e) {
@@ -93,7 +114,7 @@ async function uploadNow() {
     dirty = false;
     return;
   }
-  await blob.put(SNAPSHOT_KEY, buf, {
+  const put = await blob.put(SNAPSHOT_KEY, buf, {
     // The store is PRIVATE: every command must state access explicitly or
     // the SDK rejects the call ("access must be private or public").
     access: 'private',
@@ -101,7 +122,56 @@ async function uploadNow() {
     allowOverwrite: true,
   });
   lastHash = hash;
+  remoteVer = versionOf(put) || remoteVer;
   dirty = false;
+}
+
+/* Download the newer remote snapshot and swap it in underneath the
+ * database layer. freshHook must close pooled connections BEFORE we
+ * overwrite the file (and clear -wal/-shm sidecars) so the next query
+ * opens the fresh bytes instead of a handle over replaced ones.
+ */
+async function installRemote(hd) {
+  const res = await fetch(hd.downloadUrl, {
+    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+  });
+  if (!res.ok) throw new Error(`download HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (freshHook) await freshHook();
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  for (const side of ['-wal', '-shm', '-journal']) {
+    try { fs.rmSync(dbPath + side, { force: true }); } catch { /* ignore */ }
+  }
+  fs.writeFileSync(dbPath, buf);
+  lastHash = md5(buf);
+  remoteVer = versionOf(hd);
+  console.log(`[blobsync] fresh-installed ${buf.length} bytes (cross-instance sync)`);
+}
+
+/** Cheap HEAD; if the world moved on, come along. */
+async function ensureFresh() {
+  if (!active || !dbPath) return;
+  try {
+    let hd = null;
+    try {
+      hd = await blob.head(SNAPSHOT_KEY);
+    } catch (e) {
+      if (e && (e instanceof blob.BlobNotFoundError || e.name === 'BlobNotFoundError')) return;
+      throw e;
+    }
+    if (!hd || !hd.downloadUrl) return;
+    const v = versionOf(hd);
+    /* remoteVer is the version of the bytes WE HOLD ON DISK. Null means
+       this instance never installed a snapshot (its file is a freshly
+       synced empty store) - so the FIRST time we see a real remote
+       version we must INSTALL it, not merely adopt the number. Boot
+       restore sets the version itself whenever it downloads bytes. */
+    if (remoteVer != null && v === remoteVer) return;
+    await installRemote(hd);
+  } catch (e) {
+    // A failed freshness probe must NOT take the API down: serve local.
+    console.error('[blobsync] ensureFresh failed:', e.message);
+  }
 }
 
 /** Await any pending work before serving a new request (serverless-safe). */
@@ -143,7 +213,7 @@ function scheduleFlush() {
 function middleware(req, res, next) {
   if (!active) return next();
   const mutating = req.method !== 'GET' && String(req.path || '').startsWith('/api');
-  flushPending().finally(() => {
+  flushPending().then(ensureFresh).finally(() => {
     if (mutating) {
         res.on('finish', () => {
     if (req.method !== 'GET' && res.statusCode < 400) {
@@ -184,9 +254,10 @@ function diagnostics() {
     dbSize: dbPath && fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
     hasUploaded: !!lastHash,
     dirty,
+    remoteVer,
     lastErr: global.__blobsyncLastErr || null,
     token: process.env.BLOB_READ_WRITE_TOKEN ? 'set' : 'unset',
   };
 }
 
-module.exports = { active, restore, flushPending, scheduleFlush, flushNow, middleware, diagnostics };
+module.exports = { active, restore, flushPending, scheduleFlush, flushNow, middleware, diagnostics, onFresh };
