@@ -124,6 +124,9 @@ const fam1 = await newFamily('Gated Kid', 5);
 const cgScored = await forgeGatedCaregiver(fam1);
 const ctx1 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const p1 = await ctx1.newPage();
+/* P70: pre-recorded unified-voice narration hits (mp3 clips), not browser TTS */
+const ttsHits = new Set();
+p1.on('request', (rq) => { if (/\/audio\/tts\/src\d+\.mp3/.test(rq.url())) ttsHits.add(rq.url()); });
 const errs1 = []; p1.on('pageerror', (e) => errs1.push(String(e).slice(0, 140)));
 await p1.goto(`${WEB}/login`, { waitUntil: 'domcontentloaded' });
 await p1.evaluate(({ t, e }) => { localStorage.clear(); localStorage.setItem('iris_auth_token', t); localStorage.setItem('iris_auth_email', e); }, { t: fam1.token, e: fam1.email });
@@ -307,4 +310,5 @@ await ctx3.close();
 await browser.close();
 
 console.log(`RESULT av2: ${pass} pass / ${fail} fail`);
+ok('P70 unified voice: ladder narration played >=3 distinct mp3 clips (got ' + ttsHits.size + ')', ttsHits.size >= 3);
 process.exit(fail ? 1 : 0);

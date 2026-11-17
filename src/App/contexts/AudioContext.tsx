@@ -3,6 +3,7 @@ import { phraseFor, allPhrases, PHRASE_KINDS, type PhraseKind, type Lang } from 
 import { SOUND_FILES, MUSIC_FILE, type SoundEvent } from '../audio/soundMap';
 import { getClip, voiceUsable, releaseClips, warmClips } from '../audio/voice';
 import { fileClipFor } from '../audio/fileClips';
+import { cleanSpeechText } from '../audio/speechText';
 
 /**
  * IRIS audio system.
@@ -456,13 +457,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /** Strip emoji and decorative symbols so they are not read aloud literally. */
-  const cleanForSpeech = (text: string) =>
-    text
-      .replace(/[\u{1F000}-\u{1FAFF}]/gu, '')
-      .replace(/[\u{2190}-\u{2BFF}]/gu, '')
-      .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
+  // P70: shared with the clip-manifest scripts. Known emoji are READ as
+  // their word (الكورة, القمر…) so two picture prompts can never collapse
+  // onto the same clip key, and what is spoken equals what is looked up.
+  const cleanForSpeech = (text: string, language: Lang = 'ar') => cleanSpeechText(text, language);
 
   /**
    * The browser's own speech synthesis. This is no longer the primary voice —
@@ -539,7 +537,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     el.onplay = () => { setIsSpeaking(true); duckMusic(true); };
     const done = () => { if (seq !== speakSeqRef.current) return; setIsSpeaking(false); duckMusic(false); };
     el.onended = done;
-    el.onstop = done;
     el.onerror = () => { done(); if (seq === speakSeqRef.current && isEnabledRef.current) browserSpeak(clean, language); };
     el.play().catch(() => { if (seq === speakSeqRef.current && isEnabledRef.current) browserSpeak(clean, language); });
   };
@@ -555,7 +552,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const canSpeak = useCallback(
     (text: string, language: Lang = 'ar') => {
       if (!isEnabled || !text) return false;
-      const clean = cleanForSpeech(text);
+      const clean = cleanForSpeech(text, language);
       if (!clean) return false;
       if (fileClipFor(clean)) return true;
       if (typeof window === 'undefined' || !window.speechSynthesis) return false;
@@ -579,7 +576,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       setCaption(text);
       if (!isEnabled) return;
 
-      const clean = cleanForSpeech(text);
+      const clean = cleanForSpeech(text, language);
       if (!clean) return;
 
       // Whatever was speaking stops now, in both voices.

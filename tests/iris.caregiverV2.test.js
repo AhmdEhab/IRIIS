@@ -26,25 +26,25 @@ test('cv2 bank: version, shape, no gate/triplet formats, unique ids', () => {
   }
 });
 
-test('cv2 core count is 13 always-on (+VQ13 at 5y +VPREF) — never above 15', () => {
+test('cv2 core count is 13 always-on (+VQ13 at 5y only) — never above 15', () => {
   const always = CORE.filter((i) => !i.ageMinMonths);
-  assert.equal(always.length, 14, 'VQ1..VQ12 minus probes + VQ10b + VPREF = 14');
+  assert.equal(always.length, 13, 'P70b: VQ1..VQ12 minus probes + VQ10b = 13; VPREF left the questionnaire');
   assert.ok(byId('VQ13').ageMinMonths === 60);
-  // "under 15" promise: 13 child questions + VPREF = 14 for a 4-year-old
+  // "under 15" promise: exactly 13 child questions for a 4-year-old
   const under5 = always.filter((i) => i.id !== 'VPREF');
   assert.equal(under5.length, 13);
 });
 
-test('cv2: VPREF is a preference, not child information', () => {
-  assert.equal(byId('VPREF').feeds, 'prefs');
-  assert.ok(byId('VPREF').ar.q.includes('ملوش علاقة بيه'));
+test('cv2: VPREF is GONE from the family file (interface pref lives in settings only)', () => {
+  assert.equal(byId('VPREF'), undefined);
+  assert.ok(!all.some((i) => i.id === 'VPREF'));
 });
 
 test('score cv2: speech probe only when words are the channel', () => {
   const r = scoreCaregiverV2({ responses: {
     VQ1: { v: 'aac' }, VQ2: { v: 'independent' }, VQ3: { v: 'independent' }, VQ4: { v: 'independent' },
     VQ5: { v: 'independent' }, VQ6: { v: 'free' }, VQ7: { v: 'with_kids' }, VQ8: { v: ['none'] },
-    VQ9: { v: ['hug'] }, VQ10: { v: ['music'] }, VQ11: { v: 'morning' }, VQ12: { v: 'home' }, VPREF: { v: 'both' },
+    VQ9: { v: ['hug'] }, VQ10: { v: ['music'] }, VQ11: { v: 'morning' }, VQ12: { v: 'home' },
   }, meta: { childAgeMonths: 50 } });
   assert.equal(r.bankVersion, 'cv2');
   // AAC path never asked the speech-level probe → C5/C6 unsure → still MEDIUM at most
@@ -57,7 +57,7 @@ test('score cv2: self-care tick sets care flag + calm note, never a score', () =
     VQ1: { v: 'words' }, VQ1v: { v: 'few_words' }, VQ2: { v: 'hands_on' }, VQ3: { v: 'hands_on' },
     VQ4: { v: 'hands_on' }, VQ5: { v: 'middle' }, VQ6: { v: 'free' }, VQ7: { v: 'near_kids' },
     VQ8: { v: ['self_care', 'fuss'] }, VQ9: { v: ['unknown'] }, VQ9f: { v: 'before_demand' },
-    VQ10: { v: ['water'] }, VQ11: { v: 'evening' }, VQ12: { v: 'home' }, VPREF: { v: 'text' },
+    VQ10: { v: ['water'] }, VQ11: { v: 'evening' }, VQ12: { v: 'home' },
   }, meta: { childAgeMonths: 66 } });
   assert.deepEqual(r.careFlags, ['self_care']);
   assert.ok(CARE_CARD_CODES.includes('self_care'));
@@ -78,13 +78,13 @@ test('score cv2: S and M confidence are capped at MEDIUM', () => {
     VQ4: { v: 'independent' }, VQ5: { v: 'middle' }, VQ5f: { v: ['dress'] }, VQ5h: { v: 'mama_baba' },
     VQ6: { v: 'support' }, VQ6m: { v: 'hands_ok' }, VQ7: { v: 'with_kids' }, VQ8: { v: ['none'] },
     VQ9: { v: ['hug'] }, VQ10: { v: ['animals'] }, VQ10b: { note: 'بيركب السلالم لوحده' }, VQ11: { v: 'morning' }, VQ12: { v: 'school' },
-    VQ13: { v: 'home_only' }, VPREF: { v: 'both' },
+    VQ13: { v: 'home_only' },
   };
   const r = scoreCaregiverV2({ responses: full, meta: { childAgeMonths: 72 } });
   assert.notEqual(r.domainStates.S.confidence, 'HIGH');
   assert.notEqual(r.domainStates.M.confidence, 'HIGH');
-  assert.equal(r.completeness.total, 15);
-  assert.equal(r.completeness.answered, 15); // core only — probes never inflate
+  assert.equal(r.completeness.total, 14); // 13 always-on + letters at 5y; VPREF is gone
+  assert.equal(r.completeness.answered, 14); // core only — probes never inflate
   assert.ok(['emerging', 'does_with_support'].includes(r.domainStates.M.state)); // support-holding walker, good hands
 });
 
@@ -92,7 +92,7 @@ test('score cv2: access never inferred from walking', () => {
   const freeWalker = scoreCaregiverV2({ responses: {
     VQ1: { v: 'gesture' }, VQ2: { v: 'little_help' }, VQ3: { v: 'little_help' }, VQ4: { v: 'little_help' },
     VQ5: { v: 'independent' }, VQ6: { v: 'free' }, VQ7: { v: 'with_kids' }, VQ8: { v: ['none'] },
-    VQ9: { v: ['hug'] }, VQ10: { v: ['balls'] }, VQ11: { v: 'morning' }, VQ12: { v: 'kg' }, VPREF: { v: 'both' },
+    VQ9: { v: ['hug'] }, VQ10: { v: ['balls'] }, VQ11: { v: 'morning' }, VQ12: { v: 'kg' },
   }, meta: { childAgeMonths: 54 } });
   // VQ6m not shown → M3/M4 unsure → no tap-only access invention beyond defaults
   assert.equal(freeWalker.accessSettings.responseMode, 'tap');
@@ -100,7 +100,7 @@ test('score cv2: access never inferred from walking', () => {
     VQ1: { v: 'aac' }, VQ2: { v: 'hands_on' }, VQ3: { v: 'hands_on' }, VQ4: { v: 'hands_on' },
     VQ5: { v: 'hands_on' }, VQ5f: { v: ['eat', 'dress', 'wash', 'toilet', 'choose'] }, VQ5h: { v: 'hand_help' },
     VQ6: { v: 'device' }, VQ6m: { v: 'own_way' }, VQ7: { v: 'near_kids' }, VQ8: { v: ['fuss'] },
-    VQ9: { v: ['music'] }, VQ10: { v: ['music'] }, VQ11: { v: 'varies' }, VQ12: { v: 'home' }, VPREF: { v: 'audio' },
+    VQ9: { v: ['music'] }, VQ10: { v: ['music'] }, VQ11: { v: 'varies' }, VQ12: { v: 'home' },
   }, meta: { childAgeMonths: 84 } });
   assert.equal(deviceChild.accessSettings.targetSize, 'large');
   assert.equal(deviceChild.supportIntensity.S.type, 'full_physical');

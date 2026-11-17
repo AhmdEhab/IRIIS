@@ -33,3 +33,4 @@ Thumbs.db
 .vercel
 .env*
 [SENSITIVE]
+public/audio/tts/*_transcription_*

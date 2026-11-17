@@ -828,8 +828,14 @@ export function CaregiverProfileScreen({ onSuspend, onComplete, demoSeed, forced
         ? scoreCaregiverProfile({ responses: answers, meta: { childAgeMonths: months, completed: true } })
         : scoreCaregiverV2({ responses: answers, meta: { childAgeMonths: months, completed: true, metrics } });
       if (vBank === CAREGIVER_V2_VERSION) {
-        const pref = String(firstCode(answers['VPREF']) ?? 'both');
-        try { localStorage.setItem('iris_display_pref', pref); } catch { /* non-critical */ }
+        // P70b: VPREF is no longer asked — the interface preference lives in
+        // Parent Settings only. A legacy draft that still carries a VPREF
+        // answer seeds the setting ONLY when nothing was chosen yet; a
+        // family that already tuned settings is never overwritten here.
+        const legacy = answers['VPREF'] ? String(firstCode(answers['VPREF'])) : null;
+        if (legacy) {
+          try { if (!localStorage.getItem('iris_display_pref')) localStorage.setItem('iris_display_pref', legacy); } catch { /* non-critical */ }
+        }
       }
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ responses: answers, bankVersion: vBankRef.current, clientRef, status: 'COMPLETE', itemId: null, updatedAt: new Date().toISOString() })); } catch { /* silent */ }
       await sendDraft('COMPLETE'); // best-effort; a local COMPLETE still stands

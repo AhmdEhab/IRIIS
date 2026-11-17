@@ -3,6 +3,8 @@
 // Egyptian Arabic tutor ar-eg-tutor-11, warm and slow) and shipped with
 // the app, so IRIS is never silent on a machine without an Arabic voice.
 // Keys are the exact audio_ar strings from src/iris/content/phase5Bank.js.
+import { GENERATED_CLIPS } from './fileClips.generated';
+
 const CLIPS: Record<string, string> = {
   "ألف": '/audio/tts/src01.mp3',
   "باء": '/audio/tts/src02.mp3',
@@ -47,6 +49,10 @@ const CLIPS: Record<string, string> = {
   "٦": '/audio/tts/src41.mp3',
   "٧": '/audio/tts/src42.mp3',
 };
+
+// P70: the full-app narration set (298 phrases) merges in; the original
+// 42 word/sentence clips above win on any collision (they were tuned first).
+for (const [k, v] of Object.entries(GENERATED_CLIPS)) if (!(k in CLIPS)) CLIPS[k] = v;
 
 export function fileClipFor(text: string): string | null {
   return CLIPS[text] ?? null;

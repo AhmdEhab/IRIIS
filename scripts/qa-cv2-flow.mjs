@@ -159,7 +159,7 @@ ok('daily parts + helper probes shown', /محتاج مساعدة في إيه/.te
 ok('hands probe shown for supported walker', /بالمؤشر|بيشاور/.test(joined));
 ok('letters question shown at age 5', /حروف أو أرقام/.test(joined));
 ok('upset-cause probe shown after nothing-works soothing', /بيضيق قبل إيه/.test(joined));
-ok('preference question is the LAST thing asked', /IRIS يعرض/.test(joined));
+ok('display preference is NOT inside the questionnaire (cv2 refinement 5)', !/IRIS يعرض/.test(joined) && !/سؤال أخير/.test(joined));
 
 /* ── 4. ladder appears right after the profile (gate intact) ─────────────── */
 await page.waitForTimeout(1800);
@@ -191,8 +191,9 @@ ok('completeness honest (≤15 core)', sc?.completeness?.total <= 15 && sc.compl
 ok('no numeric score keys', !!sc && !/^(score|composite|totalScore|iq|mentalAge)/i.test(Object.keys(sc).join(',')), Object.keys(sc || {}).join(','));
 ok('confidence of S/M never HIGH', sc && sc.domainStates.S.confidence !== 'HIGH' && sc.domainStates.M.confidence !== 'HIGH',
   `S=${sc?.domainStates?.S?.confidence} M=${sc?.domainStates?.M?.confidence}`);
+ok('no VPREF traces in the stored CAREGIVER record', !/VPREF/.test(JSON.stringify(rows[0]?.item_results || {})));
 const pref = await page.evaluate(() => localStorage.getItem('iris_display_pref'));
-ok('display preference stored OUTSIDE assessment data', pref === 'both', String(pref));
+ok('display preference lives OUTSIDE assessment data (absent until set, never inside scored)', !pref || pref === 'both', String(pref));
 const dr = await J('GET', `${API}/caregiver/draft?childId=${kid}`, null, token);
 ok('draft COMPLETE', dr.data?.draft?.status === 'COMPLETE', JSON.stringify(dr.data || {}).slice(0, 100));
 
