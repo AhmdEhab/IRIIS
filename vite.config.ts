@@ -18,6 +18,13 @@ export default defineConfig({
       ? process.env.VITE_ALLOWED_HOSTS.split(',')
       : [],
   },
+  // P65: `vite preview` mirrors the dev proxy so a production-style build
+  // can be exercised against the local API (scripts/qa-chunk-recovery.mjs).
+  preview: {
+    proxy: {
+      '/api': 'http://127.0.0.1:5000',
+    },
+  },
   resolve: {
     alias: {
       // Alias @ to the src directory

@@ -18,7 +18,7 @@ import { mapCondition } from './components/iris/IrisFlow';
    own chunk fetched the moment it is asked for. The navigation overhaul made
    all of them addressable, so none of them may block first paint. */
 const lazyN = (loader: () => Promise<Record<string, any>>, name: string) =>
-  React.lazy(async () => ({ default: await loader().then((m) => m[name]) } as any));
+  lazyWithRecovery(loader, name);
 const CaregiverProfileScreen = lazyN(() => import('./components/CaregiverProfileScreen'), 'CaregiverProfileScreen');
 const IrisFirstPlan = lazyN(() => import('./components/iris/IrisFirstPlan'), 'IrisFirstPlan');
 const IrisResultsScreen = lazyN(() => import('./components/iris/IrisResultsScreen'), 'IrisResultsScreen');
@@ -80,7 +80,7 @@ class RouteBoundary extends React.Component<{ children: React.ReactNode }, { fai
               <p className="lc-hero-sub" dir="auto">
                 {document.dir === 'rtl' ? 'حصل مشكلة في تحميل الصفحة — جرب تاني.' : 'This page failed to load — try again.'}
               </p>
-              <button type="button" className="lc-btn lc-btn--primary" style={{ marginTop: 14 }} onClick={() => this.setState({ failed: false })}>
+              <button type="button" className="lc-btn lc-btn--primary" style={{ marginTop: 14 }} onClick={() => { try { location.reload(); } catch { this.setState({ failed: false }); } }}>
                 {document.dir === 'rtl' ? 'أعيد المحاولة' : 'Retry'}
               </button>
             </div>
@@ -92,6 +92,7 @@ class RouteBoundary extends React.Component<{ children: React.ReactNode }, { fai
   }
 }
 
+import { lazyWithRecovery } from './lazyWithRecovery';
 import { ChildShell } from './components/iris/ui/ChildShell';
 // CommunitySessionsScreen is deliberately NOT imported. It contains four
 // invented practitioners with ratings and review counts, three fabricated
