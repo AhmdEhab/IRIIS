@@ -5,7 +5,7 @@
    potential (cold or warm) instance. A single failure means some instance
    served a stale snapshot. Also asserts /api/health reports blobsync
    active with a tracked remote version. Never prints secrets. */
-const O = 'https://iris-kohl-seven.vercel.app';
+const O = process.env.O || 'https://iris-kohl-seven.vercel.app';
 const API = `${O}/api`;
 
 const J = async (m, p, b, t) => {
