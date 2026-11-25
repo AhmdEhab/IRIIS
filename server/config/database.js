@@ -25,10 +25,18 @@ AbstractConnectionManager.prototype._loadDialectModule = function (moduleName) {
   if (moduleName === 'sqlite3') return require('../sqlite3-shim');
   return require(moduleName);
 };
-const REMOTE = process.env.TURSO_DATABASE_URL;
+const isRemoteUrl = (v) => typeof v === 'string' && /^(libsql|https?):\/\//i.test(v);
+// Turso can be configured either as TURSO_DATABASE_URL (its own name) or as
+// DB_PATH holding a libsql:// URL — accept both, and never treat a URL as a
+// file path.
+const REMOTE = process.env.TURSO_DATABASE_URL || (isRemoteUrl(process.env.DB_PATH) ? process.env.DB_PATH : null);
 let storage = REMOTE;
 if (!storage) {
   storage = process.env.DB_PATH || path.join(__dirname, '..', 'database.sqlite');
+  // Only a real file needs its directory to exist. A remote URL must never
+  // reach mkdirSync: path.dirname('libsql://host/db') is 'libsql:/host', which
+  // would try to create a folder in the (read-only, on Vercel) working
+  // directory and crash the whole function at boot.
   fs.mkdirSync(path.dirname(storage), { recursive: true });
 }
 const sequelize = new Sequelize({
