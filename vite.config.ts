@@ -17,6 +17,14 @@ export default defineConfig({
     allowedHosts: process.env.VITE_ALLOWED_HOSTS
       ? process.env.VITE_ALLOWED_HOSTS.split(',')
       : [],
+    // Same proxy as `preview` below. A dev session reached through a tunnel
+    // serves the app from an https origin, where the default VITE_API_URL
+    // (http://localhost:5000/api) points at the *visitor's* machine and every
+    // auth call dies. With this proxy, `VITE_API_URL=/api` keeps calls
+    // same-origin, so a shared preview behaves like the deployment.
+    proxy: {
+      '/api': 'http://127.0.0.1:5000',
+    },
   },
   // P65: `vite preview` mirrors the dev proxy so a production-style build
   // can be exercised against the local API (scripts/qa-chunk-recovery.mjs).
