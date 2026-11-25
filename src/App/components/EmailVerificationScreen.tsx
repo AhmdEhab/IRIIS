@@ -24,7 +24,7 @@ import { ChevronLeft, ChevronRight, Mail, RefreshCw } from 'lucide-react';
  * hand back the code as devCode — shown as a hint, never auto-accepted).
  */
 export function EmailVerificationScreen() {
-  const { navigateTo, childProfile, setEmailVerified, registerEmailSent } = useApp();
+  const { navigateTo, childProfile, setEmailVerified, registerEmailSent, logoutUser } = useApp();
   const { language } = useLanguage();
   const ar = language === 'ar';
   const { playSound, speak } = useAudio();
@@ -227,6 +227,21 @@ export function EmailVerificationScreen() {
     navigateTo('marketing');
   };
 
+  /**
+   * Escape hatch for the one loop this screen used to have no answer for:
+   * the address is wrong (typo, or a family member's inbox) or the parent
+   * simply cannot get into it. Registration had already created the account,
+   * so retrying sign-up answered EMAIL_ALREADY_REGISTERED — and the account
+   * could not be entered either, because the code goes to an inbox nobody can
+   * open. Signing out here clears the session so the parent can start again
+   * with a different address (or log in properly).
+   */
+  const startOver = async () => {
+    playSound('tap');
+    await logoutUser();
+    navigateTo('registration');
+  };
+
   return (
     <AuthShell
       tone="blue"
@@ -243,20 +258,28 @@ export function EmailVerificationScreen() {
         </div>
       }
       footer={
-        <p className="ir-auth-footnote">
-          {ar ? 'لم يصلك البريد؟ ' : "Didn't get it? "}
-          <button
-            type="button"
-            className="ir-auth-linkbtn"
-            onClick={() => { void requestSend(); }}
-            disabled={busy || cooldown > 0}
-          >
-            <RefreshCw size={14} aria-hidden="true" />{' '}
-            {cooldown > 0
-              ? (ar ? `إعادة الإرسال بعد ${cooldown} ثانية` : `Resend in ${cooldown}s`)
-              : (ar ? 'إعادة إرسال الكود' : 'Resend the code')}
-          </button>
-        </p>
+        <div className="ir-verify-foot">
+          <p className="ir-auth-footnote">
+            {ar ? 'لم يصلك البريد؟ ' : "Didn't get it? "}
+            <button
+              type="button"
+              className="ir-auth-linkbtn"
+              onClick={() => { void requestSend(); }}
+              disabled={busy || cooldown > 0}
+            >
+              <RefreshCw size={14} aria-hidden="true" />{' '}
+              {cooldown > 0
+                ? (ar ? `إعادة الإرسال بعد ${cooldown} ثانية` : `Resend in ${cooldown}s`)
+                : (ar ? 'إعادة إرسال الكود' : 'Resend the code')}
+            </button>
+          </p>
+          <p className="ir-auth-footnote">
+            {ar ? 'البريد ده مش بتاعك أو مش قادر تفتحه؟ ' : "Wrong address or can't open it? "}
+            <button type="button" className="ir-auth-linkbtn" onClick={() => { void startOver(); }}>
+              {ar ? 'ابدأ من جديد ببريد تاني' : 'Start over with another email'}
+            </button>
+          </p>
+        </div>
       }
     >
       <div className="ir-verify" dir={ar ? 'rtl' : 'ltr'}>
@@ -271,6 +294,17 @@ export function EmailVerificationScreen() {
           </p>
         )}
         {note && <p className="ir-verify-note">{note}</p>}
+
+        {/* Deliverability is the single most common reason a correct code is
+            never entered: the mail is in spam, or on its way. Say it here
+            rather than leaving the parent to guess. */}
+        {phase !== 'checking' && (
+          <p className="ir-verify-hint">
+            {ar
+              ? 'مش لاقي الرسالة؟ بص في مجلد «الرسائل غير المرغوب فيها / Spam»، وتأكد إنك بتفتح نفس البريد المكتوب فوق.'
+              : "Can't find it? Check your spam folder, and make sure you are opening the address shown above."}
+          </p>
+        )}
 
         {devCode && (
           <button

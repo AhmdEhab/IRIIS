@@ -665,6 +665,61 @@
   .ir-auth-field > .ir-auth-input { min-height: 62px; font-size: 16.5px; }
 }
 
+/* ── Validation you can see ────────────────────────────────────────────
+   The wizard used to enforce its rules invisibly (a `disabled` CTA with no
+   explanation), which read as "التسجيل مش شغال". These four pieces make the
+   rules visible: a coral asterisk on required fields, one line of copy that
+   says the asterisk means something, an error line directly under the field
+   that needs fixing, and a checklist of what is still missing under the CTA.
+   Colours are the brand tokens already used for the auth error banner, so the
+   new text never invents a palette. */
+.ir-auth-req {
+  color: var(--brand-coral-ink, #863236);
+  font-weight: 800;
+  margin-inline-start: 2px;
+}
+
+/* The asterisk legend: small, quiet, never competes with the step title. */
+.ir-auth-required-note {
+  margin: -6px 0 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--muted-text);
+}
+
+.ir-auth-field-error,
+.ir-auth-field-hint {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+.ir-auth-field-error { color: var(--brand-coral-ink, #863236); }
+.ir-auth-field-hint { color: var(--muted-text); }
+
+/* "Log in instead" — a real action next to the duplicate-email message. */
+.ir-auth-field-action {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 13px;
+  text-align: start;
+}
+
+/* "Still needed: …" under the CTA — the sentence the greyed-out button
+   should have said all along. Yellow wash: informational, not an error. */
+.ir-auth-cta-hint {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--brand-yellow-ink, #614d14);
+  background: var(--brand-yellow-wash, #fdf3d8);
+  text-align: center;
+}
+
 
 /* ── Email verification screen (auth spec §3) ─────────────────────────
    Same card language as login/registration: pastel scene, white rounded
@@ -711,3 +766,13 @@
   .ir-verify-box { width: 40px; height: 50px; font-size: 20px; }
   .ir-verify-code { gap: 6px; }
 }
+/* Plain, quiet line — where to look when the code has not arrived. */
+.ir-verify-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted-text);
+}
+/* Resend + "start over with another email" stack instead of running
+   together on one line. */
+.ir-verify-foot { display: flex; flex-direction: column; gap: 6px; }

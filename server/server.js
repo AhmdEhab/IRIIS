@@ -283,6 +283,34 @@ app.get('/api/health', async (req, res) => {
 });
 
 // ── auth routes ───────────────────────────────────────────────────────────
+/**
+ * POST /api/register/check — "is this email free?" asked at STEP 1.
+ *
+ * WHY THIS EXISTS (user report: "التسجيل مش راضي يشتغل"): the duplicate-email
+ * answer used to arrive only from /api/register, i.e. after the parent had
+ * filled all three steps of the wizard and pressed إرسال — at which point the
+ * form simply bounced them back with EMAIL_ALREADY_REGISTERED and everything
+ * they typed looked wasted. Asking the same question up front turns a dead
+ * end into a field-level message ("سجّل الدخول بدل ما تعمل حساب جديد").
+ *
+ * It reveals only what /api/register already reveals on submit, and it never
+ * creates, mutates or emails anything — a pure read.
+ */
+app.post('/api/register/check', async (req, res) => {
+  try {
+    const email = normaliseEmail((req.body || {}).email);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'EMAIL_INVALID' });
+    }
+    const existing = await User.findOne({ where: { email } });
+    return res.json({ email, available: !existing });
+  } catch {
+    // A failed check must never block sign-up: the client treats a non-OK
+    // answer as "unknown" and lets /api/register decide.
+    return res.status(500).json({ error: 'CHECK_FAILED' });
+  }
+});
+
 app.post('/api/register', async (req, res) => {
   try {
     const { password, name, consent_mvp_use } = req.body || {};
