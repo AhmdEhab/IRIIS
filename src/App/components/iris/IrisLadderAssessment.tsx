@@ -1031,32 +1031,43 @@ function BreakOverlay({ ar, onContinue }: { ar: boolean; onContinue: () => void 
  */
 function EffortBurst({ burst, ar }: { burst: number; ar: boolean }) {
   const reduceMotion = useReducedMotion();
-  return (
-    <AnimatePresence>
-      {burst > 0 && (
-        <motion.div
-          key={burst}
-          role="status"
-          aria-live="polite"
-          dir={ar ? 'rtl' : 'ltr'}
-          className="absolute left-1/2 -translate-x-1/2 bottom-3 z-30 flex flex-col items-center gap-1 rounded-full px-5 py-2 pointer-events-none"
-          style={{
-            background: 'var(--lc-surface, #FFFDF6)',
-            border: '2px solid var(--lc-border, rgba(31,103,177,0.16))',
-            boxShadow: '0 12px 28px -14px rgba(222, 162, 26, 0.55)',
-          }}
-          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.85 }}
-          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: reduceMotion ? 0.15 : 0.4, ease: 'easeOut' }}
-        >
-          <span className="text-lg" aria-hidden="true">⭐✨⭐✨⭐</span>
-          <span style={{ fontWeight: 800, color: '#8A5A00' }}>
-            {ar ? 'ممتاز إنك كمّلت!' : 'Great job keeping going!'}
-          </span>
-        </motion.div>
-      )}
-    </AnimatePresence>
+  if (typeof document === 'undefined') return null;
+  // Rendered as a floating snackbar at the bottom of the viewport, in a
+  // portal: it must never sit on top of the game card (it used to cover the
+  // prompt and the "محتاج مساعدة؟" row) and must not be clipped or offset by
+  // any transformed ancestor.
+  return createPortal(
+    <div
+      className="pointer-events-none fixed inset-x-0 z-[320] flex justify-center px-4"
+      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)' }}
+    >
+      <AnimatePresence>
+        {burst > 0 && (
+          <motion.div
+            key={burst}
+            role="status"
+            aria-live="polite"
+            dir={ar ? 'rtl' : 'ltr'}
+            className="flex max-w-full flex-col items-center gap-1 rounded-full px-5 py-2 text-center"
+            style={{
+              background: 'var(--lc-surface, #FFFDF6)',
+              border: '2px solid var(--lc-border, rgba(31,103,177,0.16))',
+              boxShadow: '0 12px 28px -14px rgba(222, 162, 26, 0.55)',
+            }}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.85 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0.15 : 0.4, ease: 'easeOut' }}
+          >
+            <span className="text-lg" aria-hidden="true">⭐✨⭐✨⭐</span>
+            <span style={{ fontWeight: 800, color: '#8A5A00' }}>
+              {ar ? 'ممتاز إنك كمّلت!' : 'Great job keeping going!'}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>,
+    document.body,
   );
 }
 
