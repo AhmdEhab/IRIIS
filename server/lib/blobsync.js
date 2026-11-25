@@ -52,6 +52,15 @@ if (active && process.env.VERCEL !== '1' && !process.env.BLOB_SNAPSHOT_KEY) {
   active = false;
   blob = null;
 }
+// REMOTE DATABASE GUARD. When DB_PATH is a libsql/Turso URL (or any http(s)
+// database URL) the data already lives outside the function's ephemeral disk,
+// so there is no local file to snapshot. Leaving the blob layer on would try
+// to fs.writeFileSync() onto a URL and fail on every cold start.
+if (active && /^(libsql|https?):\/\//i.test(process.env.DB_PATH || '')) {
+  console.log('[blobsync] DB_PATH is a remote database URL — snapshot layer DISABLED (database is already durable)');
+  active = false;
+  blob = null;
+}
 console.log(`[blobsync] module loaded: sdk=${!!blob} active=${active} VERCEL=${process.env.VERCEL || '-'} token=${process.env.BLOB_READ_WRITE_TOKEN ? 'set' : 'unset'}`);
 let dbPath = null;
 let lastHash = null;
