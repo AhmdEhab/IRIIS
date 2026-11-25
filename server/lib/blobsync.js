@@ -70,6 +70,7 @@ let dirty = false;
    Every push also records the new remote version from put()'s reply, so
    an instance never re-pulls bytes it just wrote. */
 let remoteVer = null; /* version of the snapshot bytes currently on OUR disk (null = never installed) */
+let restoreErr = null; /* why the last restore failed, surfaced by /api/health */
 let freshHook = null;
 function onFresh(fn) { freshHook = fn; }
 function versionOf(meta) {
@@ -105,6 +106,10 @@ async function restore(fileStoragePath) {
     console.log(`[blobsync] restored ${buf.length} bytes from snapshot`);
     return 'restored';
   } catch (e) {
+    /* Kept, not just logged: a silent 'error' left the deployment looking
+       healthy while every cold start began from an empty database. Health now
+       names the reason (invalid token, missing store, HTTP 403 …). */
+    restoreErr = e.message;
     console.error('[blobsync] restore failed:', e.message);
     return 'error';
   }
@@ -260,6 +265,7 @@ function diagnostics() {
     hasUploaded: !!lastHash,
     dirty,
     remoteVer,
+    restoreErr,
     lastErr: global.__blobsyncLastErr || null,
     token: process.env.BLOB_READ_WRITE_TOKEN ? 'set' : 'unset',
   };
