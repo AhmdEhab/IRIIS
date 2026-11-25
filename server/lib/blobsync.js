@@ -88,13 +88,7 @@ async function restore(fileStoragePath) {
   try {
     // @vercel/blob v2 has no download(); resolve the private blob via
     // head() then fetch its signed download URL with the RW token.
-    let hd = null;
-    try {
-      hd = await blob.head(SNAPSHOT_KEY);
-    } catch (e) {
-      if (e && (e instanceof blob.BlobNotFoundError || e.name === 'BlobNotFoundError')) hd = null;
-      else throw e;
-    }
+    const hd = await headSnapshot();
     if (!hd || !hd.downloadUrl) {
       fs.mkdirSync(path.dirname(dbPath), { recursive: true });
       return 'empty-store';
@@ -162,13 +156,7 @@ async function installRemote(hd) {
 async function ensureFresh() {
   if (!active || !dbPath) return;
   try {
-    let hd = null;
-    try {
-      hd = await blob.head(SNAPSHOT_KEY);
-    } catch (e) {
-      if (e && (e instanceof blob.BlobNotFoundError || e.name === 'BlobNotFoundError')) return;
-      throw e;
-    }
+    const hd = await headSnapshot();
     if (!hd || !hd.downloadUrl) return;
     const v = versionOf(hd);
     /* remoteVer is the version of the bytes WE HOLD ON DISK. Null means
@@ -278,3 +266,37 @@ function diagnostics() {
 }
 
 module.exports = { active, restore, flushPending, scheduleFlush, flushNow, middleware, diagnostics, onFresh };
+
+/**
+ * HEAD the snapshot, in the store's own access mode.
+ *
+ * The store is PRIVATE — `uploadNow()` already passes `access: 'private'` to
+ * `put()` for exactly that reason. `head()` needs the same statement, and it
+ * was the one call that did not make it: on a private store the SDK rejects a
+ * bare `head()` with an "access" error, which is neither BlobNotFoundError nor
+ * anything the restore path knew how to read, so `restore()` returned 'error'
+ * on every cold start. The visible symptom was the worst kind: an account was
+ * created, worked while that instance lived, and was gone after the next
+ * deployment — the SQLite file is /tmp, and the snapshot that was supposed to
+ * outlive it was never downloaded.
+ *
+ * Public stores (older deployments) still work: the private attempt fails
+ * with the access error and the public one is tried next. A genuinely absent
+ * blob returns null from both.
+ */
+async function headSnapshot() {
+  const attempt = async (access) => {
+    try {
+      return await blob.head(SNAPSHOT_KEY, { access });
+    } catch (e) {
+      if (e && (e instanceof blob.BlobNotFoundError || e.name === 'BlobNotFoundError')) return null;
+      throw e;
+    }
+  };
+  try {
+    return await attempt('private');
+  } catch (e) {
+    if (process.env.BLOBSYNC_DEBUG) console.error('[blobsync] private head failed:', e.message);
+    return attempt('public');
+  }
+}
