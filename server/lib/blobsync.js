@@ -83,6 +83,26 @@ function md5(buf) {
 }
 
 /** Download the snapshot onto disk. Must be awaited before sequelize.sync. */
+/**
+ * Download the snapshot bytes from a head() result.
+ *
+ * `downloadUrl` for a private blob is already signed (`?token=…`), and the
+ * signed URL is rejected with 403 when an Authorization header is added on
+ * top — which is exactly what happened: head() found the blob, the download
+ * answered "download HTTP 403", and every cold start fell back to an empty
+ * database. So: try the signed URL as-is, and only fall back to the RW token
+ * for stores whose URL is not pre-signed.
+ */
+async function downloadSnapshot(hd) {
+  const plain = await fetch(hd.downloadUrl);
+  if (plain.ok) return Buffer.from(await plain.arrayBuffer());
+  const authed = await fetch(hd.downloadUrl, {
+    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+  });
+  if (authed.ok) return Buffer.from(await authed.arrayBuffer());
+  throw new Error(`download HTTP ${authed.status}`);
+}
+
 async function restore(fileStoragePath) {
   if (!active) return 'disabled';
   dbPath = fileStoragePath;
@@ -94,11 +114,7 @@ async function restore(fileStoragePath) {
       fs.mkdirSync(path.dirname(dbPath), { recursive: true });
       return 'empty-store';
     }
-    const res = await fetch(hd.downloadUrl, {
-      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-    });
-    if (!res.ok) throw new Error(`download HTTP ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
+    const buf = await downloadSnapshot(hd);
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
     fs.writeFileSync(dbPath, buf);
     lastHash = md5(buf);
@@ -141,11 +157,7 @@ async function uploadNow() {
  * opens the fresh bytes instead of a handle over replaced ones.
  */
 async function installRemote(hd) {
-  const res = await fetch(hd.downloadUrl, {
-    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-  });
-  if (!res.ok) throw new Error(`download HTTP ${res.status}`);
-  const buf = Buffer.from(await res.arrayBuffer());
+  const buf = await downloadSnapshot(hd);
   if (freshHook) await freshHook();
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   for (const side of ['-wal', '-shm', '-journal']) {
